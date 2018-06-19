@@ -75,12 +75,14 @@ Cell fun_write(const Cell& args)
 }
 
 template<typename Fun>
-void foreach(Fun&& fun, Cell& list)
+void foreach(Fun&& fun, const Cell& list)
 {
-    while(!is_nil(list))
+    Cell iter = list;
+
+    while(!is_nil(iter))
     {
-        fun(car(list));
-        list = cdr(list);
+        fun(car(iter));
+        iter = cdr(iter);
     }
 }
 

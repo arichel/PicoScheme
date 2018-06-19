@@ -15,6 +15,7 @@
 #include <memory>
 #include <functional>
 #include <iostream>
+#include <deque>
 
 namespace pscm {
 
@@ -33,6 +34,7 @@ using String = std::string;
 using Port   = std::ostream;
 using Cons   = std::pair<Cell, Cell>;
 using Func   = std::function<Cell(const Cell&)>;
+using Store  = std::deque<Cons>;
 
 static const Nil  nil {};
 static const None none {};
@@ -45,15 +47,29 @@ struct Cell : Variant
     using base_type = Variant;
     using Variant::operator=;
     using Variant::Variant;
+
+
 };
 
-template<typename T, typename ... Args> T make(Args&& ... args)
+static Store store;
+
+template<typename T, typename ... Args>
+T make(Args&& ... args)
 {
     if constexpr (std::is_pointer_v<T>)
+    {
         return new std::remove_pointer_t<T>{std::forward<Args>(args)...};
+    }
     else
+    {
         return T{std::forward<Args>(args)...};
+    }
 };
+
+constexpr bool operator == (None a, None b)
+{
+    return true;
+}
 
 template<typename T>
 constexpr T type(const Cell& cell)
@@ -82,12 +98,12 @@ constexpr Cell cadr(const Cell& cons)
     return car(cdr(cons));
 }
 
-inline void set_car(Cell& cons, const Cell& cell)
+constexpr void set_car(Cell& cons, const Cell& cell)
 {
     type<Cons*>(cons)->first = cell;
 }
 
-inline void set_cdr(Cell& cons, const Cell& cell)
+constexpr void set_cdr(Cell& cons, const Cell& cell)
 {
     type<Cons*>(cons)->second = cell;
 }
@@ -116,7 +132,13 @@ constexpr bool is_pair(const Cell& cell)
 
 constexpr bool is_list(const Cell& cell)
 {
-    return is_nil(cell) || (is_pair(cell) && (is_pair(cdr(cell)) || is_nil(cdr(cell))));
+   Cell slow = cell, iter = cell;
+
+   for(; is_pair(iter); iter = cdr(iter), slow = cdr(slow))
+       if(!is_pair(iter = cdr(iter)) || iter == slow)
+           break;
+
+   return is_nil(iter);
 }
 
 inline Cell port()
@@ -131,7 +153,7 @@ inline Cell str(const char *s)
 
 inline Cell cons(const Cell& car, const Cell& cdr)
 {
-    return make<Cons*>(car, cdr);
+    return &store.emplace_back(car, cdr);
 }
 
 template<typename FUN>

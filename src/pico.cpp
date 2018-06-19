@@ -8,15 +8,26 @@
  *************************************************************************************/
 #include "cell.hpp"
 
+using namespace std;
 using namespace pscm;
+
 
 int main()
 {
-    String s {"huhu"};
+    try {
+        Cell expr = cons(str("huhu"), cons(str("paul"), cons(10., nil)));
 
-    Cell expr = cons(func(fun_write), cons(&s, cons(str("paul"), cons(10., nil))));
-    Cell args = cons(expr, cons(port(), nil));
-    fun_write(args);
+        set_car(cdr(expr), str("hubert"));
 
+        Cell args = cons(expr, nil);
+
+        fun_write(args);
+
+        cout << sizeof(expr) << endl;
+    }
+    catch (std::bad_variant_access& e)
+    {
+        cout << e.what() << endl;
+    }
     return 0;
 }
