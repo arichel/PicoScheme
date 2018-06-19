@@ -73,22 +73,23 @@ Cell fun_write(const Cell& args)
     *port << car(args);
     return none;
 }
-}; // namespace pscm
 
-
-int main()
+template<typename Fun>
+void foreach(Fun&& fun, Cell& list)
 {
-    using namespace pscm;
-
-    String s {"huhu"};
-
-    Cell expr = cons(func(fun_write), cons(&s, cons(str("paul"), cons(10., nil))));
-
-    Cell args = cons(expr, cons(port(), nil));
-
-    fun_write(args);
-
-    fun_write(cons(cons(Int{3}, Int{30}), nil));
-
-     return 0;
+    while(!is_nil(list))
+    {
+        fun(car(list));
+        list = cdr(list);
+    }
 }
+
+Cell fun_foreach(const Cell& args)
+{
+    auto fun = type<Func*>(car(args));
+
+    foreach(*fun, cdr(args));
+    return none;
+}
+
+}; // namespace pscm

@@ -67,27 +67,27 @@ constexpr bool is_type(const Cell& cell)
     return std::holds_alternative<T>(cell);
 }
 
-Cell car(const Cell& cons)
+constexpr Cell car(const Cell& cons)
 {
     return type<Cons*>(cons)->first;
 }
 
-Cell cdr(const Cell& cons)
+constexpr Cell cdr(const Cell& cons)
 {
     return type<Cons*>(cons)->second;
 }
 
-Cell cadr(const Cell& cons)
+constexpr Cell cadr(const Cell& cons)
 {
     return car(cdr(cons));
 }
 
-void set_car(Cell& cons, const Cell& cell)
+inline void set_car(Cell& cons, const Cell& cell)
 {
     type<Cons*>(cons)->first = cell;
 }
 
-void set_cdr(Cell& cons, const Cell& cell)
+inline void set_cdr(Cell& cons, const Cell& cell)
 {
     type<Cons*>(cons)->second = cell;
 }
@@ -119,17 +119,17 @@ constexpr bool is_list(const Cell& cell)
     return is_nil(cell) || (is_pair(cell) && (is_pair(cdr(cell)) || is_nil(cdr(cell))));
 }
 
-Cell port()
+inline Cell port()
 {
     return &std::cout;
 }
 
-Cell str(const char *s)
+inline Cell str(const char *s)
 {
     return make<String*>(s);
 }
 
-Cell cons(const Cell& car, const Cell& cdr)
+inline Cell cons(const Cell& car, const Cell& cdr)
 {
     return make<Cons*>(car, cdr);
 }
@@ -140,23 +140,9 @@ Cell func(FUN&& fun)
     return make<Func*>(std::forward<FUN>(fun));
 }
 
-template<typename Fun>
-void foreach(Fun&& fun, Cell& list)
-{
-    while(!is_nil(list))
-    {
-        fun(car(list));
-        list = cdr(list);
-    }
-}
+Cell fun_foreach(const Cell& args);
 
-Cell fun_foreach(const Cell& args)
-{
-    auto fun = type<Func*>(car(args));
-
-    foreach(*fun, cdr(args));
-    return none;
-}
+Cell fun_write(const Cell& args);
 
 }; // namespace pscm
 #endif // CELL_HPP
