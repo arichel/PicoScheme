@@ -11,23 +11,28 @@
 using namespace std;
 using namespace pscm;
 
-
 int main()
 {
+    Cell s = str("hallo");
+    cout << std::get<String>(s).use_count() << endl;
+
     try {
-        Cell expr = cons(str("huhu"), cons(str("paul"), cons(10., nil)));
+        Cell lst = pscm::list(str("hallo"), s, str("paul"), s, fun_write);
 
-        set_car(cdr(expr), str("hubert"));
+        fun_write(cons(lst, nil));
 
-        Cell args = cons(expr, nil);
+        cout << "length " << list_length(lst) << endl;
 
-        fun_write(args);
-
-        cout << sizeof(expr) << endl;
-    }
+        cout << std::get<String>(s).use_count() << endl;
+     }
     catch (std::bad_variant_access& e)
     {
         cout << e.what() << endl;
     }
+    catch (std::invalid_argument& e)
+    {
+        cout << e.what() << endl;
+    }
+    cout << store.size() << endl;
     return 0;
 }

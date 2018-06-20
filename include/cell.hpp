@@ -11,159 +11,116 @@
 
 #include <utility>
 #include <variant>
+#include <complex>
 #include <string>
 #include <memory>
-#include <functional>
 #include <iostream>
 #include <deque>
+#include <vector>
 
 namespace pscm {
 
-struct Cell;
-struct Symbol;
-struct Record;
-struct Vector;
-struct Dict;
+struct Cell; //!< union type, forward declaration
 
-using Nil    = nullptr_t;
-using None   = struct{};
-using Bool   = bool;
-using Int    = int64_t;
-using Float  = double;
-using String = std::string;
-using Port   = std::ostream;
-using Cons   = std::pair<Cell, Cell>;
-using Func   = std::function<Cell(const Cell&)>;
-using Store  = std::deque<Cons>;
+/**
+ * @brief
+ */
+using Nil        = nullptr_t;
+using None       = struct{};
+using Bool       = bool;
+using Char       = char;
+using Int        = int64_t;
+using Float      = double;
+using Complex    = std::complex<Float>;
 
-static const Nil  nil {};
-static const None none {};
+using Port       = std::ostream;
+using Cons       = std::pair<Cell, Cell>;
+using Func       = Cell(*)(const Cell&);
 
-using Variant = std::variant<Nil, None, Bool, Int, Float, String*, Port*, Cons*, Func*>;
-enum struct Type : size_t {Nil, None, Bool, Int, Float, String, Cons, Lambda};
+//using Symbol =
+//using Lambda =
+
+using String     = std::shared_ptr<std::basic_string<Char>>;
+using Vector     = std::shared_ptr<std::vector<Cell>>;
+using VecInt     = std::shared_ptr<std::vector<Int>>;
+using VecFloat   = std::shared_ptr<std::vector<Float>>;
+using VecComplex = std::shared_ptr<std::vector<Complex>>;
+using Variant    = std::variant<Nil, None, Bool, Int, Float, Cons*, String, Port*, Func>;
 
 struct Cell : Variant
 {
     using base_type = Variant;
     using Variant::operator=;
     using Variant::Variant;
-
-
 };
 
-static Store store;
+//! Global cons type store
+static std::deque<Cons> store;
 
-template<typename T, typename ... Args>
-T make(Args&& ... args)
-{
-    if constexpr (std::is_pointer_v<T>)
-    {
-        return new std::remove_pointer_t<T>{std::forward<Args>(args)...};
-    }
-    else
-    {
-        return T{std::forward<Args>(args)...};
-    }
-};
+static const Nil  nil  {}; //!< empty list symbol
+static const None none {}; //!< void return symbol
 
-constexpr bool operator == (None a, None b)
-{
-    return true;
+constexpr bool operator == (None a, None b) {return true;}
+constexpr bool operator != (None a, None b) {return false;}
+
+inline Cell car(const Cell& cons)   {return std::get<Cons*>(cons)->first;}
+inline Cell cdr(const Cell& cons)   {return std::get<Cons*>(cons)->second;}
+inline Cell cadr(const Cell& cons)  {return car(cdr(cons));}
+inline Cell caddr(const Cell& cons) {return car(cdr(cdr(cons)));}
+
+template<typename T> void set_car(Cell& cons, T&& t) {std::get<Cons*>(cons)->first = std::forward<T>(t);}
+template<typename T> void set_cdr(Cell& cons, T&& t) {std::get<Cons*>(cons)->second = std::forward<T>(t);}
+template<typename T> constexpr bool is_type(const Cell& cell) {return std::holds_alternative<T>(cell);}
+
+constexpr Bool is_nil    (const Cell& cell) {return is_type<Nil>(cell);}
+constexpr Bool is_string (const Cell& cell) {return is_type<String>(cell);}
+constexpr Bool is_pair   (const Cell& cell) {return is_type<Cons*>(cell);}
+
+//! Predicate return true if cell is a proper nil terminated list or a circular list.
+Bool is_list(Cell cell);
+
+//! Return the length of a proper list or the period length of a circular list.
+Int list_length(Cell list);
+
+//! Return the kth element of a proper or cicular list.
+Cell list_ref(Cell list, Int k);
+
+inline Cell port() {return &std::cout;}
+
+//! Build a String shared-pointer from a zero terminiated Char array.
+inline String str(const Char *s) {
+    return std::make_shared<String::element_type>(s);
 }
 
-template<typename T>
-constexpr T type(const Cell& cell)
+//! Return a new cons-cell from the global cons-store
+//! A cons-cell is basically a type tagged pointer into the global cons-store.
+template<typename CAR, typename CDR>
+Cons* cons(CAR&& car, CDR&& cdr)
 {
-    return std::get<T>(static_cast<Cell::base_type>(cell));
+   return &store.emplace_back(std::forward<CAR>(car), std::forward<CDR>(cdr));
+}
+//! Build a list of all arguments
+template <typename T, typename ... Args>
+Cell list(T&& t,  Args&& ... args)
+{
+   return cons(std::forward<T>(t), list(std::forward<Args>(args)...));
 }
 
-template<typename T>
-constexpr bool is_type(const Cell& cell)
-{
-    return std::holds_alternative<T>(cell);
-}
+//! Recursion base case
+inline Cell list() {return nil;}
 
-constexpr Cell car(const Cell& cons)
-{
-    return type<Cons*>(cons)->first;
-}
-
-constexpr Cell cdr(const Cell& cons)
-{
-    return type<Cons*>(cons)->second;
-}
-
-constexpr Cell cadr(const Cell& cons)
-{
-    return car(cdr(cons));
-}
-
-constexpr void set_car(Cell& cons, const Cell& cell)
-{
-    type<Cons*>(cons)->first = cell;
-}
-
-constexpr void set_cdr(Cell& cons, const Cell& cell)
-{
-    type<Cons*>(cons)->second = cell;
-}
-
-constexpr bool is_nil(const Cell& cell)
-{
-    return is_type<Nil>(cell);
-}
-
-constexpr bool is_atom(const Cell& cell)
-{
-    return is_type<Bool>(cell)
-            || is_type<Int>(cell)
-            || is_type<Float>(cell);
-}
-
-constexpr bool is_string(const Cell& cell)
-{
-    return is_type<String*>(cell);
-}
-
-constexpr bool is_pair(const Cell& cell)
-{
-    return is_type<Cons*>(cell);
-}
-
-constexpr bool is_list(const Cell& cell)
-{
-   Cell slow = cell, iter = cell;
-
-   for(; is_pair(iter); iter = cdr(iter), slow = cdr(slow))
-       if(!is_pair(iter = cdr(iter)) || iter == slow)
-           break;
-
-   return is_nil(iter);
-}
-
-inline Cell port()
-{
-    return &std::cout;
-}
-
-inline Cell str(const char *s)
-{
-    return make<String*>(s);
-}
-
-inline Cell cons(const Cell& car, const Cell& cdr)
-{
-    return &store.emplace_back(car, cdr);
-}
-
-template<typename FUN>
-Cell func(FUN&& fun)
-{
-    return make<Func*>(std::forward<FUN>(fun));
-}
-
+/**
+ * @brief Calls a function for each list item.
+ * @param args Argument list: (Func list...))
+ * @return none symbol
+ */
 Cell fun_foreach(const Cell& args);
 
+/**
+ * @brief Writes an expression to the standard or supplied output port
+ * @param args Argument list (expr {port})
+ * @return none symbol
+ */
 Cell fun_write(const Cell& args);
 
 }; // namespace pscm
