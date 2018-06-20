@@ -66,10 +66,12 @@ static std::basic_ostream<CharT,Traits>& operator << (std::basic_ostream<CharT, 
     [&os](Bool arg)    {os << (arg ? "#T" : "#F");},
     [&os](Int arg)     {os << arg;},
     [&os](Float arg)   {os << arg;},
+    [&os](Symbol arg)  {os << '<' << arg.name() << '>';},
     [&os](String arg)  {os << '"' << *arg << '"';},
     [&os](Port*)       {os << "port";},
     [&os](Cons* arg)   {os << arg;},
     [&os](Func)        {os << "function";},
+
 
     /* catch missing overloads and emit compile time error message */
     [](auto arg){static_assert(always_false<decltype(arg)>::value, "callable overload is missing");}

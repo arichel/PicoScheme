@@ -13,18 +13,18 @@ using namespace pscm;
 
 int main()
 {
-    Cell s = str("hallo");
-    cout << std::get<String>(s).use_count() << endl;
-
     try {
-        Cell lst = pscm::list(str("hallo"), s, str("paul"), s, fun_write);
+        //Cell lst = pscm::list(str("hallo"), str("paul"), sym("hulla hub"), s_nil, s_none, s_false, fun_write);
 
-        fun_write(cons(lst, nil));
+        Symbol s = atom("#none");
 
-        cout << "length " << list_length(lst) << endl;
+        stab.print();
 
-        cout << std::get<String>(s).use_count() << endl;
-     }
+        cout << (s == stab.s_true) << ' ' << s.is_intern() << ' ' << stab.s_true.is_intern() << endl;;
+
+        //fun_write(cons(lst, nil));
+        //cout << endl;
+    }
     catch (std::bad_variant_access& e)
     {
         cout << e.what() << endl;
@@ -33,6 +33,5 @@ int main()
     {
         cout << e.what() << endl;
     }
-    cout << store.size() << endl;
     return 0;
 }

@@ -17,6 +17,11 @@
 #include <iostream>
 #include <deque>
 #include <vector>
+#include <unordered_set>
+#include <functional>
+#include <set>
+
+#include "symbol.hpp"
 
 namespace pscm {
 
@@ -32,20 +37,16 @@ using Char       = char;
 using Int        = int64_t;
 using Float      = double;
 using Complex    = std::complex<Float>;
-
 using Port       = std::ostream;
 using Cons       = std::pair<Cell, Cell>;
 using Func       = Cell(*)(const Cell&);
-
-//using Symbol =
-//using Lambda =
-
 using String     = std::shared_ptr<std::basic_string<Char>>;
 using Vector     = std::shared_ptr<std::vector<Cell>>;
 using VecInt     = std::shared_ptr<std::vector<Int>>;
 using VecFloat   = std::shared_ptr<std::vector<Float>>;
 using VecComplex = std::shared_ptr<std::vector<Complex>>;
-using Variant    = std::variant<Nil, None, Bool, Int, Float, Cons*, String, Port*, Func>;
+
+using Variant = std::variant<Nil, None, Bool, Int, Float, Symbol, String, Cons*, Port*, Func>;
 
 struct Cell : Variant
 {
@@ -75,6 +76,8 @@ template<typename T> constexpr bool is_type(const Cell& cell) {return std::holds
 constexpr Bool is_nil    (const Cell& cell) {return is_type<Nil>(cell);}
 constexpr Bool is_string (const Cell& cell) {return is_type<String>(cell);}
 constexpr Bool is_pair   (const Cell& cell) {return is_type<Cons*>(cell);}
+inline    Bool is_symbol (const Cell& cell) {return is_type<Symbol>(cell) && !std::get<Symbol>(cell).is_intern();}
+inline    Bool is_intern (const Cell& cell) {return is_type<Symbol>(cell) && std::get<Symbol>(cell).is_intern();}
 
 //! Predicate return true if cell is a proper nil terminated list or a circular list.
 Bool is_list(Cell cell);
