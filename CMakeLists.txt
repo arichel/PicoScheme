@@ -4,7 +4,7 @@ project(PicoScheme VERSION 0.1 LANGUAGES CXX)
 
 # Enable c++17 for MS-compiler
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
 endif(MSVC)
 
 # Add source directory
