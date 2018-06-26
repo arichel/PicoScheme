@@ -21,16 +21,13 @@
 #include <variant>
 #include <vector>
 
+#include "number.hpp"
 #include "symbol.hpp"
 #include "utils.hpp"
 
 namespace pscm {
 
 struct Cell; //!< union type, forward declaration
-//struct Number;
-
-using Int = int64_t;
-using Float = double;
 
 /**
  * @brief
@@ -39,7 +36,6 @@ using Nil = nullptr_t;
 using None = void*;
 using Bool = bool;
 using Char = char;
-//using Complex    = std::complex<Number>;
 using Port = std::ostream;
 using Cons = std::pair<Cell, Cell>;
 using Func = Cell (*)(const Cell&);
@@ -47,7 +43,6 @@ using String = std::shared_ptr<std::basic_string<Char>>;
 using Vector = std::shared_ptr<std::vector<Cell>>;
 using VecInt = std::shared_ptr<std::vector<Int>>;
 using VecFloat = std::shared_ptr<std::vector<Float>>;
-//using VecComplex = std::shared_ptr<std::vector<Complex>>;
 
 enum class Intern {
     _and,
@@ -60,36 +55,7 @@ enum class Intern {
     _lambda
 };
 
-//struct Number : NumberVariant {
-//    using base_type = NumberVariant;
-//    using base_type::operator=;
-//    using base_type::base_type;
-//};
-
-//constexpr Number operator+(const Number& lhs, const Number& rhs)
-//{
-//    return std::visit([](auto&& lhs, auto&& rhs) {
-//        using std::is_same_v;
-//        using std::is_pointer_v;
-
-//        using T_lhs = std::decay_t<decltype(lhs)>;
-//        using T_rhs = std::decay_t<decltype(rhs)>;
-
-//        if constexpr (is_pointer_v<T_lhs> && is_pointer_v<T_rhs>)
-//            return Number{ *lhs + *rhs };
-//        else
-
-//            //if constexpr (std::is_same_v<T_lhs, T_rhs>)
-//            return Number{ lhs + rhs };
-//        //else
-
-//        //return Number{ std::common_type_t<T_lhs, T_rhs>{ lhs + rhs } };
-//    },
-//        lhs, rhs);
-//    //static_cast<Number::base_type>(lhs), static_cast<Number::base_type>(rhs));
-//}
-
-using Variant = std::variant<Nil, None, Bool, Int, Float, Intern, Symbol, String, Cons*, Port*, Func>;
+using Variant = std::variant<Nil, None, Bool, Number, Intern, Symbol, String, Cons*, Port*, Func>;
 
 struct Cell : Variant {
     using base_type = Variant;
@@ -155,9 +121,7 @@ inline Cell list() { return nil; }
 inline const char* name(Intern i)
 {
     static const char* const names[] = {
-        "and", "or", "cond", "define", "setb", "begin"
-                                               "apply",
-        "lambda"
+        "and", "or", "cond", "define", "setb", "begin", "apply", "lambda"
     };
     return names[static_cast<int>(i)];
 }

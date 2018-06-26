@@ -75,10 +75,7 @@ static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, T
 template <typename CharT, typename Traits>
 static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, Intern i)
 {
-    static const char* const name[] = {
-        "and", "or", "cond", "define", "setb", "begin", "apply", "lambda"
-    };
-    return os << name[static_cast<int>(i)];
+    return os << name(i);
 }
 
 /**
@@ -91,8 +88,7 @@ static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, T
         [&os](Nil) { os << "()"; },
         [&os](None) { os << "#none"; },
         [&os](Bool arg) { os << (arg ? "#T" : "#F"); },
-        [&os](Int arg) { os << arg; },
-        [&os](Float arg) { os << arg; },
+        [&os](Number arg) { os << arg; },
         [&os](Intern arg) { os << arg; },
         [&os](Symbol arg) { os << '<' << arg.name() << '>'; },
         [&os](String arg) { os << '"' << *arg << '"'; },
