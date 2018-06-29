@@ -6,21 +6,22 @@
  * @author    Paul Pudewills
  * @copyright MIT License
  *************************************************************************************/
-#include "number.hpp"
-#include "utils.hpp"
 #include <assert.h>
 #include <cmath>
 #include <limits>
+
+#include "number.hpp"
+#include "utils.hpp"
 
 namespace pscm {
 
 /**
  * @brief Check wheter an integer addition of both argument values would overflow.
  */
-static bool overflow_add(Int a, Int b)
+constexpr bool overflow_add(Int a, Int b)
 {
-    static constexpr Int min = std::numeric_limits<Int>::min(),
-                         max = std::numeric_limits<Int>::max();
+    constexpr Int min = std::numeric_limits<Int>::min(),
+                  max = std::numeric_limits<Int>::max();
 
     return (b > 0 && a > max - b) || (b < 0 && a < min - b);
 }
@@ -28,10 +29,10 @@ static bool overflow_add(Int a, Int b)
 /**
  * @brief Check wheater integer substraction of both arguments values would overflow.
  */
-static bool overflow_sub(Int a, Int b)
+constexpr bool overflow_sub(Int a, Int b)
 {
-    static constexpr Int min = std::numeric_limits<Int>::min(),
-                         max = std::numeric_limits<Int>::max();
+    constexpr Int min = std::numeric_limits<Int>::min(),
+                  max = std::numeric_limits<Int>::max();
 
     return (b > 0 && a < min + b) || (b < 0 && a > max + b);
 }
@@ -74,12 +75,12 @@ Number operator+(const Number& lhs, const Number& rhs)
 {
     using value_type = Complex::value_type;
 
-    auto fun = overloads{
+    constexpr auto fun = overloads{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 + z1; },
         [](const Complex& z, auto x) -> Number { return z + (value_type)x; },
         [](auto x, const Complex& z) -> Number { return (value_type)x + z; },
         [](Int i0, Int i1) -> Number {
-            return overflow_add(i0, i1) ? (value_type)i0 - (value_type)i1 : i0 + i1;
+            return overflow_add(i0, i1) ? (value_type)i0 + (value_type)i1 : i0 + i1;
         },
         [](auto x, auto y) -> Number {
             using T = std::common_type_t<decltype(x), decltype(y)>;

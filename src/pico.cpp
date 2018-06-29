@@ -6,36 +6,66 @@
  * @author    Paul Pudewills
  * @copyright MIT License
  *************************************************************************************/
+#include <iostream>
+
 #include "cell.hpp"
+#include "eval.hpp"
 #include "number.hpp"
+#include "stream.hpp"
 
 using namespace std;
 using namespace pscm;
 
+std::tuple<int, double, std::string> testret()
+{
+    return std::make_tuple(100, 300., "hallo paul");
+}
+
 int main()
 {
     try {
-        Cell lst = pscm::list(Intern::_and, Intern::_or, Intern::_cond, Intern::_define, Intern::_setb, Intern::_begin, Intern::_apply, Intern::_lambda);
 
-        Cell c = fun_write(cons(lst, nil));
-        cout << is_none(c) << endl;
+        int i = 0;
+        double x = 0.;
+        string s = "blub";
 
-        Float x = -10.3;
+        std::tie(i, x, s) = testret();
 
-        Number n0;
-        Number n1 = 3;
-        Number n2 = x;
-        Number n3 = { 3, 5.3 };
-        Number n4{ n2, n1 };
+        cout << i << ' ' << x << ' ' << s << endl;
 
-        cout << "n0: " << n0 << ' ' << is_type<Int>(n0) << endl
-             << "n1: " << n1 << ' ' << is_type<Int>(n1) << endl
-             << "n2: " << n2 << ' ' << is_type<Int>(n2) << endl
-             << "n3: " << n3 << ' ' << is_type<Complex>(n3) << endl;
+        Symenv e = senv();
+        Cell expr;
 
-        auto val = pow(n2, n0);
+        expr = pscm::list(Intern::_define, sym("x0"), num(1000));
+        cout << eval(e, expr) << endl;
 
-        cout << val << ' ' << is_type<Int>(val) << endl;
+        expr = pscm::list(Intern::_define, sym("+"), Intern::op_add);
+        cout << eval(e, expr) << endl;
+
+        expr = pscm::list(Intern::_setb, sym("x0"), str("hallo paul"));
+        cout << eval(e, expr) << endl;
+
+        expr = pscm::list(Intern::_or, 1_int, 2_int, false, 3_int);
+        cout << eval(e, expr) << endl;
+
+        expr = pscm::list(Intern::op_add, 1_int, 2_int, pscm::list(Intern::op_add, 100_int, 200_int), 4_int, 5_int);
+        cout << eval(e, expr) << endl;
+
+        expr = pscm::list(Intern::_lambda, pscm::list(sym("a"), sym("b")),
+            pscm::list(Intern::op_add, sym("a"), sym("b")));
+        cout << eval(e, expr) << endl;
+
+        expr = pscm::list(Intern::_define, pscm::list(sym("hello"), sym("x")),
+            pscm::list(Intern::op_add, sym("x"), sym("x")));
+        cout << eval(e, expr) << endl;
+        cout << eval(e, pscm::list(sym("hello"), num(100))) << endl;
+
+        expr = pscm::list(Intern::_if, false, true);
+        cout << eval(e, expr) << endl;
+
+        expr = pscm::list(Intern::_apply, sym("+"), num(1), num(2), num(3),
+            pscm::list(Intern::_quote, pscm::list(num(100), num(200))));
+        cout << eval(e, expr) << endl;
 
     } catch (std::bad_variant_access& e) {
         cout << e.what() << endl;

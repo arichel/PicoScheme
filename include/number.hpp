@@ -12,6 +12,8 @@
 #include <complex>
 #include <variant>
 
+#include "utils.hpp"
+
 namespace pscm {
 
 using Int = int64_t;
@@ -35,35 +37,34 @@ struct Number : std::variant<Int, Float, Complex> {
     {
     }
 
+    template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    constexpr Number(T x)
+        : base_type{ static_cast<Int>(x) }
+    {
+    }
     /**
      * @brief Converting constructor for arithmetic type arguments.
      */
-    template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-    Number(T x)
+    constexpr Number(Float x)
     {
-        if constexpr (std::is_integral_v<T>)
+        if (x != static_cast<Int>(x))
+            *this = base_type{ x };
+        else
             *this = static_cast<Int>(x);
-        else {
-            if (x != std::trunc(x))
-                *this = static_cast<Float>(x);
-            else
-                *this = static_cast<Int>(x);
-        }
     }
-
     /**
      * @brief Converting constructor for complex type arguments.
      */
-    Number(const Complex& z)
+    constexpr Number(const Complex& z)
         : Number{ z.real(), z.imag() }
     {
     }
 
     template <typename RE, typename IM>
-    Number(RE x, IM y)
+    constexpr Number(RE x, IM y)
     {
         if (y != Float{ 0 })
-            *this = Complex{ static_cast<Float>(x), static_cast<Float>(y) };
+            *this = base_type{ Complex{ static_cast<Float>(x), static_cast<Float>(y) } };
         else
             *this = Number{ x };
     }
@@ -71,8 +72,8 @@ struct Number : std::variant<Int, Float, Complex> {
     /**
      * @brief Conversion operator to convert a Number type to the requested arithmetic or complex type.
      */
-    template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> || std::is_convertible_v<T, Complex>>>
-    constexpr operator T() const
+    template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> || std::is_same_v<T, Complex>>>
+    constexpr operator T() const noexcept
     {
         auto fun = [](const auto& num) -> T {
             using TT = std::decay_t<decltype(num)>;
@@ -104,6 +105,12 @@ struct Number : std::variant<Int, Float, Complex> {
         return std::visit(std::move(fun), static_cast<const base_type&>(*this));
     }
 };
+
+constexpr inline Number operator""_int(unsigned long long val) { return static_cast<Int>(val); }
+constexpr inline Number operator""_flo(unsigned long long val) { return static_cast<Int>(val); }
+constexpr inline Number operator""_cpx(unsigned long long val) { return Number{ 0., static_cast<Float>(val) }; }
+constexpr inline Number operator""_flo(long double val) { return static_cast<Float>(val); }
+constexpr inline Number operator""_cpx(long double val) { return Number{ 0., static_cast<Float>(val) }; }
 
 /**
  * @brief Out stream operator for a ::Number argument value.
@@ -157,6 +164,5 @@ Number imag(const Number& z);
 Number arg(const Number& z);
 Number conj(const Number& z);
 Number polar(const Number& r, const Number& theta);
-
 }; // namspace pscm
 #endif // NUMBER_HPP

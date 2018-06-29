@@ -20,9 +20,9 @@ struct always_false : std::false_type {
 }; //!< return false for every type
 
 template <typename T, typename Variant>
-constexpr bool is_type(Variant&& cell)
+constexpr bool is_type(Variant&& v)
 {
-    return std::holds_alternative<T>(std::forward<Variant>(cell));
+    return std::holds_alternative<T>(std::forward<Variant>(v));
 }
 
 #endif // UTILS_HPP

@@ -6,27 +6,28 @@
  * @author    Paul Pudewills
  * @copyright MIT License
  *************************************************************************************/
-#include <array>
 #include <assert.h>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <variant>
+#include <deque>
 
 #include "cell.hpp"
+#include "eval.hpp"
+#include "stream.hpp"
 #include "utils.hpp"
 
 namespace pscm {
 
+using std::get;
+
 //! Global cons type store
 static std::deque<Cons> store;
-
 static Symtab stab;
+
+Cell sym(const char* name) { return stab[name]; }
 
 //! Return a new cons-cell from the global cons-store
 //! A cons-cell is basically a type tagged pointer into the global cons-store.
 template <typename CAR, typename CDR, typename Store = std::deque<Cons>>
-Cons* cons(Store& store, CAR&& car, CDR&& cdr)
+static Cons* cons(Store& store, CAR&& car, CDR&& cdr)
 {
     return &store.emplace_back(std::forward<CAR>(car), std::forward<CDR>(cdr));
 }
@@ -36,79 +37,64 @@ Cell cons(Cell&& car, const Cell& cdr) { return cons(store, std::move(car), cdr)
 Cell cons(const Cell& car, Cell&& cdr) { return cons(store, car, std::move(cdr)); }
 Cell cons(const Cell& car, const Cell& cdr) { return cons(store, car, cdr); }
 
-Cell sym(const char* name) { return stab[name]; }
-
-//! Forward declaration of the output stream operator for Cell types.
-template <typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&, const Cell&);
-
-/**
- * @brief Output stream operator for Cons type arguments.
- */
-template <typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, Cons* cons)
-{
-    Cell iter{ cons };
-
-    os << '(' << car(iter);
-    iter = cdr(iter);
-
-    for (Cell slow{ iter }; is_pair(iter); iter = cdr(iter), slow = cdr(slow)) {
-        os << ' ' << car(iter);
-
-        if (!is_pair(iter = cdr(iter)) || slow == iter) {
-            if (slow == iter)
-                return os << " ...)"; // circular list detected
-
-            break;
-        }
-        os << ' ' << car(iter);
+struct Procedure {
+    Procedure(const Symenv& senv, const Cell& args, const Cell& code)
+    {
+        if (is_unique_symbol_list(args) && is_pair(code)) {
+            _senv = senv;
+            _args = args;
+            _code = code;
+        } else
+            throw std::invalid_argument("invalid procedure definition");
     }
-    if (is_nil(iter))
-        os << ')'; // list end
-    else
-        os << " . " << iter << ')'; // dotted pair end
 
-    return os;
+    std::tuple<Symenv, Cell, Cell> apply(const Symenv& senv, Cell args) const
+    {
+        auto newenv = std::make_shared<Symenv::element_type>(_senv);
+
+        Cell iter = _args;
+        for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
+            newenv->add(car(iter), eval(senv, car(args)));
+
+        if (iter != args) {
+            is_symbol(iter) || (throw std::invalid_argument("invalid procedure arguments"), 0);
+
+            newenv->add(iter, eval_list(senv, args));
+        }
+        return { newenv, Intern::_begin, _code };
+    }
+
+private:
+    bool is_unique_symbol_list(Cell args)
+    {
+        using std::get;
+
+        if (is_nil(args) || is_symbol(args))
+            return true;
+
+        std::set<Symbol::key_type> symset;
+
+        for (/* */; is_pair(args); args = cdr(args)) {
+            Cell sym = car(args);
+
+            if (!is_symbol(sym) || !symset.insert(get<Symbol>(sym)).second)
+                return false;
+        }
+        return is_nil(args) || (is_symbol(args) && symset.insert(get<Symbol>(args)).second);
+    }
+    Symenv _senv;
+    Cell _args = nil;
+    Cell _code = nil;
+};
+
+Cell lambda(const Symenv& senv, const Cell& args, const Cell& code)
+{
+    return std::make_shared<Proc::element_type>(senv, args, code);
 }
 
-template <typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, Intern i)
+std::tuple<Symenv, Cell, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args)
 {
-    return os << name(i);
-}
-
-/**
- * @brief Output stream operator for Cell type arguments.
- */
-template <typename CharT, typename Traits>
-static std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const Cell& cell)
-{
-    overloads fun{
-        [&os](Nil) { os << "()"; },
-        [&os](None) { os << "#none"; },
-        [&os](Bool arg) { os << (arg ? "#T" : "#F"); },
-        [&os](Number arg) { os << arg; },
-        [&os](Intern arg) { os << arg; },
-        [&os](Symbol arg) { os << '<' << arg.name() << '>'; },
-        [&os](String arg) { os << '"' << *arg << '"'; },
-        [&os](Port*) { os << "port"; },
-        [&os](Cons* arg) { os << arg; },
-        [&os](Func) { os << "function"; },
-
-        /* catch missing overloads and emit compile time error message */
-        [](auto arg) { static_assert(always_false<decltype(arg)>::value, "callable overload is missing"); }
-    };
-    std::visit(std::move(fun), static_cast<const Cell::base_type&>(cell));
-    return os;
-}
-
-Cell fun_write(const Cell& args)
-{
-    Port* port = is_nil(cdr(args)) ? &std::cout : std::get<Port*>(cadr(args));
-
-    *port << car(args);
-    return none;
+    return proc->apply(senv, args);
 }
 
 bool is_list(Cell cell)
@@ -143,25 +129,43 @@ Cell list_ref(Cell list, Int k)
     return car(list);
 }
 
-void foreach (Func fun, Cell list)
+//void foreach (Func fun, Cell list)
+//{
+//    for (Cell slow{ list }; is_pair(list); list = cdr(list), slow = cdr(slow)) {
+//        fun(car(list));
+
+//        if (!is_pair(list = cdr(list)) || list == slow)
+//            break;
+
+//        fun(car(list));
+//    }
+//}
+
+//Cell fun_foreach(const Cell& args)
+//{
+//    auto fun = get<Func>(car(args));
+
+//    foreach (fun, cdr(args))
+//        ;
+//    return none;
+//}
+
+Cell fun_write(const std::vector<Cell>& args)
 {
-    for (Cell slow{ list }; is_pair(list); list = cdr(list), slow = cdr(slow)) {
-        fun(car(list));
+    Port* port = args.size() > 1 ? get<Port*>(args[1]) : &std::cout;
 
-        if (!is_pair(list = cdr(list)) || list == slow)
-            break;
-
-        fun(car(list));
-    }
+    *port << args.at(0);
+    return none;
 }
 
-Cell fun_foreach(const Cell& args)
+Cell fun_add(const std::vector<Cell>& args)
 {
-    auto fun = std::get<Func>(car(args));
+    Number sum = 0;
 
-    foreach (fun, cdr(args))
-        ;
-    return none;
+    for (Number val : args)
+        sum += val;
+
+    return sum;
 }
 
 }; // namespace pscm
