@@ -7,6 +7,7 @@
  * @copyright MIT License
  *************************************************************************************/
 #include "eval.hpp"
+#include "stream.hpp"
 
 namespace pscm {
 
@@ -88,12 +89,27 @@ Cell eval_list(const Symenv& senv, Cell list)
         return nil;
 }
 
-static std::vector<Cell> eval_vec(const Symenv& senv, Cell list)
+static std::vector<Cell> eval_args(const Symenv& senv, Cell args, bool is_list)
 {
     std::vector<Cell> vec;
 
-    for (/* */; is_pair(list); list = cdr(list))
-        vec.push_back(eval(senv, car(list)));
+    if (is_list) {
+        for (/* */; is_pair(args); args = cdr(args))
+            vec.push_back(eval(senv, car(args)));
+
+        return vec;
+    }
+    Cell last = nil;
+
+    for (/* */; is_pair(args); args = cdr(args))
+        vec.push_back(last = eval(senv, car(args)));
+
+    if (is_nil(last))
+        return vec;
+
+    vec.back() = car(last);
+    for (args = cdr(last); is_pair(args); args = cdr(args))
+        vec.push_back(car(args));
 
     return vec;
 }
@@ -109,10 +125,11 @@ begin:
 
     Cell args = cdr(expr), proc = eval(senv, car(expr));
 
-    if (is_proc(proc))
-        tie(senv, proc, args) = apply(senv, proc, args);
-
-    switch (get<Intern>(proc)) {
+    if (is_proc(proc)) {
+        tie(senv, expr) = apply(senv, proc, args, true);
+        goto begin;
+    }
+    switch (Intern primop = proc) {
 
     case Intern::_quote:
         return car(args);
@@ -128,8 +145,14 @@ begin:
         goto begin;
 
     case Intern::_apply:
-        expr = args;
-        goto begin;
+        proc = eval(senv, car(args));
+        args = cdr(args);
+
+        if (is_proc(proc)) {
+            tie(senv, expr) = apply(senv, proc, args, false);
+            goto begin;
+        } else
+            return call(senv, proc, eval_args(senv, args, false));
 
     case Intern::_setb:
         return syntax_setb(senv, args);
@@ -146,11 +169,20 @@ begin:
         expr = syntax_or(senv, args);
         goto begin;
 
-    case Intern::op_add:
-        return fun_add(eval_vec(senv, args));
-
     default:
-        throw std::invalid_argument("invalid opcode");
+        return call(senv, primop, eval_args(senv, args, true));
     }
 }
+
+Cell call(const Symenv& senv, Intern primop, const std::vector<Cell>& args)
+{
+    switch (primop) {
+    case Intern::op_add:
+        return fun_add(args);
+
+    default:
+        throw std::invalid_argument("invalid primary operation");
+    }
+}
+
 }; // namespace pscm

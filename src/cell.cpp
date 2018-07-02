@@ -43,25 +43,41 @@ struct Procedure {
         if (is_unique_symbol_list(args) && is_pair(code)) {
             _senv = senv;
             _args = args;
-            _code = code;
+            _code.second = code;
         } else
             throw std::invalid_argument("invalid procedure definition");
     }
 
-    std::tuple<Symenv, Cell, Cell> apply(const Symenv& senv, Cell args) const
+    std::pair<Symenv, Cell> apply(const Symenv& senv, Cell args, bool is_list) const
     {
         auto newenv = std::make_shared<Symenv::element_type>(_senv);
 
         Cell iter = _args;
-        for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
-            newenv->add(car(iter), eval(senv, car(args)));
+
+        if (is_list)
+            for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
+                newenv->add(car(iter), eval(senv, car(args)));
+        else
+            for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
+                if (is_pair(cdr(args)))
+                    newenv->add(car(iter), eval(senv, car(args)));
+
+                else {
+                    args = eval(senv, car(args));
+
+                    for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
+                        newenv->add(car(iter), car(args));
+
+                    is_nil(args) || (throw std::invalid_argument("invalid apply list"), 0);
+                    break;
+                }
 
         if (iter != args) {
             is_symbol(iter) || (throw std::invalid_argument("invalid procedure arguments"), 0);
 
             newenv->add(iter, eval_list(senv, args));
         }
-        return { newenv, Intern::_begin, _code };
+        return { newenv, &_code };
     }
 
 private:
@@ -84,7 +100,7 @@ private:
     }
     Symenv _senv;
     Cell _args = nil;
-    Cell _code = nil;
+    Cons _code = { Intern::_begin, nil };
 };
 
 Cell lambda(const Symenv& senv, const Cell& args, const Cell& code)
@@ -92,9 +108,9 @@ Cell lambda(const Symenv& senv, const Cell& args, const Cell& code)
     return std::make_shared<Proc::element_type>(senv, args, code);
 }
 
-std::tuple<Symenv, Cell, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args)
+std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list)
 {
-    return proc->apply(senv, args);
+    return proc->apply(senv, args, is_list);
 }
 
 bool is_list(Cell cell)

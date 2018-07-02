@@ -132,7 +132,7 @@ inline Cell getenv(const Symenv& env, const Cell& sym)
 
 Cell sym(const char* name);
 
-std::tuple<Symenv, Cell, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args);
+std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list);
 
 Cell lambda(const Symenv& senv, const Cell& args, const Cell& code);
 

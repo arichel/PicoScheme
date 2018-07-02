@@ -57,14 +57,16 @@ int main()
 
         expr = pscm::list(Intern::_define, pscm::list(sym("hello"), sym("x")),
             pscm::list(Intern::op_add, sym("x"), sym("x")));
+
         cout << eval(e, expr) << endl;
         cout << eval(e, pscm::list(sym("hello"), num(100))) << endl;
 
         expr = pscm::list(Intern::_if, false, true);
         cout << eval(e, expr) << endl;
 
-        expr = pscm::list(Intern::_apply, sym("+"), num(1), num(2), num(3),
-            pscm::list(Intern::_quote, pscm::list(num(100), num(200))));
+        Cell args = pscm::list(Intern::_quote, pscm::list(num(100), num(200)));
+
+        expr = pscm::list(Intern::_apply, sym("+"), num(3), args);
         cout << eval(e, expr) << endl;
 
     } catch (std::bad_variant_access& e) {
