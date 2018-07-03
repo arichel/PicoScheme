@@ -20,7 +20,7 @@
 namespace pscm {
 
 struct Cell; //!< union type, forward declaration
-struct Procedure;
+class Procedure;
 
 /**
  * @brief
@@ -46,7 +46,11 @@ enum class Intern {
     _begin,
     _lambda,
     _apply,
+
     op_add,
+    op_sub,
+    op_mul,
+    op_div,
 };
 
 using Variant = std::variant<None, Nil, Bool, Number, Intern, Cons*, String, Symbol, Symenv, Proc, Port*>;
@@ -106,21 +110,6 @@ inline Cell str(const Char* s)
 Cell sym(const char* name);
 
 Cell senv(const Symenv& env = nullptr);
-
-//inline void addenv(const Symenv& env, const Cell& sym, const Cell& arg)
-//{
-//    env->add(sym, arg);
-//}
-
-inline void setenv(const Symenv& env, const Cell& sym, const Cell& arg)
-{
-    env->set(sym, arg);
-}
-
-inline Cell getenv(const Symenv& env, const Cell& sym)
-{
-    return env->get(sym);
-}
 
 std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list);
 

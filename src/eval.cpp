@@ -115,22 +115,11 @@ static std::vector<Cell> eval_args(const Symenv& senv, Cell args, bool is_list)
     return vec;
 }
 
-static Cell call(const Symenv& senv, Intern primop, const std::vector<Cell>& args)
-{
-    switch (primop) {
-    case Intern::op_add:
-        return fun_add(args);
-
-    default:
-        throw std::invalid_argument("invalid primary operation");
-    }
-}
-
 Cell eval(Symenv senv, Cell expr)
 {
     for (;;) {
         if (is_symbol(expr))
-            return getenv(senv, expr);
+            return senv->get(expr);
 
         if (!is_pair(expr))
             return expr;

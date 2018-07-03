@@ -63,7 +63,8 @@ Cell cons(Cell&& car, const Cell& cdr) { return cons(store, std::move(car), cdr)
 Cell cons(const Cell& car, Cell&& cdr) { return cons(store, car, std::move(cdr)); }
 Cell cons(const Cell& car, const Cell& cdr) { return cons(store, car, cdr); }
 
-struct Procedure {
+class Procedure {
+public:
     Procedure(const Symenv& senv, const Cell& args, const Cell& code)
     {
         if (is_unique_symbol_list(args) && is_pair(code)) {
@@ -130,14 +131,14 @@ private:
     Cons _code = { Intern::_begin, nil };
 };
 
-Cell lambda(const Symenv& senv, const Cell& args, const Cell& code)
-{
-    return std::make_shared<Procedure>(senv, args, code);
-}
-
 std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list)
 {
     return proc->apply(senv, args, is_list);
+}
+
+Cell lambda(const Symenv& senv, const Cell& args, const Cell& code)
+{
+    return std::make_shared<Procedure>(senv, args, code);
 }
 
 bool is_list(Cell cell)
@@ -170,14 +171,6 @@ Cell list_ref(Cell list, Int k)
 
     !k || (throw std::invalid_argument("invalid list length"), 0);
     return car(list);
-}
-
-Cell fun_write(const std::vector<Cell>& args)
-{
-    Port* port = args.size() > 1 ? std::get<Port*>(args[1]) : &std::cout;
-
-    *port << args.at(0);
-    return none;
 }
 
 }; // namespace pscm

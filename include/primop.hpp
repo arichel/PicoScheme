@@ -15,7 +15,7 @@
 
 namespace pscm {
 
-Cell fun_add(const std::vector<Cell>& args);
+Cell call(const Symenv& senv, Intern primop, const std::vector<Cell>& args);
 
 }; // namespace pscm
 #endif // PRIMOP_HPP
