@@ -146,12 +146,13 @@ Number operator/(const Number& lhs, const Number& rhs)
 {
     using value_type = Complex::value_type;
 
-    assert(rhs != Number{});
+    rhs != Number{} || (throw std::invalid_argument("divide by zero"), 0);
 
     auto fun = overloads{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 / z1; },
         [](const Complex& z, auto x) -> Number { return z / (value_type)x; },
         [](auto x, const Complex& z) -> Number { return (value_type)x / z; },
+        [](Int x, Int y) -> Number { return x / (value_type)y; },
         [](auto x, auto y) -> Number {
             using T = std::common_type_t<decltype(x), decltype(y)>;
             return (T)x / (T)y;
@@ -317,7 +318,7 @@ Number log10(const Number& x)
 /**
  * @brief Computes the square root of ::Number.
  */
-Number sqrt(const Number& x, const Number& y)
+Number sqrt(const Number& x)
 {
     return is_type<Complex>(x) ? std::sqrt(static_cast<Complex>(x)) : std::sqrt(static_cast<Float>(x));
 }

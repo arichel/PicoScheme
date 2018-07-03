@@ -8,6 +8,7 @@
  *************************************************************************************/
 #include "eval.hpp"
 #include "primop.hpp"
+#include "proc.hpp"
 #include "stream.hpp"
 
 namespace pscm {
@@ -117,6 +118,8 @@ static std::vector<Cell> eval_args(const Symenv& senv, Cell args, bool is_list)
 
 Cell eval(Symenv senv, Cell expr)
 {
+    Cell args, proc;
+
     for (;;) {
         if (is_symbol(expr))
             return senv->get(expr);
@@ -124,7 +127,8 @@ Cell eval(Symenv senv, Cell expr)
         if (!is_pair(expr))
             return expr;
 
-        Cell args = cdr(expr), proc = eval(senv, car(expr));
+        args = cdr(expr);
+        proc = eval(senv, car(expr));
 
         if (is_proc(proc)) {
             tie(senv, expr) = apply(senv, proc, args, true);

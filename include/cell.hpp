@@ -10,7 +10,6 @@
 #define CELL_HPP
 
 #include <iostream>
-#include <set>
 #include <vector>
 
 #include "number.hpp"
@@ -47,10 +46,18 @@ enum class Intern {
     _lambda,
     _apply,
 
+    op_cons,
+    op_car,
+    op_cdr,
+    op_setcdr,
+    op_setcar,
+    op_list,
+
     op_add,
     op_sub,
     op_mul,
     op_div,
+
 };
 
 using Variant = std::variant<None, Nil, Bool, Number, Intern, Cons*, String, Symbol, Symenv, Proc, Port*>;
@@ -63,6 +70,8 @@ struct Cell : Variant {
     template <typename T>
     operator T() const { return std::get<T>(*this); }
 };
+
+size_t store_size();
 
 static const None none{}; //!< void return symbol
 static const Nil nil{}; //!< empty list symbol
@@ -111,10 +120,6 @@ Cell sym(const char* name);
 
 Cell senv(const Symenv& env = nullptr);
 
-std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list);
-
-Cell lambda(const Symenv& senv, const Cell& args, const Cell& code);
-
 template <typename T>
 inline Cell num(const T& x)
 {
@@ -141,24 +146,6 @@ Cell list(T&& t, Args&&... args)
 
 //! Recursion base case
 inline Cell list() { return nil; }
-
-//inline const char* name(Intern i)
-//{
-//    static const char* const names[] = {
-//        "or", "and", "cond", "define", "setb", "begin", "apply", "primop", "lambda",
-//        "op_add"
-//    };
-//    return names[static_cast<int>(i)];
-//}
-
-/**
- * @brief Writes an expression to the standard or supplied output port
- * @param args Argument list (expr {port})
- * @return none symbol
- */
-Cell fun_write(const std::vector<Cell>& args);
-
-Cell fun_add(const std::vector<Cell>& args);
 
 }; // namespace pscm
 #endif // CELL_HPP

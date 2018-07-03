@@ -170,7 +170,7 @@ bool Parser::is_digit(std::istream& in, int c)
 
 bool Parser::is_alpha(int c)
 {
-    return isalpha(c) || strchr("_?!+-:@", c);
+    return isalpha(c) || strchr("_?!+-*/:@", c);
 }
 
 Parser::Token Parser::get_token(std::istream& in)

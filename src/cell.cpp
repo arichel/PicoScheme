@@ -11,12 +11,11 @@
 
 #include "cell.hpp"
 #include "eval.hpp"
+#include "proc.hpp"
 #include "stream.hpp"
 #include "utils.hpp"
 
 namespace pscm {
-
-//using std::get;
 
 //! Global cons type store
 static std::deque<Cons> store;
@@ -39,7 +38,20 @@ static Symenv topenv{
         { stab["set!"], Intern::_setb },
         { stab["apply"], Intern::_apply },
         { stab["lambda"], Intern::_lambda },
+
+        /*-------------------------------*/
+        { stab["cons"], Intern::op_cons },
+        { stab["car"], Intern::op_car },
+        { stab["cdr"], Intern::op_cdr },
+        { stab["set-car!"], Intern::op_setcar },
+        { stab["set-cdr!"], Intern::op_setcdr },
+        { stab["list"], Intern::op_list },
+
         { stab["+"], Intern::op_add },
+        { stab["-"], Intern::op_sub },
+        { stab["*"], Intern::op_mul },
+        { stab["/"], Intern::op_div },
+
     }
 };
 
@@ -48,6 +60,11 @@ Cell sym(const char* name) { return stab[name]; }
 Cell senv(const Symenv& env)
 {
     return std::make_shared<Symenv::element_type>(env ? env : topenv);
+}
+
+size_t store_size()
+{
+    return store.size();
 }
 
 //! Return a new cons-cell from the global cons-store
@@ -62,84 +79,6 @@ Cell cons(Cell&& car, Cell&& cdr) { return cons(store, std::move(car), std::move
 Cell cons(Cell&& car, const Cell& cdr) { return cons(store, std::move(car), cdr); }
 Cell cons(const Cell& car, Cell&& cdr) { return cons(store, car, std::move(cdr)); }
 Cell cons(const Cell& car, const Cell& cdr) { return cons(store, car, cdr); }
-
-class Procedure {
-public:
-    Procedure(const Symenv& senv, const Cell& args, const Cell& code)
-    {
-        if (is_unique_symbol_list(args) && is_pair(code)) {
-            _senv = senv;
-            _args = args;
-            _code.second = code;
-        } else
-            throw std::invalid_argument("invalid procedure definition");
-    }
-
-    std::pair<Symenv, Cell> apply(const Symenv& senv, Cell args, bool is_list) const
-    {
-        auto newenv = std::make_shared<Symenv::element_type>(_senv);
-
-        Cell iter = _args;
-
-        if (is_list)
-            for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
-                newenv->add(car(iter), eval(senv, car(args)));
-
-        else
-            for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
-                if (is_pair(cdr(args)))
-                    newenv->add(car(iter), eval(senv, car(args)));
-
-                else {
-                    args = eval(senv, car(args));
-
-                    for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
-                        newenv->add(car(iter), car(args));
-
-                    is_nil(args) || (throw std::invalid_argument("invalid apply list"), 0);
-                    break;
-                }
-
-        if (iter != args) {
-            is_symbol(iter) || (throw std::invalid_argument("invalid procedure arguments"), 0);
-
-            newenv->add(iter, eval_list(senv, args));
-        }
-        return { newenv, &_code };
-    }
-
-private:
-    bool is_unique_symbol_list(Cell args)
-    {
-        using std::get;
-
-        if (is_nil(args) || is_symbol(args))
-            return true;
-
-        std::set<Symbol::key_type> symset;
-
-        for (/* */; is_pair(args); args = cdr(args)) {
-            Cell sym = car(args);
-
-            if (!is_symbol(sym) || !symset.insert(get<Symbol>(sym)).second)
-                return false;
-        }
-        return is_nil(args) || (is_symbol(args) && symset.insert(get<Symbol>(args)).second);
-    }
-    Symenv _senv;
-    Cell _args = nil;
-    Cons _code = { Intern::_begin, nil };
-};
-
-std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list)
-{
-    return proc->apply(senv, args, is_list);
-}
-
-Cell lambda(const Symenv& senv, const Cell& args, const Cell& code)
-{
-    return std::make_shared<Procedure>(senv, args, code);
-}
 
 bool is_list(Cell cell)
 {

@@ -27,7 +27,7 @@ start:
         for (;;) {
             expr = reader.parse(std::cin);
             expr = eval(env, expr);
-            std::cout << expr << std::endl;
+            std::cout << "store=" << store_size() << " : " << expr << std::endl;
         }
     } catch (std::bad_variant_access& e) {
         cout << e.what() << endl;
@@ -48,11 +48,14 @@ int main()
         Parser parser;
         Cell expr;
 
-        auto in = std::stringstream("((lambda (x) (+ x x)) 100)");
-        expr = parser.parse(in);
+        //auto in = std::stringstream("(/ 10 3)");
+        //expr = parser.parse(in);
+
+        expr = pscm::list(sym("/"), num(10), num(2));
 
         cout << expr << " ---> ";
-        cout << eval(e, expr) << endl;
+        expr = eval(e, expr);
+        cout << expr << endl;
 
     } catch (std::bad_variant_access& e) {
         cout << e.what() << endl;
