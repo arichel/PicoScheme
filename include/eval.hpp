@@ -14,7 +14,6 @@
 namespace pscm {
 
 Cell eval(Symenv senv, Cell expr);
-Cell call(const Symenv& senv, Intern primop, const std::vector<Cell>& args);
 
 Cell eval_list(const Symenv& senv, Cell list);
 

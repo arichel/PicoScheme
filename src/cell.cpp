@@ -16,13 +16,39 @@
 
 namespace pscm {
 
-using std::get;
+//using std::get;
 
 //! Global cons type store
 static std::deque<Cons> store;
+
 static Symtab stab;
 
+static Symenv topenv{
+    new Symenv::element_type{
+        { stab["#t"], true },
+        { stab["#true"], true },
+        { stab["#f"], false },
+        { stab["#false"], false },
+        { stab["or"], Intern::_or },
+        { stab["and"], Intern::_and },
+        { stab["if"], Intern::_if },
+        { stab["quote"], Intern::_quote },
+        { stab["begin"], Intern::_begin },
+        { stab["cond"], Intern::_cond },
+        { stab["define"], Intern::_define },
+        { stab["set!"], Intern::_setb },
+        { stab["apply"], Intern::_apply },
+        { stab["lambda"], Intern::_lambda },
+        { stab["+"], Intern::op_add },
+    }
+};
+
 Cell sym(const char* name) { return stab[name]; }
+
+Cell senv(const Symenv& env)
+{
+    return std::make_shared<Symenv::element_type>(env ? env : topenv);
+}
 
 //! Return a new cons-cell from the global cons-store
 //! A cons-cell is basically a type tagged pointer into the global cons-store.
@@ -57,6 +83,7 @@ struct Procedure {
         if (is_list)
             for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
                 newenv->add(car(iter), eval(senv, car(args)));
+
         else
             for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
                 if (is_pair(cdr(args)))
@@ -105,7 +132,7 @@ private:
 
 Cell lambda(const Symenv& senv, const Cell& args, const Cell& code)
 {
-    return std::make_shared<Proc::element_type>(senv, args, code);
+    return std::make_shared<Procedure>(senv, args, code);
 }
 
 std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list)
@@ -145,43 +172,12 @@ Cell list_ref(Cell list, Int k)
     return car(list);
 }
 
-//void foreach (Func fun, Cell list)
-//{
-//    for (Cell slow{ list }; is_pair(list); list = cdr(list), slow = cdr(slow)) {
-//        fun(car(list));
-
-//        if (!is_pair(list = cdr(list)) || list == slow)
-//            break;
-
-//        fun(car(list));
-//    }
-//}
-
-//Cell fun_foreach(const Cell& args)
-//{
-//    auto fun = get<Func>(car(args));
-
-//    foreach (fun, cdr(args))
-//        ;
-//    return none;
-//}
-
 Cell fun_write(const std::vector<Cell>& args)
 {
-    Port* port = args.size() > 1 ? get<Port*>(args[1]) : &std::cout;
+    Port* port = args.size() > 1 ? std::get<Port*>(args[1]) : &std::cout;
 
     *port << args.at(0);
     return none;
-}
-
-Cell fun_add(const std::vector<Cell>& args)
-{
-    Number sum = 0;
-
-    for (Number val : args)
-        sum += val;
-
-    return sum;
 }
 
 }; // namespace pscm

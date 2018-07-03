@@ -84,6 +84,12 @@ struct SymbolEnv {
     {
     }
 
+    SymbolEnv(std::initializer_list<std::pair<Symbol, T>> args)
+    {
+        for (auto& [sym, val] : args)
+            add(sym, val);
+    }
+
     void add(const Symbol& sym, const T& arg)
     {
         table.insert_or_assign(sym, arg);
@@ -125,6 +131,12 @@ private:
     table_type table;
     const shared_type next;
 };
+
+template <typename T>
+void addenv(SymbolEnv<T>& env, const Symbol& sym, const T& arg)
+{
+    env.add(sym, arg);
+}
 
 } // namespace pscm
 #endif // SYMBOL_HPP

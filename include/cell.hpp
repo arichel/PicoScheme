@@ -31,14 +31,9 @@ using Bool = bool;
 using Char = char;
 using Port = std::ostream;
 using Cons = std::pair<Cell, Cell>;
-
 using String = std::shared_ptr<std::basic_string<Char>>;
 using Symenv = std::shared_ptr<SymbolEnv<Cell>>;
 using Proc = std::shared_ptr<Procedure>;
-
-using Vector = std::shared_ptr<std::vector<Cell>>;
-using VecInt = std::shared_ptr<std::vector<Int>>;
-using VecFloat = std::shared_ptr<std::vector<Float>>;
 
 enum class Intern {
     _or,
@@ -49,7 +44,6 @@ enum class Intern {
     _define,
     _setb,
     _begin,
-    _primop,
     _lambda,
     _apply,
     op_add,
@@ -66,8 +60,19 @@ struct Cell : Variant {
     operator T() const { return std::get<T>(*this); }
 };
 
-static const Nil nil{}; //!< empty list symbol
 static const None none{}; //!< void return symbol
+static const Nil nil{}; //!< empty list symbol
+
+constexpr bool is_nil(const Cell& cell) { return is_type<Nil>(cell); }
+constexpr bool is_none(const Cell& cell) { return is_type<None>(cell); }
+constexpr bool is_string(const Cell& cell) { return is_type<String>(cell); }
+constexpr bool is_pair(const Cell& cell) { return is_type<Cons*>(cell); }
+constexpr bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
+constexpr bool is_symbol(const Cell& cell) { return is_type<Symbol>(cell); }
+constexpr bool is_symenv(const Cell& cell) { return is_type<Symenv>(cell); }
+constexpr bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
+constexpr bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !std::get<Bool>(cell); }
+constexpr bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || std::get<Bool>(cell); }
 
 inline Cell car(const Cell& cons) { return std::get<Cons*>(cons)->first; }
 inline Cell cdr(const Cell& cons) { return std::get<Cons*>(cons)->second; }
@@ -80,18 +85,6 @@ void set_car(Cell& cons, T&& t) { std::get<Cons*>(cons)->first = std::forward<T>
 
 template <typename T>
 void set_cdr(Cell& cons, T&& t) { std::get<Cons*>(cons)->second = std::forward<T>(t); }
-
-constexpr bool is_nil(const Cell& cell) { return is_type<Nil>(cell); }
-constexpr bool is_none(const Cell& cell) { return is_type<None>(cell); }
-constexpr bool is_string(const Cell& cell) { return is_type<String>(cell); }
-constexpr bool is_pair(const Cell& cell) { return is_type<Cons*>(cell); }
-constexpr bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
-constexpr bool is_symbol(const Cell& cell) { return is_type<Symbol>(cell); }
-constexpr bool is_symenv(const Cell& cell) { return is_type<Symenv>(cell); }
-constexpr bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
-
-constexpr bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !std::get<Bool>(cell); }
-constexpr bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || std::get<Bool>(cell); }
 
 //! Predicate return true if cell is a proper nil terminated list or a circular list.
 bool is_list(Cell cell);
@@ -110,15 +103,14 @@ inline Cell str(const Char* s)
     return std::make_shared<String::element_type>(s);
 }
 
-inline Cell senv(const Symenv& env = nullptr)
-{
-    return std::make_shared<Symenv::element_type>(env);
-}
+Cell sym(const char* name);
 
-inline void addenv(const Symenv& env, const Cell& sym, const Cell& arg)
-{
-    env->add(sym, arg);
-}
+Cell senv(const Symenv& env = nullptr);
+
+//inline void addenv(const Symenv& env, const Cell& sym, const Cell& arg)
+//{
+//    env->add(sym, arg);
+//}
 
 inline void setenv(const Symenv& env, const Cell& sym, const Cell& arg)
 {
@@ -129,8 +121,6 @@ inline Cell getenv(const Symenv& env, const Cell& sym)
 {
     return env->get(sym);
 }
-
-Cell sym(const char* name);
 
 std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list);
 

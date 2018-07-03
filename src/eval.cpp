@@ -7,15 +7,14 @@
  * @copyright MIT License
  *************************************************************************************/
 #include "eval.hpp"
+#include "primop.hpp"
 #include "stream.hpp"
 
 namespace pscm {
 
-using std::get;
-
 static Cell syntax_setb(const Symenv& senv, const Cell& args)
 {
-    setenv(senv, car(args), eval(senv, cadr(args)));
+    senv->set(car(args), eval(senv, cadr(args)));
     return none;
 }
 
@@ -34,8 +33,10 @@ static Cell syntax_if(const Symenv& senv, const Cell& args)
 {
     if (is_true(eval(senv, car(args))))
         return cadr(args);
+
     else if (Cell last = cddr(args); !is_nil(last))
         return car(last);
+
     else
         return none;
 }
@@ -68,9 +69,9 @@ static Cell syntax_define(const Symenv& senv, Cell args)
     args = car(args);
 
     if (is_pair(args))
-        addenv(senv, car(args), lambda(senv, cdr(args), expr));
+        senv->add(car(args), lambda(senv, cdr(args), expr));
     else
-        addenv(senv, args, eval(senv, car(expr)));
+        senv->add(args, eval(senv, car(expr)));
 
     return none;
 }
@@ -114,67 +115,7 @@ static std::vector<Cell> eval_args(const Symenv& senv, Cell args, bool is_list)
     return vec;
 }
 
-Cell eval(Symenv senv, Cell expr)
-{
-begin:
-    if (is_symbol(expr))
-        return getenv(senv, expr);
-
-    if (!is_pair(expr))
-        return expr;
-
-    Cell args = cdr(expr), proc = eval(senv, car(expr));
-
-    if (is_proc(proc)) {
-        tie(senv, expr) = apply(senv, proc, args, true);
-        goto begin;
-    }
-    switch (Intern primop = proc) {
-
-    case Intern::_quote:
-        return car(args);
-
-    case Intern::_define:
-        return syntax_define(senv, args);
-
-    case Intern::_lambda:
-        return lambda(senv, car(args), cdr(args));
-
-    case Intern::_begin:
-        expr = syntax_begin(senv, args);
-        goto begin;
-
-    case Intern::_apply:
-        proc = eval(senv, car(args));
-        args = cdr(args);
-
-        if (is_proc(proc)) {
-            tie(senv, expr) = apply(senv, proc, args, false);
-            goto begin;
-        } else
-            return call(senv, proc, eval_args(senv, args, false));
-
-    case Intern::_setb:
-        return syntax_setb(senv, args);
-
-    case Intern::_if:
-        expr = syntax_if(senv, args);
-        goto begin;
-
-    case Intern::_and:
-        expr = syntax_and(senv, args);
-        goto begin;
-
-    case Intern::_or:
-        expr = syntax_or(senv, args);
-        goto begin;
-
-    default:
-        return call(senv, primop, eval_args(senv, args, true));
-    }
-}
-
-Cell call(const Symenv& senv, Intern primop, const std::vector<Cell>& args)
+static Cell call(const Symenv& senv, Intern primop, const std::vector<Cell>& args)
 {
     switch (primop) {
     case Intern::op_add:
@@ -182,6 +123,64 @@ Cell call(const Symenv& senv, Intern primop, const std::vector<Cell>& args)
 
     default:
         throw std::invalid_argument("invalid primary operation");
+    }
+}
+
+Cell eval(Symenv senv, Cell expr)
+{
+    for (;;) {
+        if (is_symbol(expr))
+            return getenv(senv, expr);
+
+        if (!is_pair(expr))
+            return expr;
+
+        Cell args = cdr(expr), proc = eval(senv, car(expr));
+
+        if (is_proc(proc)) {
+            tie(senv, expr) = apply(senv, proc, args, true);
+            continue;
+        }
+        switch (Intern opcode = proc) {
+
+        case Intern::_quote:
+            return car(args);
+
+        case Intern::_define:
+            return syntax_define(senv, args);
+
+        case Intern::_lambda:
+            return lambda(senv, car(args), cdr(args));
+
+        case Intern::_begin:
+            expr = syntax_begin(senv, args);
+            break;
+
+        case Intern::_apply:
+            if (is_proc(proc = eval(senv, car(args))))
+                tie(senv, expr) = apply(senv, proc, cdr(args), false);
+            else
+                return call(senv, proc, eval_args(senv, cdr(args), false));
+            break;
+
+        case Intern::_setb:
+            return syntax_setb(senv, args);
+
+        case Intern::_if:
+            expr = syntax_if(senv, args);
+            break;
+
+        case Intern::_and:
+            expr = syntax_and(senv, args);
+            break;
+
+        case Intern::_or:
+            expr = syntax_or(senv, args);
+            break;
+
+        default:
+            return call(senv, opcode, eval_args(senv, args, true));
+        }
     }
 }
 
