@@ -7,12 +7,12 @@
 #include <variant>
 
 #include "number.hpp"
+#include "proc.hpp"
 #include "symbol.hpp"
 
 namespace pscm {
 
 struct Cell;
-class Procedure;
 
 using None = std::monostate;
 using Nil = nullptr_t;
@@ -21,7 +21,6 @@ using Char = char;
 using Port = std::ostream;
 using Cons = std::pair<Cell, Cell>;
 using String = std::shared_ptr<std::basic_string<Char>>;
-using Proc = std::shared_ptr<Procedure>;
 using Symenv = std::shared_ptr<SymbolEnv<Cell>>;
 
 enum class Intern {

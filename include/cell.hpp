@@ -21,7 +21,10 @@ struct Cell : Variant {
     using Variant::Variant;
 
     template <typename T>
-    operator T() const { return std::get<T>(*this); }
+    operator T() { return std::get<T>(*this); }
+
+    template <typename T>
+    operator const T() const { return std::get<T>(*this); }
 };
 
 size_t store_size();
@@ -40,17 +43,22 @@ constexpr bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
 constexpr bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !std::get<Bool>(cell); }
 constexpr bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || std::get<Bool>(cell); }
 
-inline Cell car(const Cell& cons) { return std::get<Cons*>(cons)->first; }
-inline Cell cdr(const Cell& cons) { return std::get<Cons*>(cons)->second; }
-inline Cell cddr(const Cell& cons) { return cdr(cdr(cons)); }
-inline Cell cadr(const Cell& cons) { return car(cdr(cons)); }
-inline Cell caddr(const Cell& cons) { return car(cddr(cons)); }
+Cons* cons(Cell&& car, Cell&& cdr);
+Cons* cons(Cell&& car, const Cell& cdr);
+Cons* cons(const Cell& car, Cell&& cdr);
+Cons* cons(const Cell& car, const Cell& cdr);
+
+inline Cell& car(Cons* cons) { return cons->first; }
+inline Cell& cdr(Cons* cons) { return cons->second; }
+inline Cell& cddr(Cons* cons) { return cdr(cdr(cons)); }
+inline Cell& cadr(Cons* cons) { return car(cdr(cons)); }
+inline Cell& caddr(Cons* cons) { return car(cddr(cons)); }
 
 template <typename T>
-void set_car(Cell& cons, T&& t) { std::get<Cons*>(cons)->first = std::forward<T>(t); }
+void set_car(Cons* cons, T&& t) { cons->first = std::forward<T>(t); }
 
 template <typename T>
-void set_cdr(Cell& cons, T&& t) { std::get<Cons*>(cons)->second = std::forward<T>(t); }
+void set_cdr(Cons* cons, T&& t) { cons->second = std::forward<T>(t); }
 
 //! Predicate return true if cell is a proper nil terminated list or a circular list.
 bool is_list(Cell cell);
@@ -80,11 +88,6 @@ inline Cell num(const RE& x, const IM& y)
 {
     return Number{ x, y };
 }
-
-Cell cons(Cell&& car, Cell&& cdr);
-Cell cons(Cell&& car, const Cell& cdr);
-Cell cons(const Cell& car, Cell&& cdr);
-Cell cons(const Cell& car, const Cell& cdr);
 
 //! Build a list of all arguments
 template <typename T, typename... Args>

@@ -3,49 +3,34 @@
 
 #include <memory>
 
-#include "cell.hpp"
+#include "symbol.hpp"
 
 namespace pscm {
 
-class Procedure {
+struct Cell;
+using Symenv = std::shared_ptr<SymbolEnv<Cell>>;
+
+class Proc {
 public:
-    Procedure(const Symenv& senv, const Cell& args, const Cell& code);
+    Proc(const Symenv& senv, const Cell& args, const Cell& code);
+    Proc(const Proc& proc);
+    Proc(Proc&& proc) noexcept;
+    ~Proc();
 
-    std::pair<Symenv, Cell> apply(const Symenv& senv, Cell args, bool is_list);
+    Proc& operator=(const Proc&);
+    Proc& operator=(Proc&&) noexcept;
 
-    Cell code() const;
+    bool operator!=(const Proc& proc) const noexcept;
+    bool operator==(const Proc& proc) const noexcept;
+
+    std::pair<Symenv, Cell> apply(const Symenv& senv, Cell args, bool is_list) const;
 
 private:
-    bool is_unique_symbol_list(Cell args);
-
-    Symenv _senv;
-    Cell _args;
-    Cons _code;
+    struct Impl;
+    std::unique_ptr<Impl> impl;
 };
 
-//class Procedure2 {
-//public:
-//    Procedure2(const Symenv& senv, const Cell& args, const Cell& code);
-
-//    std::pair<Symenv, Cell> apply(const Symenv& senv, Cell args, bool is_list);
-
-//    Cell code() const;
-
-//private:
-//    struct ProcedureImpl;
-
-//    std::unique_ptr<ProcedureImpl> impl;
-//};
-
-inline std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list)
-{
-    return proc->apply(senv, args, is_list);
-}
-
-static Proc lambda(const Symenv& senv, const Cell& args, const Cell& code)
-{
-    return std::make_shared<Procedure>(senv, args, code);
-}
+std::pair<Symenv, Cell> apply(const Symenv& senv, const Cell& proc, const Cell& args, bool is_list);
 
 }; // namespace pscm
 

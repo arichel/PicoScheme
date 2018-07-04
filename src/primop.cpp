@@ -16,35 +16,6 @@ namespace pscm {
 using std::get;
 using varg = std::vector<Cell>;
 
-static Cell fun_cons(const varg& args)
-{
-    return cons(args.at(0), args.at(1));
-}
-
-static Cell fun_car(const varg& args)
-{
-    return car(args.at(0));
-}
-
-static Cell fun_cdr(const varg& args)
-{
-    return cdr(args.at(0));
-}
-
-static Cell fun_setcar(const varg& args)
-{
-    Cell cons = args.at(0);
-    set_car(cons, args.at(1));
-    return none;
-}
-
-static Cell fun_setcdr(const varg& args)
-{
-    Cell cons = args.at(0);
-    set_cdr(cons, args.at(1));
-    return none;
-}
-
 static Cell fun_list(const varg& args)
 {
     Cell list = nil;
@@ -112,15 +83,17 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
 {
     switch (primop) {
     case Intern::op_cons:
-        return fun_cons(args);
+        return cons(args.at(0), args.at(1));
     case Intern::op_car:
-        return fun_car(args);
+        return car(args.at(0));
     case Intern::op_cdr:
-        return fun_cdr(args);
+        return cdr(args.at(0));
     case Intern::op_setcar:
-        return fun_setcar(args);
+        set_car(args.at(0), args.at(1));
+        return none;
     case Intern::op_setcdr:
-        return fun_setcdr(args);
+        set_cdr(args.at(0), args.at(1));
+        return none;
     case Intern::op_list:
         return fun_list(args);
     case Intern::op_add:

@@ -10,7 +10,6 @@
 
 #include "cell.hpp"
 #include "eval.hpp"
-//#include "number.hpp"
 #include "stream.hpp"
 
 using namespace std;
@@ -51,7 +50,7 @@ int main()
         //auto in = std::stringstream("(/ 10 3)");
         //expr = parser.parse(in);
 
-        expr = pscm::list(sym("/"), num(10), num(2));
+        expr = pscm::list(pscm::list(Intern::_lambda, nil, num(1)));
 
         cout << expr << " ---> ";
         expr = eval(e, expr);

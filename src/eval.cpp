@@ -70,7 +70,7 @@ static Cell syntax_define(const Symenv& senv, Cell args)
     args = car(args);
 
     if (is_pair(args))
-        senv->add(car(args), lambda(senv, cdr(args), expr));
+        senv->add(car(args), Proc{ senv, cdr(args), expr });
     else
         senv->add(args, eval(senv, car(expr)));
 
@@ -143,7 +143,7 @@ Cell eval(Symenv senv, Cell expr)
             return syntax_define(senv, args);
 
         case Intern::_lambda:
-            return lambda(senv, car(args), cdr(args));
+            return Proc{ senv, car(args), cdr(args) };
 
         case Intern::_begin:
             expr = syntax_begin(senv, args);

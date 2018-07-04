@@ -6,45 +6,83 @@
 
 namespace pscm {
 
-Procedure::Procedure(const Symenv& senv, const Cell& args, const Cell& code)
-{
-    if (is_unique_symbol_list(args) && is_pair(code)) {
-        _senv = senv;
-        _args = args;
-        _code = { Intern::_begin, code };
+struct Proc::Impl {
 
-    } else
-        throw std::invalid_argument("invalid procedure definition");
-}
+    Impl(const Symenv& senv, const Cell& args, const Cell& code)
+    {
+        if (is_unique_symbol_list(args) && is_pair(code)) {
+            _senv = senv;
+            _args = args;
+            _code = { Intern::_begin, code };
 
-Cell Procedure::code() const
-{
-    return const_cast<Cons*>(&_code);
-}
-
-bool Procedure::is_unique_symbol_list(Cell args)
-{
-    using std::get;
-
-    if (is_nil(args) || is_symbol(args))
-        return true;
-
-    std::set<Symbol::key_type> symset;
-
-    for (/* */; is_pair(args); args = cdr(args)) {
-        Cell sym = car(args);
-
-        if (!is_symbol(sym) || !symset.insert(get<Symbol>(sym)).second)
-            return false;
+        } else
+            throw std::invalid_argument("invalid procedure definition");
     }
-    return is_nil(args) || (is_symbol(args) && symset.insert(get<Symbol>(args)).second);
+
+    bool is_unique_symbol_list(Cell args)
+    {
+        using std::get;
+
+        if (is_nil(args) || is_symbol(args))
+            return true;
+
+        std::set<Symbol::key_type> symset;
+
+        for (/* */; is_pair(args); args = cdr(args)) {
+            Cell sym = car(args);
+
+            if (!is_symbol(sym) || !symset.insert(get<Symbol>(sym)).second)
+                return false;
+        }
+        return is_nil(args) || (is_symbol(args) && symset.insert(get<Symbol>(args)).second);
+    }
+
+    bool operator!=(const Proc::Impl& impl) const noexcept
+    {
+        return _senv != impl._senv
+            && _args != impl._args
+            && _code != impl._code;
+    }
+    Symenv _senv;
+    Cell _args;
+    Cons _code;
+};
+
+Proc::Proc(Proc&&) noexcept = default;
+Proc& Proc::operator=(Proc&&) noexcept = default;
+Proc::~Proc() = default;
+
+Proc::Proc(const Symenv& senv, const Cell& args, const Cell& code)
+    : impl{ new Impl(senv, args, code) }
+{
 }
 
-std::pair<Symenv, Cell> Procedure::apply(const Symenv& senv, Cell args, bool is_list)
+Proc::Proc(const Proc& proc)
+    : impl{ new Impl(*proc.impl) }
 {
-    auto newenv = std::make_shared<Symenv::element_type>(_senv);
+}
 
-    Cell iter = _args;
+Proc& Proc::operator=(const Proc& proc)
+{
+    impl.reset(new Impl(*proc.impl));
+    return *this;
+}
+
+bool Proc::operator!=(const Proc& proc) const noexcept
+{
+    return *impl != *proc.impl;
+}
+
+bool Proc::operator==(const Proc& proc) const noexcept
+{
+    return !(*impl != *proc.impl);
+}
+
+std::pair<Symenv, Cell> Proc::apply(const Symenv& senv, Cell args, bool is_list) const
+{
+    auto newenv = std::make_shared<Symenv::element_type>(impl->_senv);
+
+    Cell iter = impl->_args;
 
     if (is_list)
         for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args)) {
@@ -71,15 +109,12 @@ std::pair<Symenv, Cell> Procedure::apply(const Symenv& senv, Cell args, bool is_
 
         newenv->add(iter, eval_list(senv, args));
     }
-    return { newenv, (Cons*)&_code };
+    return { newenv, &impl->_code };
 }
 
-//struct ProcedureImpl {
-//    bool is_unique_symbol_list(Cell args);
-
-//    Symenv _senv;
-//    Cell _args;
-//    Cons _code;
-//};
+std::pair<Symenv, Cell> apply(const Symenv& senv, const Cell& proc, const Cell& args, bool is_list)
+{
+    return std::get<Proc>(proc).apply(senv, args, is_list);
+}
 
 }; // namespace pscm
