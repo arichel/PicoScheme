@@ -74,4 +74,12 @@ std::pair<Symenv, Cell> Procedure::apply(const Symenv& senv, Cell args, bool is_
     return { newenv, (Cons*)&_code };
 }
 
+//struct ProcedureImpl {
+//    bool is_unique_symbol_list(Cell args);
+
+//    Symenv _senv;
+//    Cell _args;
+//    Cons _code;
+//};
+
 }; // namespace pscm

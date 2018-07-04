@@ -23,6 +23,20 @@ private:
     Cons _code;
 };
 
+//class Procedure2 {
+//public:
+//    Procedure2(const Symenv& senv, const Cell& args, const Cell& code);
+
+//    std::pair<Symenv, Cell> apply(const Symenv& senv, Cell args, bool is_list);
+
+//    Cell code() const;
+
+//private:
+//    struct ProcedureImpl;
+
+//    std::unique_ptr<ProcedureImpl> impl;
+//};
+
 inline std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list)
 {
     return proc->apply(senv, args, is_list);
