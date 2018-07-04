@@ -75,7 +75,9 @@ private:
  *
  */
 template <typename T>
-struct SymbolEnv {
+class SymbolEnv {
+
+public:
     using table_type = std::unordered_map<Symbol::key_type, T>;
     using shared_type = std::shared_ptr<SymbolEnv<T>>;
 
@@ -132,11 +134,11 @@ private:
     const shared_type next;
 };
 
-template <typename T>
-void addenv(SymbolEnv<T>& env, const Symbol& sym, const T& arg)
-{
-    env.add(sym, arg);
-}
+struct Cell;
+
+std::shared_ptr<SymbolEnv<Cell>> senv(const std::shared_ptr<SymbolEnv<Cell>>& env = nullptr);
+
+Symbol sym(const char* name);
 
 } // namespace pscm
 #endif // SYMBOL_HPP

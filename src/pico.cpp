@@ -10,7 +10,7 @@
 
 #include "cell.hpp"
 #include "eval.hpp"
-#include "number.hpp"
+//#include "number.hpp"
 #include "stream.hpp"
 
 using namespace std;

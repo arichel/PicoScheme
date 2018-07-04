@@ -10,7 +10,7 @@
 #include <deque>
 
 #include "cell.hpp"
-#include "eval.hpp"
+//#include "eval.hpp"
 #include "proc.hpp"
 #include "stream.hpp"
 #include "utils.hpp"
@@ -19,48 +19,6 @@ namespace pscm {
 
 //! Global cons type store
 static std::deque<Cons> store;
-
-static Symtab stab;
-
-static Symenv topenv{
-    new Symenv::element_type{
-        { stab["#t"], true },
-        { stab["#true"], true },
-        { stab["#f"], false },
-        { stab["#false"], false },
-        { stab["or"], Intern::_or },
-        { stab["and"], Intern::_and },
-        { stab["if"], Intern::_if },
-        { stab["quote"], Intern::_quote },
-        { stab["begin"], Intern::_begin },
-        { stab["cond"], Intern::_cond },
-        { stab["define"], Intern::_define },
-        { stab["set!"], Intern::_setb },
-        { stab["apply"], Intern::_apply },
-        { stab["lambda"], Intern::_lambda },
-
-        /*-------------------------------*/
-        { stab["cons"], Intern::op_cons },
-        { stab["car"], Intern::op_car },
-        { stab["cdr"], Intern::op_cdr },
-        { stab["set-car!"], Intern::op_setcar },
-        { stab["set-cdr!"], Intern::op_setcdr },
-        { stab["list"], Intern::op_list },
-
-        { stab["+"], Intern::op_add },
-        { stab["-"], Intern::op_sub },
-        { stab["*"], Intern::op_mul },
-        { stab["/"], Intern::op_div },
-
-    }
-};
-
-Cell sym(const char* name) { return stab[name]; }
-
-Cell senv(const Symenv& env)
-{
-    return std::make_shared<Symenv::element_type>(env ? env : topenv);
-}
 
 size_t store_size()
 {

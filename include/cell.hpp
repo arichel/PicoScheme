@@ -10,57 +10,10 @@
 #define CELL_HPP
 
 #include <iostream>
-#include <vector>
 
-#include "number.hpp"
-#include "symbol.hpp"
-#include "utils.hpp"
+#include "types.hpp"
 
 namespace pscm {
-
-struct Cell; //!< union type, forward declaration
-class Procedure;
-
-/**
- * @brief
- */
-using None = std::monostate;
-using Nil = nullptr_t;
-using Bool = bool;
-using Char = char;
-using Port = std::ostream;
-using Cons = std::pair<Cell, Cell>;
-using String = std::shared_ptr<std::basic_string<Char>>;
-using Symenv = std::shared_ptr<SymbolEnv<Cell>>;
-using Proc = std::shared_ptr<Procedure>;
-
-enum class Intern {
-    _or,
-    _and,
-    _if,
-    _cond,
-    _quote,
-    _define,
-    _setb,
-    _begin,
-    _lambda,
-    _apply,
-
-    op_cons,
-    op_car,
-    op_cdr,
-    op_setcdr,
-    op_setcar,
-    op_list,
-
-    op_add,
-    op_sub,
-    op_mul,
-    op_div,
-
-};
-
-using Variant = std::variant<None, Nil, Bool, Number, Intern, Cons*, String, Symbol, Symenv, Proc, Port*>;
 
 struct Cell : Variant {
     using base_type = Variant;
@@ -115,10 +68,6 @@ inline Cell str(const Char* s)
 {
     return std::make_shared<String::element_type>(s);
 }
-
-Cell sym(const char* name);
-
-Cell senv(const Symenv& env = nullptr);
 
 template <typename T>
 inline Cell num(const T& x)

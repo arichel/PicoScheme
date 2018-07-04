@@ -1,8 +1,9 @@
 #ifndef PROC_HPP
 #define PROC_HPP
 
+#include <memory>
+
 #include "cell.hpp"
-#include "stream.hpp"
 
 namespace pscm {
 
@@ -27,7 +28,7 @@ inline std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const
     return proc->apply(senv, args, is_list);
 }
 
-static Cell lambda(const Symenv& senv, const Cell& args, const Cell& code)
+static Proc lambda(const Symenv& senv, const Cell& args, const Cell& code)
 {
     return std::make_shared<Procedure>(senv, args, code);
 }
