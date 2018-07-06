@@ -21,10 +21,7 @@ struct Cell : Variant {
     using Variant::Variant;
 
     template <typename T>
-    operator T() { return std::get<T>(*this); }
-
-    template <typename T>
-    operator const T() const { return std::get<T>(*this); }
+    operator T() const { return std::get<T>(*this); }
 };
 
 size_t store_size();
@@ -40,8 +37,10 @@ constexpr bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
 constexpr bool is_symbol(const Cell& cell) { return is_type<Symbol>(cell); }
 constexpr bool is_symenv(const Cell& cell) { return is_type<Symenv>(cell); }
 constexpr bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
-constexpr bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !std::get<Bool>(cell); }
-constexpr bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || std::get<Bool>(cell); }
+
+inline bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !std::get<Bool>(cell); }
+inline bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || std::get<Bool>(cell); }
+inline bool is_equal(const Cell& lhs, const Cell& rhs);
 
 Cons* cons(Cell&& car, Cell&& cdr);
 Cons* cons(Cell&& car, const Cell& cdr);
@@ -62,6 +61,8 @@ void set_cdr(Cons* cons, T&& t) { cons->second = std::forward<T>(t); }
 
 //! Predicate return true if cell is a proper nil terminated list or a circular list.
 bool is_list(Cell cell);
+
+bool is_list_equal(Cell lhs, Cell rhs);
 
 //! Return the length of a proper list or the period length of a circular list.
 Int list_length(Cell list);

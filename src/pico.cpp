@@ -50,6 +50,11 @@ int main()
         //auto in = std::stringstream("(/ 10 3)");
         //expr = parser.parse(in);
 
+        Number c1 = num(100);
+        Number c2 = num(200);
+        cout << (Int(c1) < Int(c2)) << endl;
+        return 0;
+
         expr = pscm::list(pscm::list(Intern::_lambda, nil, num(1)));
 
         cout << expr << " ---> ";

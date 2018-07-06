@@ -60,6 +60,7 @@ private:
 
     Token put_back = Token::None;
     std::string strtok;
+    Number numtok;
 };
 
 }; // namespace pscm

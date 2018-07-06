@@ -73,7 +73,18 @@ std::ostream& operator<<(std::ostream& os, const Cell& cell)
 Parser::Token Parser::lex_number(std::istream& in)
 {
     strtok.clear();
+    numtok = Int{ 0 };
+
     int c = in.get();
+    bool is_flo = false, is_cpx = false;
+
+    Complex z = { 0, 1 };
+
+    if (strchr("+-", c) && strchr("iI", in.peek())) {
+        numtok = c != '-' ? z : -z;
+        c = in.get();
+        return Token::Number;
+    }
 
     if (strchr("+-.", c)) {
         strtok.push_back(c);
@@ -83,13 +94,43 @@ Parser::Token Parser::lex_number(std::istream& in)
         strtok.push_back(c);
 
         while (in.good()) {
-            if (isdigit(c = in.get()) || strchr(".eE", c))
+            c = in.get();
+
+            if (isdigit(c))
                 strtok.push_back(c);
-            else {
+
+            else if (strchr(".eE", c)) {
+                is_flo = true;
+                strtok.push_back(c);
+
+            } else if (strchr("+-", c)) {
+                is_cpx = true;
+                z.real(std::stof(strtok));
+                if (c != '+')
+                    z.imag(-1);
+
+                strtok.clear();
+
+            } else if (strchr("iI", c)) {
+                is_cpx = true;
+
+                if (!strtok.empty())
+                    z.imag(z.imag() >= 0 ? std::stof(strtok) : -std::stof(strtok));
+
+                break;
+
+            } else {
                 in.unget();
                 break;
             }
         }
+        if (is_cpx)
+            numtok = z;
+        else if (is_flo)
+            numtok = std::stof(strtok);
+        else
+            numtok = std::stol(strtok);
+
         return Token::Number;
     }
     in.unget();
@@ -165,12 +206,13 @@ bool Parser::is_special(int c)
 
 bool Parser::is_digit(std::istream& in, int c)
 {
-    return isdigit(c) || (strchr("+-.", c) && isdigit(in.peek()));
+    return isdigit(c)
+        || (strchr("+-.", c) && (isdigit(in.peek()) || strchr("iI", in.peek())));
 }
 
 bool Parser::is_alpha(int c)
 {
-    return isalpha(c) || strchr("_?!+-*/:@", c);
+    return isalpha(c) || strchr("_?!+-*/<>=:@", c);
 }
 
 Parser::Token Parser::get_token(std::istream& in)
@@ -244,7 +286,7 @@ Cell Parser::parse(std::istream& in)
             return list(Intern::_quote, parse(in));
 
         case Token::Number:
-            return num(std::stol(strtok));
+            return numtok;
 
         case Token::String:
             return str(strtok.c_str());

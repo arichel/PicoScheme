@@ -75,26 +75,30 @@ struct Number : std::variant<Int, Float, Complex> {
     template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> || std::is_same_v<T, Complex>>>
     constexpr operator T() const noexcept
     {
-        auto fun = [](const auto& num) -> T {
+        auto fun = [](auto& num) -> T {
             using TT = std::decay_t<decltype(num)>;
 
             if constexpr (std::is_same_v<TT, Int>) {
                 if constexpr (std::is_integral_v<T>)
                     return static_cast<T>(num);
+
                 else if constexpr (std::is_floating_point_v<T>)
                     return static_cast<T>(num);
+
                 else
                     return static_cast<T>((typename T::value_type)num);
 
             } else if constexpr (std::is_same_v<TT, Float>) {
                 if constexpr (std::is_arithmetic_v<T>)
                     return static_cast<T>(num);
+
                 else
                     return static_cast<T>((typename T::value_type)num);
 
             } else if constexpr (std::is_same_v<TT, Complex>) {
                 if constexpr (std::is_arithmetic_v<T>)
                     return static_cast<T>(std::abs(num));
+
                 else
                     return static_cast<T>(num);
 
@@ -106,11 +110,29 @@ struct Number : std::variant<Int, Float, Complex> {
     }
 };
 
+constexpr bool is_int(const Number& num) { return is_type<Int>(num); }
+constexpr bool is_float(const Number& num) { return is_type<Float>(num); }
+constexpr bool is_complex(const Number& num) { return is_type<Complex>(num); }
+
 constexpr inline Number operator""_int(unsigned long long val) { return static_cast<Int>(val); }
 constexpr inline Number operator""_flo(unsigned long long val) { return static_cast<Int>(val); }
 constexpr inline Number operator""_cpx(unsigned long long val) { return Number{ 0., static_cast<Float>(val) }; }
 constexpr inline Number operator""_flo(long double val) { return static_cast<Float>(val); }
 constexpr inline Number operator""_cpx(long double val) { return Number{ 0., static_cast<Float>(val) }; }
+
+template <typename CharT, typename Traits>
+std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const Complex& z)
+{
+    if (auto im = z.imag()) {
+        if (im < 0)
+            return os << z.real() << (im != -1 ? im : '-') << 'i';
+        else if (im != 1)
+            return os << z.real() << '+' << im << 'i';
+        else
+            return os << z.real() << "+i";
+    } else
+        return os << z.real();
+}
 
 /**
  * @brief Out stream operator for a ::Number argument value.
@@ -118,16 +140,19 @@ constexpr inline Number operator""_cpx(long double val) { return Number{ 0., sta
 template <typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const Number& num)
 {
-    overloads fun{
-        [&os](const Complex& z) { os << z.real() << '+' << z.imag() << 'i'; },
-        [&os](auto x) { os << x; }
-    };
-    std::visit(std::move(fun), static_cast<const Number::base_type&>(num));
-    return os;
+    return std::visit([&os](auto x) -> decltype(os) { return os << x; },
+        static_cast<Number::base_type>(num));
 }
 
 bool operator!=(const Number& lhs, const Number& rhs);
 bool operator==(const Number& lhs, const Number& rhs);
+bool operator>(Number lhs, Number rhs);
+bool operator<(const Number& lhs, const Number& rhs);
+bool operator>=(const Number& lhs, const Number& rhs);
+bool operator<=(const Number& lhs, const Number& rhs);
+
+Number neg(const Number& x);
+Number inv(const Number& x);
 
 Number operator+(const Number& lhs, const Number& rhs);
 Number operator-(const Number& lhs, const Number& rhs);
@@ -163,6 +188,7 @@ Number real(const Number& z);
 Number imag(const Number& z);
 Number arg(const Number& z);
 Number conj(const Number& z);
+Number rect(const Number& x, const Number& y);
 Number polar(const Number& r, const Number& theta);
 }; // namspace pscm
 #endif // NUMBER_HPP

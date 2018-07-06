@@ -10,7 +10,6 @@
 #include <deque>
 
 #include "cell.hpp"
-//#include "eval.hpp"
 #include "proc.hpp"
 #include "stream.hpp"
 #include "utils.hpp"
@@ -38,12 +37,39 @@ Cons* cons(Cell&& car, const Cell& cdr) { return cons(store, std::move(car), cdr
 Cons* cons(const Cell& car, Cell&& cdr) { return cons(store, car, std::move(cdr)); }
 Cons* cons(const Cell& car, const Cell& cdr) { return cons(store, car, cdr); }
 
+bool is_equal(const Cell& lhs, const Cell& rhs)
+{
+    if (lhs == rhs)
+        return true;
+
+    if (lhs.index() != rhs.index())
+        return false;
+
+    auto test = overloads{
+        [](const String& lhs, const String& rhs) -> bool { return *lhs == *rhs; },
+        [](Cons* lhs, Cons* rhs) -> bool { return is_list_equal(lhs, rhs); },
+        [](auto& x, auto& y) -> bool { return false; }
+    };
+    return visit(std::move(test),
+        static_cast<const Cell::base_type&>(lhs),
+        static_cast<const Cell::base_type&>(rhs));
+}
+
 bool is_list(Cell cell)
 {
     for (Cell slow{ cell }; is_pair(cell); cell = cdr(cell), slow = cdr(slow))
         if (!is_pair(cell = cdr(cell)) || cell == slow)
             break;
     return is_nil(cell);
+}
+
+bool is_list_equal(Cell lhs, Cell rhs)
+{
+    for (/* */; is_pair(lhs) && is_pair(rhs); lhs = cdr(lhs), rhs = cdr(rhs))
+        if (!is_equal(car(lhs), car(rhs)))
+            return false;
+
+    return is_equal(lhs, rhs);
 }
 
 Int list_length(Cell list)
