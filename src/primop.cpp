@@ -13,7 +13,6 @@
 
 namespace pscm {
 
-//using std::get;
 using varg = std::vector<Cell>;
 
 /**
@@ -225,6 +224,147 @@ static Cell fun_write(const varg& args)
     return none;
 }
 
+inline Cell fun_make_vector(const varg& args)
+{
+    argn(args, 1, 2);
+
+    Number size = args[0];
+
+    is_int(size) && !is_negative(size)
+        || (throw std::invalid_argument("vector length must be a non-negative integer"), 0);
+
+    return Vector{ size, args.size() == 2 ? args[1] : Cell{ none } };
+}
+
+inline Cell fun_vector_ref(const varg& args)
+{
+    argn(args, 2);
+
+    Number pos = args[1];
+    is_int(pos) && !is_negative(pos)
+        || (throw std::invalid_argument("vector position must be a non-negative integer"), 0);
+
+    return std::get<Vector>(args[0]).at(pos);
+}
+
+inline Cell fun_vector_setb(const varg& args)
+{
+    argn(args, 3);
+
+    Number pos = args[1];
+    is_int(pos) && !is_negative(pos)
+        || (throw std::invalid_argument("vector position must be a non-negative integer"), 0);
+
+    std::get<Vector>(Cell{ args[0] }).at(pos) = args[2];
+    return none;
+}
+
+inline Cell fun_vec2list(const varg& args)
+{
+    argn(args, 1, 3);
+    Vector vec = args[0];
+    Number pos = args.size() > 1 ? args[1] : Number{ 0 },
+           end = args.size() > 2 ? args[2] : Number{ vec.size() };
+
+    is_int(pos) && !is_negative(pos) && pos <= end
+        || (throw std::invalid_argument("invalid first vector index"), 0);
+
+    is_int(end) && !is_negative(end) && end <= Number{ vec.size() }
+        || (throw std::invalid_argument("invalid second vector index"), 0);
+
+    if (!vec.size())
+        return nil;
+
+    Cell list = cons(vec.at(pos), nil), tail = list;
+
+    std::for_each(vec.begin() + pos + 1, vec.begin() + end, [&tail](Cell& cell) {
+        set_cdr(tail, cons(cell, nil));
+        tail = cdr(tail);
+    });
+    return list;
+}
+
+inline Cell fun_list2vec(const varg& args)
+{
+    argn(args, 1);
+    Vector vec;
+
+    Cell list = args[0];
+    for (/* */; is_pair(list); list = cdr(list))
+        vec.push_back(car(list));
+
+    is_nil(list) || (throw std::invalid_argument("not a proper list"), 0);
+    return vec;
+}
+
+inline Cell fun_vec_copy(const varg& args)
+{
+    argn(args, 1, 3);
+    Vector vec = args[0];
+
+    Number pos = args.size() > 1 ? args[1] : Number{ 0 },
+           end = args.size() > 2 ? args[2] : Number{ vec.size() };
+
+    is_int(pos) && !is_negative(pos) && pos <= end
+        || (throw std::invalid_argument("invalid first vector index"), 0);
+
+    is_int(end) && !is_negative(end) && end <= Number{ vec.size() }
+        || (throw std::invalid_argument("invalid second vector index"), 0);
+
+    return Vector{ vec.begin() + pos, vec.begin() + end };
+}
+
+inline Cell fun_vec_copyb(const varg& args)
+{
+    argn(args, 3, 5);
+    Vector vec = args[0], src = args[2];
+
+    Number idx = args[1],
+           pos = args.size() > 3 ? args[3] : Number{ 0 },
+           end = args.size() > 4 ? args[4] : Number{ src.size() };
+
+    is_int(idx) && !is_negative(idx)
+        || (throw std::invalid_argument("invalid destination vector index"), 0);
+
+    is_int(pos) && !is_negative(pos) && pos <= end
+        || (throw std::invalid_argument("invalid first vector index"), 0);
+
+    is_int(end) && !is_negative(end) && end <= Number{ src.size() }
+        || (throw std::invalid_argument("invalid second vector index"), 0);
+
+    vec.copy(idx, src.begin() + pos, src.begin() + end);
+    return vec;
+}
+
+inline Cell fun_vec_append(const varg& args)
+{
+    argn(args, 1, ~0);
+    Vector vec = args[0];
+
+    for (const Vector& v : args)
+        vec.append(v.begin(), v.end());
+
+    return vec;
+}
+
+inline Cell fun_vec_fillb(const varg& args)
+{
+    argn(args, 2, 4);
+    Vector vec = args[0];
+
+    Number pos = args.size() > 2 ? args[2] : Number{ 0 },
+           end = args.size() > 3 ? args[3] : Number{ vec.size() };
+
+    is_int(pos) && !is_negative(pos) && pos <= end
+        || (throw std::invalid_argument("invalid first vector index"), 0);
+
+    is_int(end) && !is_negative(end) && end <= Number{ vec.size() }
+        || (throw std::invalid_argument("invalid second vector index"), 0);
+
+    vec.fill(args[1], pos, end);
+    return vec;
+}
+
 Cell call(const Symenv& senv, Intern primop, const varg& args)
 {
     switch (primop) {
@@ -331,18 +471,45 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
 
     /* Section 6.6: Characters */
     case Intern::op_ischar:
-        return argn(args, 1),
-               is_char(args[0]);
+        return argn(args, 1), is_type<Char>(args[0]);
     case Intern::op_charint:
         return argn(args, 1), num(std::get<Char>(args[0]));
 
-        /* Section 6.7: Strings */
+    /* Section 6.7: Strings */
+    case Intern::op_isstr:
+        return argn(args, 1), is_type<String>(args[0]);
 
     /* Section 6.8: Vectors */
+    case Intern::op_isvec:
+        return argn(args, 1), is_type<Vector>(args[0]);
     case Intern::op_mkvec:
-        return argn(args, 1, 2), args.size() != 2 ? vec(args[0]) : vec(args[0], args[1]);
+        return fun_make_vector(args);
     case Intern::op_vec:
-        return vcopy(args);
+        return Vector{ args };
+    case Intern::op_veclen:
+        return argn(args, 1), Number{ std::get<Vector>(args[0]).size() };
+    case Intern::op_vecref:
+        return fun_vector_ref(args);
+    case Intern::op_vecsetb:
+        return fun_vector_setb(args);
+    case Intern::op_veclist:
+        return fun_vec2list(args);
+    case Intern::op_listvec:
+        return fun_list2vec(args);
+    case Intern::op_veccopy:
+        return fun_vec_copy(args);
+    case Intern::op_veccopyb:
+        return fun_vec_copyb(args);
+    case Intern::op_vecappend:
+        return fun_vec_append(args);
+    case Intern::op_vecfillb:
+        return fun_vec_fillb(args);
+
+    /* Section 6.9: Bytevectors */
+
+    /* Section 6.10: Control features */
+    case Intern::op_isproc:
+        return argn(args, 1), is_proc(args[0]) || (is_intern(args[0]) && std::get<Intern>(args[0]) >= Intern::op_eq);
 
     default:
         throw std::invalid_argument("invalid primary operation");

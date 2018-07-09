@@ -47,7 +47,9 @@ bool is_equal(const Cell& lhs, const Cell& rhs)
 
     auto test = overloads{
         [](const String& lhs, const String& rhs) -> bool { return *lhs == *rhs; },
+        [](const Vector& lhs, const Vector& rhs) -> bool { return lhs.equal(rhs); },
         [](Cons* lhs, Cons* rhs) -> bool { return is_list_equal(lhs, rhs); },
+
         [](auto& x, auto& y) -> bool { return false; }
     };
     return visit(std::move(test),

@@ -1,3 +1,12 @@
+/********************************************************************************/ /**
+ * @file eval.hpp
+ *
+ * @version   0.1
+ * @date      2018-
+ * @author    Paul Pudewills
+ * @copyright MIT License
+ *************************************************************************************/
+
 #include "symbol.hpp"
 #include "cell.hpp"
 
@@ -87,14 +96,27 @@ static Symenv topenv{
         { sym("char->integer"), Intern::op_charint },
 
         /* Section 6.7: Strings */
-        { sym("make-string"), Intern::op_mkstr },
         { sym("string?"), Intern::op_isstr },
+        { sym("make-string"), Intern::op_mkstr },
 
         /* Section 6.8: Vectors */
         { sym("vector?"), Intern::op_isvec },
         { sym("make-vector"), Intern::op_mkvec },
         { sym("vector"), Intern::op_vec },
+        { sym("vector-length"), Intern::op_veclen },
+        { sym("vector-ref"), Intern::op_vecref },
+        { sym("vector-set!"), Intern::op_vecsetb },
+        { sym("vector->list"), Intern::op_veclist },
+        { sym("list->vector"), Intern::op_listvec },
+        { sym("vector-copy"), Intern::op_veccopy },
+        { sym("vector-copy!"), Intern::op_veccopyb },
+        { sym("vector-append"), Intern::op_vecappend },
+        { sym("vector-fill!"), Intern::op_vecfillb },
 
+        /* Section 6.9: Bytevectors */
+
+        /* Section 6.10: Control features */
+        { sym("procedure?"), Intern::op_isproc },
     }
 };
 

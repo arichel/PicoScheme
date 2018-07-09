@@ -9,6 +9,7 @@
 
 #include "number.hpp"
 #include "proc.hpp"
+#include "svector.hpp"
 #include "symbol.hpp"
 
 namespace pscm {
@@ -22,7 +23,7 @@ using Char = char;
 using Port = std::ostream;
 using Cons = std::pair<Cell, Cell>;
 using String = std::shared_ptr<std::basic_string<Char>>;
-using Vector = std::shared_ptr<std::vector<Cell>>;
+using Vector = SharedVector<Cell>;
 using Symenv = std::shared_ptr<SymbolEnv<Cell>>;
 
 enum class Intern {
@@ -183,6 +184,23 @@ enum class Intern {
     op_veccopyb,
     op_vecappend,
     op_vecfillb,
+
+    /* Section 6.9: Bytevectors */
+
+    /* Section 6.10: Control features */
+    op_isproc,
+    op_map,
+    op_strmap,
+    op_vecmap,
+    op_foreach,
+    op_strforeach,
+    op_vecforeach,
+    op_callcc,
+    op_values,
+    op_callwithval,
+    op_dynwind,
+
+    /* */
 
 };
 

@@ -80,17 +80,12 @@ inline Cell str(const Char* s)
     return std::make_shared<String::element_type>(s);
 }
 
-inline Cell vec(Number size, Cell val = none)
+inline Vector vec(Number size, Cell val = none)
 {
     is_int(size) && std::get<Int>(size) >= 0
         || (throw std::invalid_argument("vector length must be a non-negative integer"), 0);
 
-    return std::make_shared<Vector::element_type>(size, val);
-}
-
-inline Cell vcopy(const Vector::element_type& v)
-{
-    return std::make_shared<Vector::element_type>(v);
+    return { size, val };
 }
 
 template <typename T>

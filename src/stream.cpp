@@ -51,9 +51,8 @@ static std::ostream& operator<<(std::ostream& os, Cons* cons)
 static std::ostream& operator<<(std::ostream& os, const Vector& vec)
 {
     os << "#(";
-    if (vec)
-        for (Cell& cell : *vec)
-            os << cell << ' ';
+    for (const Cell& cell : vec)
+        os << cell << ' ';
     return os << ')';
 }
 

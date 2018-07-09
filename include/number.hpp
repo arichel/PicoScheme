@@ -151,6 +151,10 @@ bool operator<(const Number& lhs, const Number& rhs);
 bool operator>=(const Number& lhs, const Number& rhs);
 bool operator<=(const Number& lhs, const Number& rhs);
 
+inline bool is_zero(const Number& x) { return !(x != Number{ 0 }); }
+inline bool is_negative(const Number& x) { return x < Number{ 0 }; }
+inline bool is_positive(const Number& x) { return x > Number{ 0 }; }
+
 Number neg(const Number& x);
 Number inv(const Number& x);
 

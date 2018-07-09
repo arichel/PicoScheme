@@ -31,6 +31,9 @@ start:
     } catch (std::bad_variant_access& e) {
         cout << e.what() << ": " << expr << endl;
 
+    } catch (std::out_of_range& e) {
+        cout << e.what() << ": " << expr << endl;
+
     } catch (std::invalid_argument& e) {
         cout << e.what() << ": " << expr << endl;
     }
