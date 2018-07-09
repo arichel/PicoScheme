@@ -45,22 +45,23 @@ private:
     };
 
     Cell parse_list(std::istream& in);
-    Cell parse_list_tail(std::istream& in);
-
     Token get_token(std::istream& in);
 
-    Token lex_number(std::istream& in);
-    Token lex_string(std::istream& in);
-    Token lex_symbol(std::istream& in);
-    Token lex_special(std::istream& in);
+    Token lex_symbol(const std::string& str);
+    Token lex_char(const std::string& str, Char& c);
+    Token lex_special(const std::string& str);
+    Token lex_number(const std::string& str, Number& num);
+    Token lex_string(std::string& str, std::istream& in);
+    Token skip_comment(std::istream& in);
 
     bool is_alpha(int c);
     bool is_special(int c);
-    bool is_digit(std::istream& in, int c);
+    bool is_digit(const std::string& str, size_t n = 0);
 
     Token put_back = Token::None;
     std::string strtok;
     Number numtok;
+    Char chrtok;
 };
 
 }; // namespace pscm

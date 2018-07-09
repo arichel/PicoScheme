@@ -16,6 +16,9 @@ namespace pscm {
 using std::cout;
 using std::endl;
 
+template <typename T>
+inline constexpr T min(T x, T y) { return x < y ? x : y; };
+
 /**
  * @brief Output stream operator for Cons type arguments.
  */
@@ -45,6 +48,15 @@ static std::ostream& operator<<(std::ostream& os, Cons* cons)
     return os;
 }
 
+static std::ostream& operator<<(std::ostream& os, const Vector& vec)
+{
+    os << "#(";
+    if (vec)
+        for (Cell& cell : *vec)
+            os << cell << ' ';
+    return os << ')';
+}
+
 /**
  * @brief Output stream operator for Cell type arguments.
  */
@@ -54,10 +66,12 @@ std::ostream& operator<<(std::ostream& os, const Cell& cell)
         [&os](Nil) { os << "()"; },
         [&os](None) { os << "#none"; },
         [&os](Bool arg) { os << (arg ? "#t" : "#f"); },
+        [&os](Char arg) { os << "#\\" << arg; },
         [&os](Number arg) { os << arg; },
         [&os](Intern arg) { os << "<intern " << static_cast<int>(arg) << '>'; },
         [&os](String arg) { os << '"' << *arg << '"'; },
-        [&os](Symbol arg) { os << '<' << arg.name() << '>'; },
+        [&os](Vector arg) { os << arg; },
+        [&os](Symbol arg) { os << arg.name(); },
         [&os](Symenv arg) { os << "<symenv>"; },
         [&os](Proc arg) { os << "<proc>"; },
         [&os](Port*) { os << "port"; },
@@ -70,78 +84,83 @@ std::ostream& operator<<(std::ostream& os, const Cell& cell)
     return os;
 }
 
-Parser::Token Parser::lex_number(std::istream& in)
-{
-    strtok.clear();
-    numtok = Int{ 0 };
+/**
+ * @brief Lexical analyse the argument string for an integer, a floating point or complex number.
 
-    int c = in.get();
+ * @param str  String to lexical analyse.
+ * @param num  Uppon success, return the converted number.
+ */
+Parser::Token Parser::lex_number(const std::string& str, Number& num)
+{
     bool is_flo = false, is_cpx = false;
 
+    num = Int{ 0 };
     Complex z = { 0, 1 };
 
-    if (strchr("+-", c) && strchr("iI", in.peek())) {
-        numtok = c != '-' ? z : -z;
-        c = in.get();
+    auto ic = str.begin();
+    size_t pos = 0, ip = 0;
+
+    // Positive or negative imaginary number: +i or -i
+    if (strchr("+-", *ic) && strchr("iI", *(ic + 1))) {
+        num = *ic != '-' ? z : -z;
         return Token::Number;
     }
 
-    if (strchr("+-.", c)) {
-        strtok.push_back(c);
-        c = in.get();
+    // Sign character of floating point:
+    if (strchr("+-.", *ic)) {
+        is_flo = *ic == '.';
+        ++ic, ++ip;
     }
-    if (isdigit(c)) {
-        strtok.push_back(c);
 
-        while (in.good()) {
-            c = in.get();
+    if (isdigit(*ic)) {
 
-            if (isdigit(c))
-                strtok.push_back(c);
+        while (++ic != str.end()) {
+            ++ip;
 
-            else if (strchr(".eE", c)) {
+            if (isdigit(*ic))
+                continue;
+
+            else if (strchr(".eE", *ic))
                 is_flo = true;
-                strtok.push_back(c);
 
-            } else if (strchr("+-", c)) {
+            else if (strchr("+-", *ic)) {
+
+                if (!strchr("eE", *(ic - 1))) {
+                    is_cpx = true;
+                    z.real(std::stof(str.substr(0, pos = ip)));
+
+                    if (*ic != '+')
+                        z.imag(-1);
+                }
+            } else if (strchr("iI", *ic) && &(*ic) == &str.back()) {
                 is_cpx = true;
-                z.real(std::stof(strtok));
-                if (c != '+')
-                    z.imag(-1);
 
-                strtok.clear();
-
-            } else if (strchr("iI", c)) {
-                is_cpx = true;
-
-                if (!strtok.empty())
-                    z.imag(z.imag() >= 0 ? std::stof(strtok) : -std::stof(strtok));
-
-                break;
-
-            } else {
-                in.unget();
-                break;
-            }
+                if (isdigit(str.at(pos)) || pos + 1 < str.size())
+                    z.imag(z.imag() >= 0 ? std::stof(str.substr(pos, str.size()))
+                                         : -std::stof(str.substr(pos, str.size())));
+            } else
+                return Token::Error;
         }
         if (is_cpx)
-            numtok = z;
+            num = z;
         else if (is_flo)
-            numtok = std::stof(strtok);
+            num = std::stof(strtok);
         else
-            numtok = std::stol(strtok);
+            num = std::stol(strtok);
 
         return Token::Number;
     }
-    in.unget();
     return Token::Error;
 }
 
-Parser::Token Parser::lex_string(std::istream& in)
+/**
+ * @brief Read characters from input stream into argument string.
+ */
+Parser::Token Parser::lex_string(std::string& str, std::istream& in)
 {
-    strtok.clear();
+    str.clear();
 
-    while (in.good()) {
+    while (in) {
         int c = in.get();
 
         switch (c) {
@@ -150,7 +169,7 @@ Parser::Token Parser::lex_string(std::istream& in)
 
         default:
             if (isprint(c))
-                strtok.push_back(c);
+                str.push_back(c);
             else
                 return Token::Error;
         }
@@ -158,58 +177,119 @@ Parser::Token Parser::lex_string(std::istream& in)
     return Token::Error;
 }
 
-Parser::Token Parser::lex_symbol(std::istream& in)
+/**
+ * @brief Lexical analyse the argument string for valid scheme
+ *        symbol characters.
+ */
+Parser::Token Parser::lex_symbol(const std::string& str)
 {
-    strtok.clear();
-    int c = in.get();
+    if (str.empty() || !is_alpha(str.front()))
+        return Token::Error;
 
-    if (is_alpha(c)) {
-        strtok.push_back(c);
+    for (auto c : str)
+        if (!is_alpha(c) && !isdigit(c))
+            return Token::Error;
 
-        while (in.good()) {
-            c = in.get();
+    return Token::Symbol;
+}
 
-            if (is_alpha(c) || isdigit(c))
-                strtok.push_back(c);
+Parser::Token Parser::lex_char(const std::string& str, Char& c)
+{
+    constexpr struct {
+        char* name;
+        char c;
+    } stab[]{
+        { "#\\alarm", '\a' },
+        { "#\\backspace", '\b' },
+        { "#\\delete", '\0' },
+        { "#\\escape", '\0' },
+        { "#\\newline", '\n' },
+        { "#\\null", '\0' },
+        { "#\\return", '\r' },
+        { "#\\space", ' ' },
+        { "#\\tab", '\t' },
 
-            else {
-                in.unget();
-                return Token::Symbol;
-            }
-        }
-    }
+    };
+    constexpr size_t ntab = sizeof(stab) / sizeof(*stab);
+
+    if (str.size() == 3)
+        return c = str[2], Token::Char;
+
+    else if (str.size() > 3 && str[2] == 'x') {
+        std::string s{ str.substr(1) };
+        s[0] = '0';
+        return c = std::stoi(s), Token::Char;
+    } else
+        for (size_t i = 0; i < ntab; ++i)
+            if (stab[i].name == str)
+                return c = stab[i].c, Token::Char;
+
     return Token::Error;
 }
 
-Parser::Token Parser::lex_special(std::istream& in)
+/**
+ * @brief Lexical analyse a special scheme symbol.
+ */
+Parser::Token Parser::lex_special(const std::string& str)
 {
-    int c = in.get();
-
-    switch (c) {
+    switch (str.at(1)) {
     case 't':
-        if (isspace(in.peek()) || is_special(in.peek()))
+        if (str == "#t" || str == "#true")
             return Token::True;
 
     case 'f':
-        if (isspace(in.peek()) || is_special(in.peek()))
+        if (str == "#f" || str == "#false")
             return Token::False;
+
+    case '\\':
+        return lex_char(str, chrtok);
 
     default:
         return Token::Error;
     }
 }
+/**
+ * @brief Skip a comment line.
+ */
+Parser::Token Parser::skip_comment(std::istream& in)
+{
+    in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    return Token::Comment;
+}
 
+/**
+ * @brief Predicate returns true if the argument character is a special
+ *        scheme character, starting a new expression, string or comment.
+ */
 bool Parser::is_special(int c)
 {
-    return strchr("()\"',", c);
+    return strchr("()\"'`,@;", c);
 }
 
-bool Parser::is_digit(std::istream& in, int c)
+/**
+ * @brief Predicate returns true if the first n characters is are digits,
+ *         floating point exponent characters (e,E) or imaginary characters (i,I).
+ *
+ * @param str String to test.
+ * @param n   Unless zero, test the first n characters or the whole string
+ *            otherwise.
+ */
+bool Parser::is_digit(const std::string& str, size_t n)
 {
-    return isdigit(c)
-        || (strchr("+-.", c) && (isdigit(in.peek()) || strchr("iI", in.peek())));
+    n = n ? min(n, str.size()) : str.size();
+
+    if (str.empty() || (str.size() == 1 && !isdigit(str.front())))
+        return false;
+    else
+        for (auto ic = str.begin(), ie = ic + n; ic != ie; ++ic)
+            if (!isdigit(*ic) && !strchr("+-.iIeE", *ic))
+                return false;
+    return true;
 }
 
+/**
+ * @brief Predicate return true if argument character is an allowed scheme character.
+ */
 bool Parser::is_alpha(int c)
 {
     return isalpha(c) || strchr("_?!+-*/<>=:@", c);
@@ -217,91 +297,93 @@ bool Parser::is_alpha(int c)
 
 Parser::Token Parser::get_token(std::istream& in)
 {
+    // Check if there is a put-back token available:
     if (put_back != Token::None) {
-        Token tok = Token::None;
-        std::swap(tok, put_back);
+        Token tok = put_back;
+        put_back = Token::None;
         return tok;
     }
-    while (in.good()) {
-        int c = in.get();
 
-        if (isspace(c))
-            continue;
+    // Ignore all leading whitespaces:
+    int c = '\0';
+    while (in && isspace(c = in.get()))
+        ;
 
-        switch (c) {
+    strtok.clear();
+    strtok.push_back(c);
 
-        case '(':
-            return Token::OBrace;
-
-        case ')':
-            return Token::CBrace;
-
-        case '.':
-            if (!isdigit(in.peek()))
-                return Token::Dot;
-
-        case '\'':
-            return Token::Quote;
-
-        case ';':
-            std::getline(in, strtok);
-            return Token::Comment;
-
-        case '#':
-            return lex_special(in);
-
-        case '"':
-            return lex_string(in);
-
-        case EOF:
-            return Token::Eof;
-
-        default:
-            if (is_digit(in, c))
-                return lex_number(in.unget());
-
-            if (is_alpha(c))
-                return lex_symbol(in.unget());
-
-            return Token::Error;
-        }
+    // Read chars until a trailing whitespace, a special scheme character or EOF is reached:
+    if (!is_special(c)) {
+        while (in && !isspace(c = in.get()) && !is_special(c) && c != EOF)
+            strtok.push_back(c);
+        in.unget();
     }
-    return Token::Error;
+    if (in.bad())
+        return Token::Error;
+
+    // Lexical analyse token string according to the first character:
+    switch (c = strtok.front()) {
+
+    case '(':
+        return Token::OBrace;
+
+    case ')':
+        return Token::CBrace;
+
+    case '.':
+        return is_digit(strtok, 2) ? lex_number(strtok, numtok) : Token::Dot;
+
+    case '\'':
+        return Token::Quote;
+
+    case ';':
+        return skip_comment(in);
+
+    case '#':
+        return lex_special(strtok);
+
+    case '"':
+        return lex_string(strtok, in);
+
+    default:
+        if (is_digit(strtok, 2))
+            return lex_number(strtok, numtok);
+        else
+            return lex_symbol(strtok);
+    }
 }
 
 Cell Parser::parse(std::istream& in)
 {
-    Token tok;
+    switch (Token tok = get_token(in)) {
 
-    while (in.good()) {
-        switch (tok = get_token(in)) {
+    case Token::True:
+        return true;
 
-        case Token::True:
-            return true;
+    case Token::False:
+        return false;
 
-        case Token::False:
-            return false;
+    case Token::Char:
+        return chrtok;
 
-        case Token::Quote:
-            return list(Intern::_quote, parse(in));
+    case Token::Quote:
+        return list(Intern::_quote, parse(in));
 
-        case Token::Number:
-            return numtok;
+    case Token::Number:
+        return numtok;
 
-        case Token::String:
-            return str(strtok.c_str());
+    case Token::String:
+        return str(strtok.c_str());
 
-        case Token::Symbol:
-            return sym(strtok.c_str());
+    case Token::Symbol:
+        return sym(strtok.c_str());
 
-        case Token::OBrace:
-            return parse_list(in);
+    case Token::OBrace:
+        return parse_list(in);
 
-        default:
-            throw std::invalid_argument("parse error");
-        }
+    default:
+        throw std::invalid_argument("parse error");
     }
-    return none;
 }
 
 Cell Parser::parse_list(std::istream& in)
@@ -313,6 +395,9 @@ Cell Parser::parse_list(std::istream& in)
     while (in.good()) {
         switch (tok = get_token(in)) {
 
+        case Token::CBrace:
+            return list;
+
         case Token::Dot:
             cell = parse(in);
             tok = get_token(in);
@@ -323,9 +408,7 @@ Cell Parser::parse_list(std::istream& in)
             }
             goto error;
 
-        case Token::CBrace:
-            return list;
-
+        case Token::Eof:
         case Token::Error:
             goto error;
 
@@ -345,5 +428,4 @@ Cell Parser::parse_list(std::istream& in)
 error:
     throw std::invalid_argument("error parsing list");
 }
-
 }; // namespace pscm

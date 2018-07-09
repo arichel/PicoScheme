@@ -31,6 +31,8 @@ static const Nil nil{}; //!< empty list symbol
 
 constexpr bool is_nil(const Cell& cell) { return is_type<Nil>(cell); }
 constexpr bool is_none(const Cell& cell) { return is_type<None>(cell); }
+constexpr bool is_bool(const Cell& cell) { return is_type<Bool>(cell); }
+constexpr bool is_char(const Cell& cell) { return is_type<Char>(cell); }
 constexpr bool is_string(const Cell& cell) { return is_type<String>(cell); }
 constexpr bool is_pair(const Cell& cell) { return is_type<Cons*>(cell); }
 constexpr bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
@@ -76,6 +78,19 @@ inline Cell port() { return &std::cout; }
 inline Cell str(const Char* s)
 {
     return std::make_shared<String::element_type>(s);
+}
+
+inline Cell vec(Number size, Cell val = none)
+{
+    is_int(size) && std::get<Int>(size) >= 0
+        || (throw std::invalid_argument("vector length must be a non-negative integer"), 0);
+
+    return std::make_shared<Vector::element_type>(size, val);
+}
+
+inline Cell vcopy(const Vector::element_type& v)
+{
+    return std::make_shared<Vector::element_type>(v);
 }
 
 template <typename T>

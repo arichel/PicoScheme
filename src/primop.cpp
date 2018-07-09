@@ -51,11 +51,27 @@ static Cell fun_list(const varg& args)
     return list;
 }
 
+static Cell fun_booleq(const varg& args)
+{
+    argn(args, 2, ~0);
+
+    if (!is_bool(args[0]))
+        return false;
+
+    Bool prv = args[0], b;
+
+    for (auto iter = args.begin() + 1; iter != args.end(); prv = b, ++iter)
+        if (!is_bool(*iter) || prv != (b = *iter))
+            return false;
+
+    return true;
+}
+
 static Cell fun_numeq(const varg& args)
 {
     argn(args, 2, ~0);
 
-    if (args.at(0) != args.at(1))
+    if (args[0] != args[1])
         return false;
 
     Number val = args[1];
@@ -205,30 +221,21 @@ static Cell fun_write(const varg& args)
 
     Port* port = args.size() > 1 ? std::get<Port*>(args[1]) : &std::cout;
 
-    *port << args.at(0);
+    *port << args[0];
     return none;
 }
 
 Cell call(const Symenv& senv, Intern primop, const varg& args)
 {
     switch (primop) {
+    /* Section 6.1: Equivalence predicates */
     case Intern::op_eq:
     case Intern::op_eqv:
         return argn(args, 2), args[0] == args[1];
     case Intern::op_equal:
         return argn(args, 2), is_equal(args[0], args[1]);
-    case Intern::op_cons:
-        return argn(args, 2), cons(args[0], args[1]);
-    case Intern::op_car:
-        return argn(args, 1), car(args[0]);
-    case Intern::op_cdr:
-        return argn(args, 1), cdr(args[0]);
-    case Intern::op_setcar:
-        return argn(args, 2), set_car(args[0], args[1]), none;
-    case Intern::op_setcdr:
-        return argn(args, 2), set_cdr(args[0], args[1]), none;
-    case Intern::op_list:
-        return fun_list(args);
+
+    /* Section 6.2: Numbers */
     case Intern::op_numeq:
         return fun_numeq(args);
     case Intern::op_numlt:
@@ -299,6 +306,43 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
         return argn(args, 2), pscm::rect(args[0], args[1]);
     case Intern::op_polar:
         return argn(args, 2), pscm::polar(args[0], args[1]);
+
+    /* Section 6.3: Booleans */
+    case Intern::op_not:
+        return argn(args, 1), !is_true(args[0]);
+    case Intern::op_isbool:
+        return argn(args, 1), is_bool(args[0]);
+    case Intern::op_isbooleq:
+        return fun_booleq(args);
+
+    /* Section 6.4: Pair and lists */
+    case Intern::op_cons:
+        return argn(args, 2), cons(args[0], args[1]);
+    case Intern::op_car:
+        return argn(args, 1), car(args[0]);
+    case Intern::op_cdr:
+        return argn(args, 1), cdr(args[0]);
+    case Intern::op_setcar:
+        return argn(args, 2), set_car(args[0], args[1]), none;
+    case Intern::op_setcdr:
+        return argn(args, 2), set_cdr(args[0], args[1]), none;
+    case Intern::op_list:
+        return fun_list(args);
+
+    /* Section 6.6: Characters */
+    case Intern::op_ischar:
+        return argn(args, 1),
+               is_char(args[0]);
+    case Intern::op_charint:
+        return argn(args, 1), num(std::get<Char>(args[0]));
+
+        /* Section 6.7: Strings */
+
+    /* Section 6.8: Vectors */
+    case Intern::op_mkvec:
+        return argn(args, 1, 2), args.size() != 2 ? vec(args[0]) : vec(args[0], args[1]);
+    case Intern::op_vec:
+        return vcopy(args);
 
     default:
         throw std::invalid_argument("invalid primary operation");

@@ -42,14 +42,40 @@ static Cell syntax_if(const Symenv& senv, const Cell& args)
         return none;
 }
 
+static Cell syntax_when(const Symenv& senv, Cell args)
+{
+    if (is_true(eval(senv, car(args))) && is_pair(args = cdr(args))) {
+        for (/* */; is_pair(cdr(args)); args = cdr(args))
+            eval(senv, car(args));
+
+        return car(args);
+    }
+    return none;
+}
+
+static Cell syntax_unless(const Symenv& senv, Cell args)
+{
+    if (is_false(eval(senv, car(args))) && is_pair(args = cdr(args))) {
+        for (/* */; is_pair(cdr(args)); args = cdr(args))
+            eval(senv, car(args));
+
+        return car(args);
+    }
+    return none;
+}
+
 static Cell syntax_and(const Symenv& senv, Cell args)
 {
     Cell res = true;
 
-    for (/* */; is_pair(args); args = cdr(args))
-        if (is_false(res = eval(senv, car(args))))
-            return res;
+    if (is_pair(args)) {
+        for (/* */; is_pair(cdr(args)); args = cdr(args))
+            if (is_false(res = eval(senv, car(args))))
+                return res;
 
+        is_nil(cdr(args)) || (throw std::invalid_argument("not a proper list"), 0);
+        return car(args);
+    }
     return res;
 }
 
@@ -57,10 +83,14 @@ static Cell syntax_or(const Symenv& senv, Cell args)
 {
     Cell res = false;
 
-    for (/* */; is_pair(args); args = cdr(args))
-        if (is_true(res = eval(senv, car(args))))
-            return res;
+    if (is_pair(args)) {
+        for (/* */; is_pair(cdr(args)); args = cdr(args))
+            if (is_true(res = eval(senv, car(args))))
+                return res;
 
+        is_nil(cdr(args)) || (throw std::invalid_argument("not a proper list"), 0);
+        return car(args);
+    }
     return res;
 }
 
@@ -161,6 +191,14 @@ Cell eval(Symenv senv, Cell expr)
 
         case Intern::_if:
             expr = syntax_if(senv, args);
+            break;
+
+        case Intern::_when:
+            expr = syntax_when(senv, args);
+            break;
+
+        case Intern::_unless:
+            expr = syntax_unless(senv, args);
             break;
 
         case Intern::_and:

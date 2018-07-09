@@ -16,6 +16,8 @@ static Symenv topenv{
         { sym("or"), Intern::_or },
         { sym("and"), Intern::_and },
         { sym("if"), Intern::_if },
+        { sym("when"), Intern::_when },
+        { sym("unless"), Intern::_unless },
         { sym("quote"), Intern::_quote },
         { sym("begin"), Intern::_begin },
         { sym("cond"), Intern::_cond },
@@ -24,18 +26,12 @@ static Symenv topenv{
         { sym("apply"), Intern::_apply },
         { sym("lambda"), Intern::_lambda },
 
-        /*-------------------------------*/
+        /* Section 6.1: Equivalence predicates */
         { sym("eq?"), Intern::op_eq },
         { sym("eqv?"), Intern::op_eqv },
         { sym("equal?"), Intern::op_equal },
-        { sym("cons"), Intern::op_cons },
-        { sym("car"), Intern::op_car },
-        { sym("cdr"), Intern::op_cdr },
-        { sym("set-car!"), Intern::op_setcar },
-        { sym("set-cdr!"), Intern::op_setcdr },
-        { sym("list"), Intern::op_list },
 
-        /*-------------------------------*/
+        /* Section 6.2: Numbers */
         { sym("="), Intern::op_numeq },
         { sym("<"), Intern::op_numlt },
         { sym(">"), Intern::op_numgt },
@@ -72,6 +68,33 @@ static Symenv topenv{
         { sym("make-rectangular"), Intern::op_rect },
         { sym("make-polar"), Intern::op_polar },
         { sym("conjugate"), Intern::op_conj },
+
+        /* Section 6.3: Booleans */
+        { sym("not"), Intern::op_not },
+        { sym("boolean?"), Intern::op_isbool },
+        { sym("boolean=?"), Intern::op_isbooleq },
+
+        /* Section 6.4: Pair and lists */
+        { sym("cons"), Intern::op_cons },
+        { sym("car"), Intern::op_car },
+        { sym("cdr"), Intern::op_cdr },
+        { sym("set-car!"), Intern::op_setcar },
+        { sym("set-cdr!"), Intern::op_setcdr },
+        { sym("list"), Intern::op_list },
+
+        /* Section 6.6: Characters */
+        { sym("char?"), Intern::op_ischar },
+        { sym("char->integer"), Intern::op_charint },
+
+        /* Section 6.7: Strings */
+        { sym("make-string"), Intern::op_mkstr },
+        { sym("string?"), Intern::op_isstr },
+
+        /* Section 6.8: Vectors */
+        { sym("vector?"), Intern::op_isvec },
+        { sym("make-vector"), Intern::op_mkvec },
+        { sym("vector"), Intern::op_vec },
+
     }
 };
 

@@ -29,10 +29,10 @@ start:
             std::cout << "store=" << store_size() << " : " << expr << std::endl;
         }
     } catch (std::bad_variant_access& e) {
-        cout << e.what() << endl;
+        cout << e.what() << ": " << expr << endl;
 
     } catch (std::invalid_argument& e) {
-        cout << e.what() << endl;
+        cout << e.what() << ": " << expr << endl;
     }
     goto start;
 }
@@ -47,15 +47,12 @@ int main()
         Parser parser;
         Cell expr;
 
-        //auto in = std::stringstream("(/ 10 3)");
-        //expr = parser.parse(in);
+        Cell size = num(100.333);
 
-        Number c1 = num(100);
-        Number c2 = num(200);
-        cout << (Int(c1) < Int(c2)) << endl;
-        return 0;
+        expr = vec(get<Number>(size));
 
-        expr = pscm::list(pscm::list(Intern::_lambda, nil, num(1)));
+        auto in = std::stringstream("(define +3 3)");
+        expr = parser.parse(in);
 
         cout << expr << " ---> ";
         expr = eval(e, expr);
