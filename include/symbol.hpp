@@ -9,10 +9,12 @@
 #ifndef SYMBOL_HPP
 #define SYMBOL_HPP
 
+#include <iostream>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <variant>
 
 namespace pscm {
 
@@ -53,7 +55,13 @@ protected:
         : pname{ &str }
     {
     }
+    Symbol(const std::string* str)
+        : pname{ str }
+    {
+    }
+
     friend struct Symtab;
+    friend struct Symtab2;
     const name_type* pname;
 };
 
@@ -69,6 +77,56 @@ struct Symtab {
 
 private:
     std::unordered_set<std::string> table;
+};
+
+template <typename T,
+    typename Hash = std::hash<T>,
+    typename Equal = std::equal_to<T>>
+struct Symtab3 {
+    using value_type = T;
+
+    struct Symbol {
+        using value_type = typename Symtab3<T>::value_type;
+        using key_type = size_t;
+
+        const value_type& value() const noexcept
+        {
+            return val;
+        }
+        operator key_type() const noexcept
+        {
+            return reinterpret_cast<key_type>(&val);
+        }
+        bool operator==(const Symbol& sym) const noexcept
+        {
+            return &val == &sym.val;
+        }
+        bool operator!=(const Symbol& sym) const noexcept
+        {
+            return &val != &sym.val;
+        }
+        Symbol() = delete;
+
+    private:
+        Symbol(const value_type& val)
+            : val{ val }
+        {
+        }
+        friend Symtab3<T>;
+        const value_type& val;
+    };
+    Symtab3(size_t size = 0)
+        : table(size)
+    {
+    }
+
+    template <typename Val>
+    Symbol operator[](Val&& val)
+    {
+        return *table.emplace(std::forward<Val>(val)).first;
+    }
+    //private:
+    std::unordered_set<T, Hash, Equal> table;
 };
 
 /**

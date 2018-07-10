@@ -6,6 +6,7 @@
  * @author    Paul Pudewills
  * @copyright MIT License
  *************************************************************************************/
+#include <assert.h>
 #include <iostream>
 
 #include "cell.hpp"
@@ -42,24 +43,17 @@ start:
 
 int main()
 {
-    repl();
-    return 0;
+    //    repl();
+    //    return 0;
 
     try {
         Symenv e = senv();
         Parser parser;
         Cell expr;
 
-        Cell size = num(100.333);
-
-        expr = vec(get<Number>(size));
-
-        auto in = std::stringstream("(define +3 3)");
-        expr = parser.parse(in);
-
-        cout << expr << " ---> ";
-        expr = eval(e, expr);
-        cout << expr << endl;
+        //cout << expr << " ---> ";
+        //expr = eval(e, expr);
+        //cout << expr << endl;
 
     } catch (std::bad_variant_access& e) {
         cout << e.what() << endl;
