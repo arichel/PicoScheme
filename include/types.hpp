@@ -23,8 +23,9 @@ using Char = char;
 using Port = std::ostream;
 using Cons = std::pair<Cell, Cell>;
 using String = std::shared_ptr<std::basic_string<Char>>;
+using Symbol = Symtab<String::element_type>::Symbol;
+using Symenv = std::shared_ptr<SymbolEnv<Symbol, Cell>>;
 using Vector = SharedVector<Cell>;
-using Symenv = std::shared_ptr<SymbolEnv<Cell>>;
 
 enum class Intern {
     _or,

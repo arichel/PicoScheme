@@ -21,72 +21,13 @@ namespace pscm {
 /**
  * @brief The Symbol struct
  */
-struct Symbol {
-    using name_type = std::string;
-    using key_type = size_t;
-
-    Symbol(const Symbol&) = default;
-    Symbol(Symbol&&) = default;
-
-    Symbol& operator=(const Symbol&) = default;
-    Symbol& operator=(Symbol&& s) = default;
-
-    const name_type& name() const noexcept
-    {
-        return *pname;
-    }
-
-    operator key_type() const noexcept
-    {
-        return reinterpret_cast<key_type>(pname);
-    }
-
-    bool operator==(const Symbol& rhs) const noexcept
-    {
-        return pname == rhs.pname;
-    }
-    bool operator!=(const Symbol& rhs) const noexcept
-    {
-        return pname != rhs.pname;
-    }
-
-protected:
-    Symbol(const std::string& str)
-        : pname{ &str }
-    {
-    }
-    Symbol(const std::string* str)
-        : pname{ str }
-    {
-    }
-
-    friend struct Symtab;
-    friend struct Symtab2;
-    const name_type* pname;
-};
-
-struct Symtab {
-    Symtab(size_t size = 10000)
-        : table{ size }
-    {
-    }
-    Symbol operator[](const char* str)
-    {
-        return Symbol{ *table.emplace(str).first };
-    }
-
-private:
-    std::unordered_set<std::string> table;
-};
-
 template <typename T,
     typename Hash = std::hash<T>,
     typename Equal = std::equal_to<T>>
-struct Symtab3 {
-    using value_type = T;
+struct Symtab {
 
     struct Symbol {
-        using value_type = typename Symtab3<T>::value_type;
+        using value_type = T;
         using key_type = size_t;
 
         const value_type& value() const noexcept
@@ -105,17 +46,21 @@ struct Symtab3 {
         {
             return &val != &sym.val;
         }
-        Symbol() = delete;
+        //Symbol() = delete;
+        Symbol(const Symbol&) = default;
+        Symbol(Symbol&&) = default;
+        Symbol& operator=(const Symbol&) = default;
+        Symbol& operator=(Symbol&&) = default;
 
     private:
         Symbol(const value_type& val)
             : val{ val }
         {
         }
-        friend Symtab3<T>;
+        friend Symtab<T>;
         const value_type& val;
     };
-    Symtab3(size_t size = 0)
+    Symtab(size_t size = 0)
         : table(size)
     {
     }
@@ -125,37 +70,38 @@ struct Symtab3 {
     {
         return *table.emplace(std::forward<Val>(val)).first;
     }
-    //private:
+
+private:
     std::unordered_set<T, Hash, Equal> table;
 };
 
 /**
  *
  */
-template <typename T>
+template <typename Sym, typename T>
 class SymbolEnv {
 
 public:
-    using table_type = std::unordered_map<Symbol::key_type, T>;
-    using shared_type = std::shared_ptr<SymbolEnv<T>>;
+    using table_type = std::unordered_map<typename Sym::key_type, T>;
+    using shared_type = std::shared_ptr<SymbolEnv<Sym, T>>;
 
     SymbolEnv(const shared_type& next = nullptr)
         : next(next)
     {
     }
 
-    SymbolEnv(std::initializer_list<std::pair<Symbol, T>> args)
+    SymbolEnv(std::initializer_list<std::pair<Sym, T>> args)
     {
         for (auto& [sym, val] : args)
             add(sym, val);
     }
 
-    void add(const Symbol& sym, const T& arg)
+    void add(const Sym& sym, const T& arg)
     {
         table.insert_or_assign(sym, arg);
     }
 
-    void set(const Symbol& sym, const T& arg)
+    void set(const Sym& sym, const T& arg)
     {
         SymbolEnv* senv = this;
 
@@ -172,7 +118,7 @@ public:
         throw std::invalid_argument("unknown symbol");
     }
 
-    const T& get(const Symbol& sym) const
+    const T& get(const Sym& sym) const
     {
         const SymbolEnv* senv = this;
 
@@ -194,7 +140,9 @@ private:
 
 struct Cell;
 
-std::shared_ptr<SymbolEnv<Cell>> senv(const std::shared_ptr<SymbolEnv<Cell>>& env = nullptr);
+using Symbol = Symtab<std::string>::Symbol;
+
+std::shared_ptr<SymbolEnv<Symbol, Cell>> senv(const std::shared_ptr<SymbolEnv<Symbol, Cell>>& env = nullptr);
 
 Symbol sym(const char* name);
 

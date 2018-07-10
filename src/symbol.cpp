@@ -12,7 +12,7 @@
 
 namespace pscm {
 
-static Symtab symtab;
+static Symtab<std::string> symtab;
 
 Symbol sym(const char* name) { return symtab[name]; }
 

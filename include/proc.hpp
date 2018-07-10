@@ -8,7 +8,7 @@
 namespace pscm {
 
 struct Cell;
-using Symenv = std::shared_ptr<SymbolEnv<Cell>>;
+using Symenv = std::shared_ptr<SymbolEnv<Symbol, Cell>>;
 
 class Proc {
 public:
