@@ -70,7 +70,7 @@ std::ostream& operator<<(std::ostream& os, const Cell& cell)
         [&os](Intern arg) { os << "<intern " << static_cast<int>(arg) << '>'; },
         [&os](String arg) { os << '"' << *arg << '"'; },
         [&os](Vector arg) { os << arg; },
-        [&os](Symbol arg) { os << arg.name(); },
+        [&os](Symbol arg) { os << arg.value(); },
         [&os](Symenv arg) { os << "<symenv>"; },
         [&os](Proc arg) { os << "<proc>"; },
         [&os](Port*) { os << "port"; },

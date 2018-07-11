@@ -9,22 +9,29 @@
 #ifndef CELL_HPP
 #define CELL_HPP
 
-#include <iostream>
+#include <iostream> // to be phased out
 
 #include "types.hpp"
 
 namespace pscm {
 
+size_t store_size();
+
+/**
+ * @brief A scheme cell is a variant type of all supported scheme types.
+ */
 struct Cell : Variant {
     using base_type = Variant;
     using Variant::operator=;
     using Variant::Variant;
 
+    /**
+     * @brief Type conversion operator to return the value hold by this Cell.
+     * @throw std::bad_variant_access
+     */
     template <typename T>
-    operator T() const { return std::get<T>(*this); }
+    operator T() const { return std::get<std::remove_const_t<T>>(static_cast<Variant>(*this)); }
 };
-
-size_t store_size();
 
 static const None none{}; //!< void return symbol
 static const Nil nil{}; //!< empty list symbol
@@ -39,25 +46,44 @@ constexpr bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
 constexpr bool is_symbol(const Cell& cell) { return is_type<Symbol>(cell); }
 constexpr bool is_symenv(const Cell& cell) { return is_type<Symenv>(cell); }
 constexpr bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
+constexpr bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !static_cast<Bool>(cell); }
+constexpr bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || static_cast<Bool>(cell); }
 
-inline bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !std::get<Bool>(cell); }
-inline bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || std::get<Bool>(cell); }
+/**
+ * @brief Scheme equal? predicate to test two cells for same content.
+ *
+ * Two lists or vectors are considered equal, if each
+ * item is equal. Two strings are equal if each individual
+ * character is equal.
+ */
 inline bool is_equal(const Cell& lhs, const Cell& rhs);
 
+/**
+ * @brief Construct a new cons cell-pair from the global cell store and
+ *        return a pointer to it. Pointer life time is managed by the
+ *        garbage collector.
+ *
+ * @param  car Cell to assign to Cons->first.
+ * @param  cdr Cell to assign to Cons->second.
+ * @return Pointer to a new Cons pair.
+ */
 Cons* cons(Cell&& car, Cell&& cdr);
 Cons* cons(Cell&& car, const Cell& cdr);
 Cons* cons(const Cell& car, Cell&& cdr);
 Cons* cons(const Cell& car, const Cell& cdr);
 
+//! Convenience functions to access a list of Cons cell-pairs.
 inline Cell& car(Cons* cons) { return cons->first; }
 inline Cell& cdr(Cons* cons) { return cons->second; }
 inline Cell& cddr(Cons* cons) { return cdr(cdr(cons)); }
 inline Cell& cadr(Cons* cons) { return car(cdr(cons)); }
 inline Cell& caddr(Cons* cons) { return car(cddr(cons)); }
 
+//! Set the first cell of a Cons cell-pair.
 template <typename T>
 void set_car(Cons* cons, T&& t) { cons->first = std::forward<T>(t); }
 
+//! Set the second cell of a Cons cell-pair.
 template <typename T>
 void set_cdr(Cons* cons, T&& t) { cons->second = std::forward<T>(t); }
 
@@ -73,32 +99,6 @@ Int list_length(Cell list);
 Cell list_ref(Cell list, Int k);
 
 inline Cell port() { return &std::cout; }
-
-//! Build a String shared-pointer from a zero terminiated Char array.
-inline Cell str(const Char* s)
-{
-    return std::make_shared<String::element_type>(s);
-}
-
-inline Vector vec(Number size, Cell val = none)
-{
-    is_int(size) && std::get<Int>(size) >= 0
-        || (throw std::invalid_argument("vector length must be a non-negative integer"), 0);
-
-    return { size, val };
-}
-
-template <typename T>
-inline Cell num(const T& x)
-{
-    return Number{ x };
-}
-
-template <typename RE, typename IM>
-inline Cell num(const RE& x, const IM& y)
-{
-    return Number{ x, y };
-}
 
 //! Build a list of all arguments
 template <typename T, typename... Args>

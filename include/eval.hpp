@@ -9,7 +9,7 @@
 #ifndef EVAL_HPP
 #define EVAL_HPP
 
-#include "cell.hpp"
+#include "types.hpp"
 
 namespace pscm {
 

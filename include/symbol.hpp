@@ -1,70 +1,101 @@
-/*********************************************************************************/ /**
-                                                                                     * @file symbol.hpp
-                                                                                     *
-                                                                                     * @version   0.1
-                                                                                     * @date      2018-
-                                                                                     * @author    Paul Pudewills
-                                                                                     * @copyright MIT License
-                                                                                     *************************************************************************************/
+/********************************************************************************/ /**
+ * @file symbol.hpp
+ *
+ * @version   0.1
+ * @date      2018-
+ * @author    Paul Pudewills
+ * @copyright MIT License
+ *************************************************************************************/
 #ifndef SYMBOL_HPP
 #define SYMBOL_HPP
 
-#include <iostream>
 #include <memory>
-#include <string>
 #include <unordered_map>
 #include <unordered_set>
-#include <variant>
 
 namespace pscm {
 
 /**
- * @brief The Symbol struct
+ * @brief Symbol table of to provide unique symbols.
+ *
+ * A symbol table is bijective mapping between values of type T
+ * to unique symbols of type Symtab<T>::Symbol.
+ *
+ * @tparam T     Value type of symbol, like std::string, char, int,...
+ * @tparam Hash  Hash function object that implements a has function for values of type T.
+ * @tparam Equal Function object for performing comparison on values of type T.
  */
-template <typename T,
-    typename Hash = std::hash<T>,
-    typename Equal = std::equal_to<T>>
-struct Symtab {
+template <typename T, typename Hash = std::hash<T>, typename Equal = std::equal_to<T>>
+struct SymbolTable {
 
+    /**
+     * @brief Symbol structure as pointer handle.
+     */
     struct Symbol {
         using value_type = T;
         using key_type = size_t;
 
-        const value_type& value() const noexcept
-        {
-            return val;
-        }
-        operator key_type() const noexcept
-        {
-            return reinterpret_cast<key_type>(&val);
-        }
-        bool operator==(const Symbol& sym) const noexcept
-        {
-            return &val == &sym.val;
-        }
-        bool operator!=(const Symbol& sym) const noexcept
-        {
-            return &val != &sym.val;
-        }
-        //Symbol() = delete;
+        Symbol() = delete;
         Symbol(const Symbol&) = default;
         Symbol(Symbol&&) = default;
+
         Symbol& operator=(const Symbol&) = default;
-        Symbol& operator=(Symbol&&) = default;
+        Symbol& operator=(Symbol&& s) = default;
+
+        /**
+         * @brief Return a constant refererence to the symbol value T.
+         */
+        const T& value() const noexcept
+        {
+            return *ptr;
+        }
+
+        /**
+         * @brief Conversion operator to map a symbol to a unique key value.
+         */
+        operator key_type() const noexcept
+        {
+            return reinterpret_cast<key_type>(ptr);
+        }
+
+        /**
+         * @brief Equality predicate.
+         */
+        bool operator==(const Symbol& sym) const noexcept
+        {
+            return ptr == sym.ptr;
+        }
+
+        bool operator!=(const Symbol& sym) const noexcept
+        {
+            return ptr != sym.ptr;
+        }
 
     private:
-        Symbol(const value_type& val)
-            : val{ val }
+        Symbol(const T& val)
+            : ptr{ &val }
         {
         }
-        friend Symtab<T>;
-        const value_type& val;
+        friend SymbolTable;
+
+        std::add_pointer_t<std::add_const_t<T>> ptr; //! or const T*
     };
-    Symtab(size_t size = 0)
-        : table(size)
+
+    /**
+     * @brief Construct a symbol table
+     * @param bucket_count Initial hash table bucket count hint.
+     */
+    SymbolTable(size_t bucket_count = 0)
+        : table(bucket_count)
     {
     }
 
+    /**
+     * Return a new or previously constructed symbol.
+     *
+     * @tparam Val Value to in-place construct a new symbol.
+     * @return Symbol of type Symtab<T>::Symbol.
+     */
     template <typename Val>
     Symbol operator[](Val&& val)
     {
@@ -76,31 +107,56 @@ private:
 };
 
 /**
+ * @brief Symbol environment as tree of unordered associative containers of
+ *        symbol keys and values of type T.
  *
+ * @tparam Sym Symbol type
+ * @tparam T   Value type
  */
 template <typename Sym, typename T>
 class SymbolEnv {
 
 public:
-    using table_type = std::unordered_map<typename Sym::key_type, T>;
-    using shared_type = std::shared_ptr<SymbolEnv<Sym, T>>;
+    using symbol_type = Sym;
+    using value_type = T;
 
-    SymbolEnv(const shared_type& next = nullptr)
-        : next(next)
+    using key_type = typename Sym::key_type;
+    using shared_type = std::shared_ptr<SymbolEnv>;
+
+    /**
+     * @brief Construct a symbol environment as top- or sub-environment.
+     * @param parent Optional, unless null-pointer. construct a sub-environment connected
+     *               to the parent environment or a top-environment otherwise.
+     */
+    SymbolEnv(const std::shared_ptr<SymbolEnv>& parent = nullptr)
+        : next{ parent }
     {
     }
 
+    /**
+     * @brief Construct to top environment and initialize it with {symbol,value} pairs.
+     */
     SymbolEnv(std::initializer_list<std::pair<Sym, T>> args)
+        : table{ args.size() }
     {
         for (auto& [sym, val] : args)
             add(sym, val);
     }
 
-    void add(const Sym& sym, const T& arg)
+    /**
+     * @brief Insert a new symbol and value reassign value for an existing symbol
+     *        in this environment only.
+     */
+    void add(const Sym& sym, const T& val)
     {
-        table.insert_or_assign(sym, arg);
+        table.insert_or_assign(sym, val);
     }
 
+    /**
+     * @brief Reassign value of first found symbol in this or any
+     *        reachable parent environment.
+     * @throw std::invalid_argument exception for unknown or unreachable symbols.
+     */
     void set(const Sym& sym, const T& arg)
     {
         SymbolEnv* senv = this;
@@ -118,6 +174,12 @@ public:
         throw std::invalid_argument("unknown symbol");
     }
 
+    /**
+     * @brief Lookup a symbol in this or any reachable parent environment
+     *        and return its value.
+     *
+     * @throw std::invalid_argument exception for unknown or unreachable symbols.
+     */
     const T& get(const Sym& sym) const
     {
         const SymbolEnv* senv = this;
@@ -134,17 +196,9 @@ public:
     }
 
 private:
-    table_type table;
-    const shared_type next;
+    const std::shared_ptr<SymbolEnv> next = nullptr;
+    std::unordered_map<key_type, T> table;
 };
-
-struct Cell;
-
-using Symbol = Symtab<std::string>::Symbol;
-
-std::shared_ptr<SymbolEnv<Symbol, Cell>> senv(const std::shared_ptr<SymbolEnv<Symbol, Cell>>& env = nullptr);
-
-Symbol sym(const char* name);
 
 } // namespace pscm
 #endif // SYMBOL_HPP

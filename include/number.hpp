@@ -110,6 +110,12 @@ struct Number : std::variant<Int, Float, Complex> {
     }
 };
 
+template <typename T>
+Number num(const T& x) { return { x }; }
+
+template <typename RE, typename IM>
+Number num(const RE& x, const IM& y) { return { x, y }; }
+
 constexpr bool is_int(const Number& num) { return is_type<Int>(num); }
 constexpr bool is_float(const Number& num) { return is_type<Float>(num); }
 constexpr bool is_complex(const Number& num) { return is_type<Complex>(num); }

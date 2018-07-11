@@ -13,12 +13,31 @@
 
 namespace pscm {
 
+/**
+ * @brief Evaluate a scheme (set! symbol expr) expression.
+ *
+ * Evaluate expression an set the symbol value to the result.
+ * The symbol must be found in the argument environment or
+ * any reachable parent environment.
+ *
+ * @return Special value none
+ */
 static Cell syntax_setb(const Symenv& senv, const Cell& args)
 {
     senv->set(car(args), eval(senv, cadr(args)));
     return none;
 }
 
+/**
+ * @brief  Evaluate a scheme (begin expr_0 ... expr_n) expression.
+ *
+ * Evaluate each expression in argument list up the last, which
+ * is returned unevaluated. This last expression is evaluated at
+ * the call site to support unbound tail-recursion.
+ *
+ * @return Unevaluated last expression or special symbol none for an
+ *         empty argument list.
+ */
 static Cell syntax_begin(const Symenv& senv, Cell args)
 {
     if (is_pair(args)) {
@@ -161,7 +180,8 @@ Cell eval(Symenv senv, Cell expr)
         proc = eval(senv, car(expr));
 
         if (is_proc(proc)) {
-            tie(senv, expr) = apply(senv, proc, args, true);
+            tie(senv, args) = apply(senv, proc, args, true);
+            expr = syntax_begin(senv, args);
             continue;
         }
         switch (Intern opcode = proc) {
@@ -180,9 +200,10 @@ Cell eval(Symenv senv, Cell expr)
             break;
 
         case Intern::_apply:
-            if (is_proc(proc = eval(senv, car(args))))
-                tie(senv, expr) = apply(senv, proc, cdr(args), false);
-            else
+            if (is_proc(proc = eval(senv, car(args)))) {
+                tie(senv, args) = apply(senv, proc, cdr(args), false);
+                expr = syntax_begin(senv, args);
+            } else
                 return call(senv, proc, eval_args(senv, cdr(args), false));
             break;
 

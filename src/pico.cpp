@@ -12,6 +12,8 @@
 #include "cell.hpp"
 #include "eval.hpp"
 #include "stream.hpp"
+#include "symbol.hpp"
+#include "types.hpp"
 
 using namespace std;
 using namespace pscm;
@@ -41,19 +43,45 @@ start:
     goto start;
 }
 
+auto test(const Symenv& senv, const Proc& proc)
+{
+    return proc.apply(senv, pscm::list(num(10)), true);
+}
+
+struct Test {
+
+    Test() = default;
+    Test(const Test&) = default;
+    Test(size_t size)
+    {
+    }
+    std::vector<double> vec;
+    double val;
+};
+
 int main()
 {
-    //    repl();
-    //    return 0;
+    repl();
+    return 0;
 
     try {
-        Symenv e = senv();
-        Parser parser;
-        Cell expr;
 
-        //cout << expr << " ---> ";
-        //expr = eval(e, expr);
-        //cout << expr << endl;
+        Test tst;
+
+        std::unordered_map<int, double> map(0);
+
+        cout << map.bucket_count() << endl;
+
+        //        Symenv e = senv();
+        //        Cell expr = pscm::list(sym("lambda"), pscm::list(sym("x")), pscm::list(sym("*"), sym("x"), sym("x")));
+
+        //        //        Parser parser;
+        //        //        Cell expr;
+
+        //        cout << expr << " ---> ";
+        //        Cell proc = eval(e, expr);
+
+        //        cout << test(e, proc).second << endl;
 
     } catch (std::bad_variant_access& e) {
         cout << e.what() << endl;

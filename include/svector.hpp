@@ -23,18 +23,13 @@ public:
     using iterator = typename Vec::iterator;
     using const_iterator = typename Vec::const_iterator;
 
-    SharedVector()
-        : pvec{ new Vec }
+    explicit SharedVector(size_t size = 0, const T& val = {})
+        : pvec{ std::make_shared<Vec>(size, val) }
     {
     }
 
-    SharedVector(size_t size, const T& val)
-        : pvec{ new Vec{ size, val } }
-    {
-    }
-
-    SharedVector(const Vec& vec)
-        : pvec{ new Vec{ vec } }
+    explicit SharedVector(const Vec& vec)
+        : pvec{ std::make_shared<Vec>(vec) }
     {
     }
 

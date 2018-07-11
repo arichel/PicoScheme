@@ -1,5 +1,5 @@
-/********************************************************************************/ /**
- * @file eval.hpp
+/*********************************************************************************/ /**
+ * @file types.cpp
  *
  * @version   0.1
  * @date      2018-
@@ -7,15 +7,17 @@
  * @copyright MIT License
  *************************************************************************************/
 
-#include "symbol.hpp"
+#include "types.hpp"
 #include "cell.hpp"
 
 namespace pscm {
 
-static Symtab<std::string> symtab;
+static constexpr size_t dflt_bucket_count = 1024; //<! Initial default hash table bucket count.
 
-Symbol sym(const char* name) { return symtab[name]; }
+//! Global scheme symbol table:
+static SymbolTable<String::element_type> symtab(dflt_bucket_count);
 
+//! Top environment, initialized with internal scheme symbols:
 static Symenv topenv{
     new Symenv::element_type{
         { sym("#t"), true },
@@ -120,9 +122,27 @@ static Symenv topenv{
     }
 };
 
+Symbol sym(const char* name)
+{
+    return symtab[name];
+}
+
 Symenv senv(const Symenv& env)
 {
     return std::make_shared<Symenv::element_type>(env ? env : topenv);
+}
+
+String str(const Char* s)
+{
+    return std::make_shared<String::element_type>(s);
+}
+
+Vector vec(Number size, const Cell& val = none)
+{
+    is_int(size) && std::get<Int>(size) >= 0
+        || (throw std::invalid_argument("vector length must be a non-negative integer"), 0);
+
+    return Vector{ size, val };
 }
 
 }; // namespace pscm

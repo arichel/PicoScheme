@@ -1,20 +1,14 @@
 #ifndef TYPES_HPP
 #define TYPES_HPP
 
-#include <cstddef>
-#include <memory>
-#include <string>
-#include <variant>
-#include <vector>
-
 #include "number.hpp"
 #include "proc.hpp"
 #include "svector.hpp"
-#include "symbol.hpp"
 
 namespace pscm {
 
 struct Cell;
+enum class Intern;
 
 using None = std::monostate;
 using Nil = nullptr_t;
@@ -23,9 +17,11 @@ using Char = char;
 using Port = std::ostream;
 using Cons = std::pair<Cell, Cell>;
 using String = std::shared_ptr<std::basic_string<Char>>;
-using Symbol = Symtab<String::element_type>::Symbol;
-using Symenv = std::shared_ptr<SymbolEnv<Symbol, Cell>>;
 using Vector = SharedVector<Cell>;
+
+using Variant = std::variant<
+    None, Nil, Bool, Char, Number, Intern, Cons*, String,
+    Vector, Symbol, Symenv, Proc, Port*>;
 
 enum class Intern {
     _or,
@@ -202,12 +198,12 @@ enum class Intern {
     op_dynwind,
 
     /* */
-
 };
 
-using Variant = std::variant<
-    None, Nil, Bool, Char, Number, Intern, Cons*, String,
-    Vector, Symbol, Symenv, Proc, Port*>;
+Symbol sym(const char* name);
+Symenv senv(const Symenv& env = nullptr);
+Vector vec(Number size, const Cell& val);
+String str(const Char* s);
 
 }; // namespace pscm
 
