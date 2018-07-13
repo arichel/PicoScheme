@@ -17,13 +17,14 @@ using Bool = bool;
 using Char = char;
 using Cons = std::pair<Cell, Cell>;
 using String = std::shared_ptr<std::basic_string<Char>>;
-using Vector = SharedVector<Cell>;
+using Vector = SharedVector<Cell, std::vector<Cell>>;
 
 using Variant = std::variant<
     None, Nil, Bool, Char, Number, Intern, Cons*, String,
     Vector, Port, Symbol, Symenv, Proc>;
 
 enum class Intern {
+    /* Scheme syntax opcodes: */
     _or,
     _and,
     _if,

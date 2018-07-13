@@ -232,13 +232,12 @@ static Cell fun_write(const varg& args)
 inline Cell fun_make_vector(const varg& args)
 {
     argn(args, 1, 2);
-
     Number size = args[0];
 
     is_int(size) && !is_negative(size)
         || (throw std::invalid_argument("vector length must be a non-negative integer"), 0);
 
-    return Vector{ size, args.size() == 2 ? args[1] : Cell{ none } };
+    return args.size() > 1 ? Vector{ size, args[1] } : Vector{ size };
 }
 
 inline Cell fun_vector_ref(const varg& args)
@@ -296,7 +295,7 @@ inline Cell fun_list2vec(const varg& args)
 
     Cell list = args[0];
     for (/* */; is_pair(list); list = cdr(list))
-        vec.push_back(car(list));
+        vec.append(car(list));
 
     is_nil(list) || (throw std::invalid_argument("not a proper list"), 0);
     return vec;
@@ -337,7 +336,7 @@ inline Cell fun_vec_copyb(const varg& args)
     is_int(end) && !is_negative(end) && end <= Number{ src.size() }
         || (throw std::invalid_argument("invalid second vector index"), 0);
 
-    vec.copy(idx, src.begin() + pos, src.begin() + end);
+    vec.copy(src.begin() + pos, src.begin() + end, idx);
     return vec;
 }
 
@@ -366,7 +365,7 @@ inline Cell fun_vec_fillb(const varg& args)
     is_int(end) && !is_negative(end) && end <= Number{ vec.size() }
         || (throw std::invalid_argument("invalid second vector index"), 0);
 
-    vec.fill(args[1], pos, end);
+    vec.fill(args[1], { pos, end });
     return vec;
 }
 

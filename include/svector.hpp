@@ -11,11 +11,13 @@
 
 #include <algorithm>
 #include <memory>
-#include <vector>
 
 namespace pscm {
 
-template <typename T, typename Vec = std::vector<T>>
+/**
+ * @brief Scheme vector class with shared underlying container type.
+ */
+template <typename T, typename Vec>
 class SharedVector {
 public:
     using value_type = T;
@@ -35,7 +37,7 @@ public:
 
     template <typename InputIt>
     SharedVector(InputIt& first, InputIt& last)
-        : pvec{ new Vec{ first, last } }
+        : pvec{ std::make_shared<Vec>(first, last) }
     {
     }
 
@@ -45,54 +47,73 @@ public:
     SharedVector<T, Vec>& operator=(SharedVector<T, Vec>&&) = default;
 
     iterator begin() { return pvec->begin(); }
+
     const_iterator begin() const { return pvec->begin(); };
+
     const_iterator end() const { return pvec->end(); }
 
-    bool operator!=(const SharedVector<T>& vec) const noexcept
+    bool operator!=(const SharedVector& vec) const noexcept
     {
         return pvec != vec.pvec;
     }
 
-    bool operator==(const SharedVector<T>& vec) const noexcept
+    //! Test for same vector.
+    bool operator==(const SharedVector& vec) const noexcept
     {
         return pvec == vec.pvec;
     }
 
-    bool equal(const SharedVector<T>& vec) const noexcept
+    //! Test for equivalent vectors with equal values.
+    bool equal(const SharedVector& vec) const noexcept
     {
         return *this == vec || *pvec == *vec.pvec;
     }
-    template <typename InputIt>
-    void copy(size_t pos, InputIt& first, InputIt& last)
-    {
-        pos + std::distance(first, last) <= pvec->size()
-            || (throw std::invalid_argument("invalid vector index position"), 0);
+    //! Return the vector size.
+    size_t size() const noexcept { return pvec->size(); }
 
-        std::copy(first, last, pvec->begin() + pos);
-    }
+    /**
+     * @brief Retrieve const reference to vector value at checked index position
+     * @throws std::out_of_range for an out of vector boundary index position.
+     */
+    const T& at(size_t idx) const { return pvec->at(idx); }
 
+    /**
+     * @brief Retrieve non const reference to vector value at checked index position
+     * @throws std::out_of_range for an out of vector boundary index position.
+     */
+    T& at(size_t idx) { return pvec->at(idx); };
+
+    //! Append value copies from input iterator range.
     template <typename InputIt>
     void append(InputIt& first, InputIt& last)
     {
         std::copy(first, last, std::back_inserter(*pvec));
     }
+    //! Append a single value.
+    void append(const T& val) { pvec->push_back(val); }
 
-    void push_back(const T& val)
+    //! Fill whole vector with values or optional a subrange only.
+    void fill(const T& val, const std::pair<size_t, size_t>& range = { 0, ~0 })
     {
-        pvec->push_back(val);
-    }
+        const size_t size = std::min(range.second, pvec->size());
+        range.first <= size || (throw std::invalid_argument("invalid vector range"), 0);
 
-    void fill(const T& val, size_t pos = 0, size_t end = ~0)
+        std::fill(pvec->begin() + range.first, pvec->begin() + size, val);
+    }
+    /**
+     * @brief Copy values from input iterator range into the vector,
+     *        starting at optional offset position.
+     *
+     * @throws std::invalid_argument for an out of vector boundary range.
+     */
+    template <typename InputIt>
+    void copy(InputIt& first, InputIt& last, size_t offset = 0)
     {
-        const size_t size = std::min(end, pvec->size());
-        pos <= size || (throw std::invalid_argument("invalid vector position"), 0);
+        offset + std::distance(first, last) <= pvec->size()
+            || (throw std::invalid_argument("invalid vector offset"), 0);
 
-        std::fill(pvec->begin() + pos, pvec->begin() + size, val);
+        std::copy(first, last, pvec->begin() + offset);
     }
-    size_t size() const noexcept { return pvec->size(); }
-
-    const T& at(size_t idx) const { return pvec->at(idx); }
-    T& at(size_t idx) { return pvec->at(idx); };
 
 private:
     std::shared_ptr<Vec> pvec;
