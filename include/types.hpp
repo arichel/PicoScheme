@@ -3,6 +3,7 @@
 
 #include "number.hpp"
 #include "proc.hpp"
+#include "stream.hpp"
 #include "svector.hpp"
 
 namespace pscm {
@@ -14,14 +15,13 @@ using None = std::monostate;
 using Nil = nullptr_t;
 using Bool = bool;
 using Char = char;
-using Port = std::ostream;
 using Cons = std::pair<Cell, Cell>;
 using String = std::shared_ptr<std::basic_string<Char>>;
 using Vector = SharedVector<Cell>;
 
 using Variant = std::variant<
     None, Nil, Bool, Char, Number, Intern, Cons*, String,
-    Vector, Symbol, Symenv, Proc, Port*>;
+    Vector, Port, Symbol, Symenv, Proc>;
 
 enum class Intern {
     _or,
@@ -114,6 +114,7 @@ enum class Intern {
     op_issym,
     op_symstr,
     op_strsym,
+    op_symeql,
 
     /* Section 6.6: Characters */
     op_ischar,
@@ -197,7 +198,72 @@ enum class Intern {
     op_callwithval,
     op_dynwind,
 
-    /* */
+    /* Section 6.11: Exceptions */
+    /* Section 6.12: Environments and evaluation */
+    /* Section 6.13: Input and output */
+    op_isport,
+    op_isinport,
+    op_isoutport,
+    op_istxtport,
+    op_isbinport,
+    op_isinport_open,
+    op_isoutport_open,
+    op_iseof,
+    op_inport,
+    op_outport,
+    op_errport,
+    op_callw_port,
+    op_callw_infile,
+    op_callw_outfile,
+    op_with_infile,
+    op_with_outfile,
+    op_open_infile,
+    op_open_inbinfile,
+    op_open_outfile,
+    op_open_outbinfile,
+    op_close_port,
+    op_close_inport,
+    op_close_outport,
+    op_open_instr,
+    op_open_outstr,
+    op_open_inbytevec,
+    op_open_outbytevec,
+    op_get_outbytevec,
+    op_read,
+    op_readchar,
+    op_peekchar,
+    op_readline,
+    op_eof,
+    op_charready,
+    op_readstr,
+    op_readu8,
+    op_peeku8,
+    op_u8ready,
+    op_readbytevec,
+    op_readbytevecb,
+    op_write,
+    op_write_shared,
+    op_write_simple,
+    op_display,
+    op_newline,
+    op_write_char,
+    op_write_str,
+    op_write_u8,
+    op_write_bytevec,
+    op_flush_outport,
+
+    /* Section 6.14: System Interface */
+    op_load,
+    op_fileok,
+    op_delfile,
+    op_cmdline,
+    op_exit,
+    op_exitb,
+    op_getenv,
+    op_currsec,
+    op_currjiffy,
+    op_jiffspsec,
+    op_features,
 };
 
 Symbol sym(const char* name);

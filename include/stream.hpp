@@ -9,60 +9,54 @@
 #ifndef STREAM_HPP
 #define STREAM_HPP
 
-#include <istream>
-#include <ostream>
-
-#include "cell.hpp"
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <sstream>
+#include <variant>
 
 namespace pscm {
 
+struct Cell;
+
 std::ostream& operator<<(std::ostream& os, const Cell& cell);
 
-class Parser {
-
+class Port {
 public:
-    Cell parse(std::istream& in);
+    Port();
+
+    bool is_output() const noexcept;
+    bool is_input() const noexcept;
+    bool is_strport() const noexcept;
+    bool is_fileport() const noexcept;
+    bool is_open() const noexcept;
+
+    std::iostream& stream();
+
+    bool open(const std::filesystem::path& path, std::ios_base::openmode mode = std::ios_base::out | std::ios_base::in);
+
+    bool open_str(const std::string& str = {}, std::ios_base::openmode mode = std::ios_base::out | std::ios_base::in);
+
+    void close();
+
+    std::string str() const;
+
+    template <typename T>
+    explicit operator T&() { return std::get<T>(*pstream); }
+
+    bool operator!=(const Port& stream) const noexcept;
+    bool operator==(const Port& stream) const noexcept;
 
 private:
-    enum class Token : int {
-        None,
-        OBrace, // (
-        CBrace, // )
-        Comment, // \;[^\n\r]*
+    using stream_variant = std::variant<std::iostream, std::fstream, std::stringstream>;
 
-        Dot,
-        Quote,
-        True,
-        False,
-        Char, //
-
-        String, // "([^"]*)"
-        Number, // (+|-)[0-9]+(\.[0-9]+)
-        Symbol, // [a-zA-Z_%:+-][a-zA-Z_%:+-]*
-
-        Eof,
-        Error
-    };
-
-    Cell parse_list(std::istream& in);
-    Token get_token(std::istream& in);
-
-    Token lex_symbol(const std::string& str);
-    Token lex_char(const std::string& str, Char& c);
-    Token lex_special(const std::string& str);
-    Token lex_number(const std::string& str, Number& num);
-    Token lex_string(std::string& str, std::istream& in);
-    Token skip_comment(std::istream& in);
-
-    bool is_alpha(int c);
-    bool is_special(int c);
-    bool is_digit(const std::string& str, size_t n = 0);
-
-    Token put_back = Token::None;
-    std::string strtok;
-    Number numtok;
-    Char chrtok;
+    template <typename T>
+    bool is_type() const
+    {
+        return std::holds_alternative<T>(*pstream);
+    }
+    std::shared_ptr<stream_variant> pstream;
 };
-
 }; // namespace pscm
 #endif // STREAM_HPP

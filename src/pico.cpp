@@ -8,10 +8,11 @@
  *************************************************************************************/
 #include <assert.h>
 #include <iostream>
+#include <memory>
 
 #include "cell.hpp"
 #include "eval.hpp"
-#include "stream.hpp"
+#include "parser.hpp"
 #include "symbol.hpp"
 #include "types.hpp"
 
@@ -43,45 +44,35 @@ start:
     goto start;
 }
 
-auto test(const Symenv& senv, const Proc& proc)
-{
-    return proc.apply(senv, pscm::list(num(10)), true);
-}
-
-struct Test {
-
-    Test() = default;
-    Test(const Test&) = default;
-    Test(size_t size)
-    {
-    }
-    std::vector<double> vec;
-    double val;
-};
-
 int main()
 {
     repl();
     return 0;
 
     try {
+        return 0;
 
-        Test tst;
+        Symenv e = senv();
 
-        std::unordered_map<int, double> map(0);
+        Cons cons[100];
 
-        cout << map.bucket_count() << endl;
+        std::string str = {
+            "(call-with-input-file \"test.txt\" "
+            "   (lambda (port) port))"
+            ";       (display (read-line port))"
+            ";       (display (read-line port))))"
+        };
 
-        //        Symenv e = senv();
-        //        Cell expr = pscm::list(sym("lambda"), pscm::list(sym("x")), pscm::list(sym("*"), sym("x"), sym("x")));
+        str = "(apply (lambda (x y ) (* x y)) 2 100 ())";
 
-        //        //        Parser parser;
-        //        //        Cell expr;
+        std::istringstream is{ str };
 
-        //        cout << expr << " ---> ";
-        //        Cell proc = eval(e, expr);
+        Parser parser;
+        Cell expr = parser.parse(is);
 
-        //        cout << test(e, proc).second << endl;
+        cout << expr << " ---> ";
+        Cell proc = eval(e, expr);
+        cout << proc << endl;
 
     } catch (std::bad_variant_access& e) {
         cout << e.what() << endl;

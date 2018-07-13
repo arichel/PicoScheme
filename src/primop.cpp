@@ -8,8 +8,9 @@
  *************************************************************************************/
 #include <iostream>
 
+#include "eval.hpp"
+#include "parser.hpp"
 #include "primop.hpp"
-#include "stream.hpp"
 
 namespace pscm {
 
@@ -218,9 +219,13 @@ static Cell fun_write(const varg& args)
 {
     argn(args, 1, 2);
 
-    Port* port = args.size() > 1 ? std::get<Port*>(args[1]) : &std::cout;
+    if (args.size() > 1) {
+        Port& port = std::get<Port>(const_cast<Cell&>(args[1]));
 
-    *port << args[0];
+        port.stream() << args[0];
+    } else
+        std::cout << args[0];
+
     return none;
 }
 
@@ -363,6 +368,55 @@ inline Cell fun_vec_fillb(const varg& args)
 
     vec.fill(args[1], pos, end);
     return vec;
+}
+
+inline Cell fun_callw_infile(const Symenv& senv, const String& filnam, const Cell& proc)
+{
+    Port port;
+
+    port.open(*filnam, std::ios_base::in)
+        || (throw std::invalid_argument("could not open port"), 0);
+
+    Cons cons[4];
+    return eval(senv, alist(cons, Intern::_apply, proc, port, nil));
+}
+
+inline Cell fun_open_infile(const String& filnam)
+{
+    Port port;
+
+    port.open(*filnam, std::ios_base::in)
+        || (throw std::invalid_argument("could not open port"), 0);
+
+    return port;
+}
+
+inline Cell fun_open_outfile(const String& filnam)
+{
+    Port port;
+
+    port.open(*filnam, std::ios_base::out)
+        || (throw std::invalid_argument("could not open port"), 0);
+
+    return port;
+}
+
+inline Cell fun_readline(const varg& args)
+{
+    argn(args, 0, 1);
+    String line = str("");
+
+    if (args.size() > 0) {
+        Port port = args[0];
+        port.is_open() || (throw std::invalid_argument("port is closed"), 0);
+        std::getline(port.stream(), *line);
+    } else {
+        std::string str;
+        std::getline(std::cin, str);
+        std::cout << "--> str: " << str << std::endl;
+    }
+
+    return line;
 }
 
 Cell call(const Symenv& senv, Intern primop, const varg& args)
@@ -510,6 +564,16 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
     /* Section 6.10: Control features */
     case Intern::op_isproc:
         return argn(args, 1), is_proc(args[0]) || (is_intern(args[0]) && std::get<Intern>(args[0]) >= Intern::op_eq);
+
+    /* Section 6.13: Input and output */
+    case Intern::op_callw_infile:
+        return fun_callw_infile(senv, args.at(0), args.at(1));
+    case Intern::op_open_infile:
+        return fun_open_infile(args.at(0));
+    case Intern::op_open_outfile:
+        return fun_open_outfile(args.at(0));
+    case Intern::op_readline:
+        return fun_readline(args);
 
     default:
         throw std::invalid_argument("invalid primary operation");

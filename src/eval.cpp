@@ -7,9 +7,9 @@
  * @copyright MIT License
  *************************************************************************************/
 #include "eval.hpp"
+#include "parser.hpp"
 #include "primop.hpp"
 #include "proc.hpp"
-#include "stream.hpp"
 
 namespace pscm {
 
@@ -155,9 +155,11 @@ static std::vector<Cell> eval_args(const Symenv& senv, Cell args, bool is_list)
     for (/* */; is_pair(args); args = cdr(args))
         vec.push_back(last = eval(senv, car(args)));
 
-    if (is_nil(last))
+    if (is_nil(last)) {
+        if (!vec.empty())
+            vec.pop_back();
         return vec;
-
+    }
     vec.back() = car(last);
     for (args = cdr(last); is_pair(args); args = cdr(args))
         vec.push_back(car(args));

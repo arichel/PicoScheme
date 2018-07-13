@@ -108,22 +108,22 @@ std::pair<Symenv, Cell> Proc::apply(const Symenv& senv, Cell args, bool is_list)
         for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
             newenv->add(car(iter), eval(senv, car(args)));
 
-    else // Evaluate each item of a (apply proc x y ... args) expression argument list:
+    else { // Evaluate each item of a (apply proc x y ... args) expression argument list:
         for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
 
             if (is_pair(cdr(args))) // not last list item:
                 newenv->add(car(iter), eval(senv, car(args)));
-
-            else {
-                args = eval(senv, car(args)); // last list item must evaluate to nil or a list
-
-                // Evaluate each item of this list:
-                for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
-                    newenv->add(car(iter), car(args));
-
-                is_nil(args) || (throw std::invalid_argument("invalid formed argument list"), 0);
+            else
                 break;
-            }
+
+        if (is_pair(args)) {
+            args = eval(senv, car(args)); // last list item must evaluate to nil or a list
+
+            // Evaluate each item of this list:
+            for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
+                newenv->add(car(iter), car(args));
+        }
+    }
     // Handle the last symbol of a dotted formal parameter list or a single symbol lambda
     // argument. This symbol is assigned to the evaluated list of remaining expressions
     // which requires additional cons-cell storage.

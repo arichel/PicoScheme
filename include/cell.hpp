@@ -30,7 +30,7 @@ struct Cell : Variant {
      * @throw std::bad_variant_access
      */
     template <typename T>
-    operator T() const { return std::get<std::remove_const_t<T>>(static_cast<Variant>(*this)); }
+    operator T() const { return std::get<T>(static_cast<Variant>(*this)); }
 };
 
 static const None none{}; //!< void return symbol
@@ -102,13 +102,24 @@ inline Cell port() { return &std::cout; }
 
 //! Build a list of all arguments
 template <typename T, typename... Args>
-Cell list(T&& t, Args&&... args)
+Cons* list(T&& t, Args&&... args)
 {
     return cons(std::forward<T>(t), list(std::forward<Args>(args)...));
 }
 
 //! Recursion base case
 inline Cell list() { return nil; }
+
+template <typename T, typename... Args>
+Cons* alist(Cons cons[], T&& t, Args&&... args)
+{
+    cons->first = std::forward<T>(t);
+    cons->second = alist(cons + 1, std::forward<Args>(args)...);
+    return cons;
+}
+
+//! Recursion base case
+inline Cell alist(Cons*) { return nil; }
 
 }; // namespace pscm
 #endif // CELL_HPP

@@ -119,6 +119,12 @@ static Symenv topenv{
 
         /* Section 6.10: Control features */
         { sym("procedure?"), Intern::op_isproc },
+
+        /* Section 6.13: Input and output */
+        { sym("call-with-input-file"), Intern::op_callw_infile },
+        { sym("open-input-file"), Intern::op_open_infile },
+        { sym("open-output-file"), Intern::op_open_outfile },
+        { sym("read-line"), Intern::op_readline },
     }
 };
 
