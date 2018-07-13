@@ -113,22 +113,38 @@ inline Cell list() { return nil; }
  * @brief Build a cons list from all arguments directly in
  *        in argument cons cell array.
  *
- * The cons array size must be equal or greater the number of
- * remaining arguments. An insufficient array size is not detected.
  * This array embedded cons-list is used for short temporary
  * argument lists to circumvent to unecessarly fill the
  * global cell store.
+ *
+ * The cons array size must be equal or greater the number of
+ * remaining arguments. An insufficient array size is an compile
+ * time error.
   */
-template <typename T, typename... Args>
-Cons* alist(Cons cons[], T&& t, Args&&... args)
+template <size_t size, typename T, typename... Args>
+Cons* alist(Cons (&cons)[size], T&& t, Args&&... args)
 {
-    cons->first = std::forward<T>(t);
-    cons->second = alist(cons + 1, std::forward<Args>(args)...);
-    return cons;
+    cons[0].first = std::forward<T>(t);
+
+    if constexpr (size > 1)
+        cons[0].second = alist(reinterpret_cast<Cons(&)[size - 1]>(cons[1]), std::forward<Args>(args)...);
+    else
+        cons[0].second = nil;
+
+    return &cons[0];
 }
 
-//! Recursion base case
-inline Cell alist(Cons*) { return nil; }
+//! Recursion base case, if list is shorter then the array size.
+template <size_t size>
+inline Nil alist(Cons (&cons)[size]) { return nil; }
+
+//! Error condition if list is longer then the array size.
+template <typename T1, typename T2, typename... Args>
+Nil alist(Cons (&cons)[1], T1&&, T2&&, Args&&... args)
+{
+    static_assert(always_false<Cons>{}, "invalid cons array size");
+    return nil;
+}
 
 }; // namespace pscm
 #endif // CELL_HPP

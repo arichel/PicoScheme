@@ -46,15 +46,12 @@ start:
 
 int main()
 {
-    repl();
-    return 0;
+    //repl();
+    //return 0;
 
     try {
-        return 0;
 
         Symenv e = senv();
-
-        Cons cons[100];
 
         std::string str = {
             "(call-with-input-file \"test.txt\" "
