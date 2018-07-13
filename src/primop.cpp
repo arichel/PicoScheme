@@ -373,7 +373,6 @@ inline Cell fun_vec_fillb(const varg& args)
 inline Cell fun_callw_infile(const Symenv& senv, const String& filnam, const Cell& proc)
 {
     Port port;
-
     port.open(*filnam, std::ios_base::in)
         || (throw std::invalid_argument("could not open port"), 0);
 

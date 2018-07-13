@@ -15,7 +15,7 @@ namespace pscm {
 
 Cell eval(Symenv senv, Cell expr);
 
-Cell eval_list(const Symenv& senv, Cell list);
+Cell eval_list(const Symenv& senv, Cell list, bool is_list = true);
 
 } // namespace pscm
 

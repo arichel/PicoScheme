@@ -146,15 +146,7 @@ std::string Port::str() const
 
 std::iostream& Port::stream()
 {
-    return std::visit([](auto& os) -> std::iostream& {
-        using S = std::decay_t<decltype(os)>;
-
-        if constexpr (std::is_same_v<S, std::iostream> || std::is_same_v<S, std::fstream> || std::is_same_v<S, std::stringstream>)
-            return os;
-
-        throw std::invalid_argument("not an output stream");
-    },
-        *pstream);
+    return std::visit([](auto& os) -> std::iostream& { return os; }, *pstream);
 }
 
 bool Port::operator!=(const Port& stream) const noexcept

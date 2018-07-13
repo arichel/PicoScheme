@@ -126,9 +126,12 @@ static Cell syntax_define(const Symenv& senv, Cell args)
     return none;
 }
 
-Cell eval_list(const Symenv& senv, Cell list)
+Cell eval_list(const Symenv& senv, Cell list, bool is_list)
 {
-    if (is_pair(list)) {
+    if (!is_pair(list))
+        return nil;
+
+    if (is_list) {
         Cell head = cons(eval(senv, car(list)), cdr(list));
         list = cdr(list);
 
@@ -136,11 +139,25 @@ Cell eval_list(const Symenv& senv, Cell list)
             set_cdr(tail, cons(eval(senv, car(list)), cdr(list)));
 
         return head;
-    } else
-        return nil;
+    }
+    Cell tail, head;
+
+    if (is_pair(cdr(list)))
+        head = cons(eval(senv, car(list)), cdr(list));
+    else
+        head = eval(senv, car(list));
+
+    for (tail = head, list = cdr(list); is_pair(list); tail = cdr(tail), list = cdr(list))
+        if (is_pair(cdr(list)))
+            set_cdr(tail, cons(eval(senv, car(list)), cdr(list)));
+        else
+            set_cdr(tail, eval(senv, car(list)));
+
+    is_nil(tail) || is_pair(tail) || (throw std::invalid_argument("invalid apply argument list"), 0);
+    return head;
 }
 
-static std::vector<Cell> eval_args(const Symenv& senv, Cell args, bool is_list)
+static std::vector<Cell> eval_args(const Symenv& senv, Cell args, bool is_list = true)
 {
     std::vector<Cell> vec;
 
@@ -182,7 +199,7 @@ Cell eval(Symenv senv, Cell expr)
         proc = eval(senv, car(expr));
 
         if (is_proc(proc)) {
-            tie(senv, args) = apply(senv, proc, args, true);
+            tie(senv, args) = apply(senv, proc, args);
             expr = syntax_begin(senv, args);
             continue;
         }
@@ -202,11 +219,11 @@ Cell eval(Symenv senv, Cell expr)
             break;
 
         case Intern::_apply:
-            if (is_proc(proc = eval(senv, car(args)))) {
-                tie(senv, args) = apply(senv, proc, cdr(args), false);
-                expr = syntax_begin(senv, args);
-            } else
+            if (is_intern(proc = eval(senv, car(args))))
                 return call(senv, proc, eval_args(senv, cdr(args), false));
+
+            tie(senv, args) = apply(senv, proc, cdr(args), false);
+            expr = syntax_begin(senv, args);
             break;
 
         case Intern::_setb:
@@ -233,9 +250,8 @@ Cell eval(Symenv senv, Cell expr)
             break;
 
         default:
-            return call(senv, opcode, eval_args(senv, args, true));
+            return call(senv, opcode, eval_args(senv, args));
         }
     }
 }
-
 }; // namespace pscm

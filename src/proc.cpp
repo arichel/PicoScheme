@@ -107,31 +107,30 @@ std::pair<Symenv, Cell> Proc::apply(const Symenv& senv, Cell args, bool is_list)
     if (is_list) // Evaluate each list item of a (lambda args body) expression argument list:
         for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
             newenv->add(car(iter), eval(senv, car(args)));
-
-    else { // Evaluate each item of a (apply proc x y ... args) expression argument list:
+    else
+        // Evaluate each argument of a (apply proc x y ... args) expression and add to newenv:
         for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
-
-            if (is_pair(cdr(args))) // not last list item:
+            if (is_pair(cdr(args)))
                 newenv->add(car(iter), eval(senv, car(args)));
-            else
-                break;
+            else {
+                args = eval(senv, car(args)); // last list item must evaluate to nil or a list
 
-        if (is_pair(args)) {
-            args = eval(senv, car(args)); // last list item must evaluate to nil or a list
+                // Add each list item of this list to newenv:
+                for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
+                    newenv->add(car(iter), car(args));
 
-            // Evaluate each item of this list:
-            for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
-                newenv->add(car(iter), car(args));
-        }
-    }
+                if (iter != args) // dottet formal parmeter list:
+                    newenv->add(iter, args);
+
+                return { newenv, impl->code };
+            }
+
     // Handle the last symbol of a dotted formal parameter list or a single symbol lambda
     // argument. This symbol is assigned to the evaluated list of remaining expressions
     // which requires additional cons-cell storage.
-    if (iter != args) {
-        is_symbol(iter) || (throw std::invalid_argument("invalid procedure arguments"), 0);
+    if (iter != args)
+        newenv->add(iter, eval_list(senv, args, is_list));
 
-        newenv->add(iter, eval_list(senv, args));
-    }
     return { newenv, impl->code };
 }
 

@@ -55,7 +55,7 @@ public:
      * @return New child environment of the closure parent environment and the closure body
      *         expression list.
      */
-    std::pair<Symenv, Cell> apply(const Symenv& senv, Cell args, bool is_list) const;
+    std::pair<Symenv, Cell> apply(const Symenv& senv, Cell args, bool is_list = true) const;
 
 private:
     struct Closure;
@@ -65,7 +65,7 @@ private:
 /**
  * @brief Conveniance function to call the Proc::apply member function.
  */
-std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list);
+std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list = true);
 
 }; // namespace pscm
 

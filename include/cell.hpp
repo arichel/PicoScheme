@@ -22,8 +22,8 @@ size_t store_size();
  */
 struct Cell : Variant {
     using base_type = Variant;
-    using Variant::operator=;
     using Variant::Variant;
+    using Variant::operator=;
 
     /**
      * @brief Type conversion operator to return the value hold by this Cell.
@@ -100,16 +100,25 @@ Cell list_ref(Cell list, Int k);
 
 inline Cell port() { return &std::cout; }
 
-//! Build a list of all arguments
+//! Build a cons list of all arguments
 template <typename T, typename... Args>
 Cons* list(T&& t, Args&&... args)
 {
     return cons(std::forward<T>(t), list(std::forward<Args>(args)...));
 }
-
 //! Recursion base case
 inline Cell list() { return nil; }
 
+/**
+ * @brief Build a cons list from all arguments directly in
+ *        in argument cons cell array.
+ *
+ * The cons array size must be equal or greater the number of
+ * remaining arguments. An insufficient array size is not detected.
+ * This array embedded cons-list is used for short temporary
+ * argument lists to circumvent to unecessarly fill the
+ * global cell store.
+  */
 template <typename T, typename... Args>
 Cons* alist(Cons cons[], T&& t, Args&&... args)
 {
