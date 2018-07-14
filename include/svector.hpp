@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <stdexcept>
 
 namespace pscm {
 
@@ -36,7 +37,7 @@ public:
     }
 
     template <typename InputIt>
-    SharedVector(InputIt& first, InputIt& last)
+    SharedVector(InputIt first, InputIt last)
         : pvec{ std::make_shared<Vec>(first, last) }
     {
     }
@@ -85,10 +86,11 @@ public:
 
     //! Append value copies from input iterator range.
     template <typename InputIt>
-    void append(InputIt& first, InputIt& last)
+    void append(InputIt first, InputIt last)
     {
-        std::copy(first, last, std::back_inserter(*pvec));
+        std::copy(first, last, back_inserter(*pvec));
     }
+
     //! Append a single value.
     void append(const T& val) { pvec->push_back(val); }
 
@@ -107,7 +109,7 @@ public:
      * @throws std::invalid_argument for an out of vector boundary range.
      */
     template <typename InputIt>
-    void copy(InputIt& first, InputIt& last, size_t offset = 0)
+    void copy(InputIt first, InputIt last, size_t offset = 0)
     {
         offset + std::distance(first, last) <= pvec->size()
             || (throw std::invalid_argument("invalid vector offset"), 0);

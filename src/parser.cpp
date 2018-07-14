@@ -167,6 +167,9 @@ Parser::Token Parser::lex_char(const std::string& str, Char& c)
  */
 Parser::Token Parser::lex_special(const std::string& str)
 {
+    if (str == "#")
+        return Token::Vector;
+
     switch (str.at(1)) {
     case 't':
         if (str == "#t" || str == "#true")
@@ -313,12 +316,33 @@ Cell Parser::parse(std::istream& in)
     case Token::Symbol:
         return sym(strtok.c_str());
 
+    case Token::Vector:
+        return parse_vector(in);
+
     case Token::OBrace:
         return parse_list(in);
 
     default:
         throw std::invalid_argument("parse error");
     }
+}
+
+Cell Parser::parse_vector(std::istream& in)
+{
+    Vector vec;
+    Token tok = get_token(in);
+
+    if (tok == Token::OBrace)
+        while (in.good()) {
+            tok = get_token(in);
+
+            if (tok == Token::CBrace)
+                return vec;
+
+            put_back = tok;
+            vec.append(parse(in));
+        }
+    throw std::invalid_argument("error parsing vector");
 }
 
 Cell Parser::parse_list(std::istream& in)

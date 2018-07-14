@@ -8,6 +8,7 @@
  *************************************************************************************/
 #include <iostream>
 
+#include "cell.hpp"
 #include "eval.hpp"
 #include "parser.hpp"
 #include "primop.hpp"
@@ -58,10 +59,10 @@ static Cell fun_booleq(const varg& args)
     if (!is_bool(args[0]))
         return false;
 
-    Bool prv = args[0], b;
+    Bool prv = get<Bool>(args[0]), b;
 
     for (auto iter = args.begin() + 1; iter != args.end(); prv = b, ++iter)
-        if (!is_bool(*iter) || prv != (b = *iter))
+        if (!is_bool(*iter) || prv != (b = get<Bool>(*iter)))
             return false;
 
     return true;
@@ -74,9 +75,9 @@ static Cell fun_numeq(const varg& args)
     if (args[0] != args[1])
         return false;
 
-    Number val = args[1];
-    for (auto iter = args.begin() + 2; iter != args.end(); val = std::get<Number>(*iter), ++iter)
-        if (val != *iter)
+    auto val = get<Number>(args[1]);
+    for (auto iter = args.begin() + 2; iter != args.end(); val = get<Number>(*iter), ++iter)
+        if (val != get<Number>(*iter))
             return false;
 
     return true;
@@ -86,7 +87,7 @@ static Cell fun_numlt(const varg& args)
 {
     argn(args, 2, ~0);
 
-    Number lhs = args[0], rhs = args[1];
+    auto lhs = get<Number>(args[0]), rhs = get<Number>(args[1]);
 
     if (!(lhs < rhs))
         return false;
@@ -105,7 +106,7 @@ static Cell fun_numgt(const varg& args)
 {
     argn(args, 2, ~0);
 
-    Number lhs = args[0], rhs = args[1];
+    auto lhs = get<Number>(args[0]), rhs = get<Number>(args[1]);
 
     if (!(lhs > rhs))
         return false;
@@ -124,7 +125,7 @@ static Cell fun_numle(const varg& args)
 {
     argn(args, 2, ~0);
 
-    Number lhs = args[0], rhs = args[1];
+    auto lhs = get<Number>(args[0]), rhs = get<Number>(args[1]);
 
     if (!(lhs <= rhs))
         return false;
@@ -143,14 +144,14 @@ static Cell fun_numge(const varg& args)
 {
     argn(args, 2, ~0);
 
-    Number lhs = args[0], rhs = args[1];
+    auto lhs = get<Number>(args[0]), rhs = get<Number>(args[1]);
 
     if (!(lhs >= rhs))
         return false;
 
     for (auto iter = args.begin() + 2; iter != args.end(); ++iter) {
         lhs = rhs;
-        rhs = std::get<Number>(*iter);
+        rhs = get<Number>(*iter);
 
         if (!(lhs >= rhs))
             return false;
@@ -162,8 +163,8 @@ static Cell fun_add(const varg& args)
 {
     Number res = 0;
 
-    for (Number val : args)
-        res += val;
+    for (auto& val : args)
+        res += get<Number>(val);
 
     return res;
 }
@@ -172,10 +173,10 @@ static Cell fun_sub(const varg& args)
 {
     argn(args, 1, ~0);
 
-    Number res = args.size() > 1 ? args[0] : neg(args[0]);
+    auto res = args.size() > 1 ? get<Number>(args[0]) : neg(get<Number>(args[0]));
 
     for (auto iter = ++args.begin(); iter != args.end(); ++iter)
-        res -= *iter;
+        res -= get<Number>(*iter);
 
     return res;
 }
@@ -184,32 +185,29 @@ static Cell fun_mul(const varg& args)
 {
     Number res = 1;
 
-    for (Number val : args)
-        res *= val;
+    for (const Cell& val : args)
+        res *= get<Number>(val);
 
     return res;
 }
 
 static Cell fun_div(const varg& args)
 {
-    argn(args, 1, ~0);
-
-    Number res = args.size() > 1 ? args[0] : inv(args[0]);
+    auto res = args.size() > 1 ? get<Number>(args.at(0)) : inv(get<Number>(args.at(0)));
 
     for (auto iter = ++args.begin(); iter != args.end(); ++iter)
-        res /= *iter;
+        res /= get<Number>(*iter);
 
     return res;
 }
 
 static Cell fun_log(const varg& args)
 {
-    argn(args, 1, 2);
-
-    if (args.size() == 1)
-        return pscm::log(args[0]);
+    if (args.size() < 2)
+        return pscm::log(get<Number>(args.at(0)));
     else {
-        Number x = args[0], y = args[1];
+        const Number &x = get<Number>(args.at(0)), &y = get<Number>(args.at(1));
+
         return y != Number{ 10 } ? pscm::log(x) / pscm::log(y)
                                  : pscm::log10(x);
     }
@@ -232,7 +230,8 @@ static Cell fun_write(const varg& args)
 inline Cell fun_make_vector(const varg& args)
 {
     argn(args, 1, 2);
-    Number size = args[0];
+
+    const Number& size = get<Number>(args[0]);
 
     is_int(size) && !is_negative(size)
         || (throw std::invalid_argument("vector length must be a non-negative integer"), 0);
@@ -244,7 +243,8 @@ inline Cell fun_vector_ref(const varg& args)
 {
     argn(args, 2);
 
-    Number pos = args[1];
+    const Number& pos = get<Number>(args[1]);
+
     is_int(pos) && !is_negative(pos)
         || (throw std::invalid_argument("vector position must be a non-negative integer"), 0);
 
@@ -254,8 +254,8 @@ inline Cell fun_vector_ref(const varg& args)
 inline Cell fun_vector_setb(const varg& args)
 {
     argn(args, 3);
+    auto pos = get<Number>(args[1]);
 
-    Number pos = args[1];
     is_int(pos) && !is_negative(pos)
         || (throw std::invalid_argument("vector position must be a non-negative integer"), 0);
 
@@ -266,9 +266,11 @@ inline Cell fun_vector_setb(const varg& args)
 inline Cell fun_vec2list(const varg& args)
 {
     argn(args, 1, 3);
-    Vector vec = args[0];
-    Number pos = args.size() > 1 ? args[1] : Number{ 0 },
-           end = args.size() > 2 ? args[2] : Number{ vec.size() };
+
+    const Vector& vec = get<Vector>(args[0]);
+
+    Number pos = args.size() > 1 ? get<Number>(args[1]) : Number{ 0 },
+           end = args.size() > 2 ? get<Number>(args[2]) : Number{ vec.size() };
 
     is_int(pos) && !is_negative(pos) && pos <= end
         || (throw std::invalid_argument("invalid first vector index"), 0);
@@ -281,7 +283,7 @@ inline Cell fun_vec2list(const varg& args)
 
     Cell list = cons(vec.at(pos), nil), tail = list;
 
-    std::for_each(vec.begin() + pos + 1, vec.begin() + end, [&tail](Cell& cell) {
+    std::for_each(vec.begin() + pos + 1, vec.begin() + end, [&tail](const Cell& cell) {
         set_cdr(tail, cons(cell, nil));
         tail = cdr(tail);
     });
@@ -291,9 +293,10 @@ inline Cell fun_vec2list(const varg& args)
 inline Cell fun_list2vec(const varg& args)
 {
     argn(args, 1);
-    Vector vec;
 
+    Vector vec;
     Cell list = args[0];
+
     for (/* */; is_pair(list); list = cdr(list))
         vec.append(car(list));
 
@@ -304,10 +307,10 @@ inline Cell fun_list2vec(const varg& args)
 inline Cell fun_vec_copy(const varg& args)
 {
     argn(args, 1, 3);
-    Vector vec = args[0];
 
-    Number pos = args.size() > 1 ? args[1] : Number{ 0 },
-           end = args.size() > 2 ? args[2] : Number{ vec.size() };
+    const Vector& vec = get<Vector>(args[0]);
+    Number pos = args.size() > 1 ? get<Number>(args[1]) : Number{ 0 },
+           end = args.size() > 2 ? get<Number>(args[2]) : Number{ vec.size() };
 
     is_int(pos) && !is_negative(pos) && pos <= end
         || (throw std::invalid_argument("invalid first vector index"), 0);
@@ -321,11 +324,13 @@ inline Cell fun_vec_copy(const varg& args)
 inline Cell fun_vec_copyb(const varg& args)
 {
     argn(args, 3, 5);
-    Vector vec = args[0], src = args[2];
 
-    Number idx = args[1],
-           pos = args.size() > 3 ? args[3] : Number{ 0 },
-           end = args.size() > 4 ? args[4] : Number{ src.size() };
+    Vector vec = get<Vector>(args[0]);
+    const Vector& src = get<Vector>(args[2]);
+
+    auto idx = get<Number>(args[1]),
+         pos = args.size() > 3 ? get<Number>(args[3]) : Number{ 0 },
+         end = args.size() > 4 ? get<Number>(args[4]) : Number{ src.size() };
 
     is_int(idx) && !is_negative(idx)
         || (throw std::invalid_argument("invalid destination vector index"), 0);
@@ -342,11 +347,12 @@ inline Cell fun_vec_copyb(const varg& args)
 
 inline Cell fun_vec_append(const varg& args)
 {
-    argn(args, 1, ~0);
-    Vector vec = args[0];
+    auto vec = get<Vector>(args.at(0));
 
-    for (const Vector& v : args)
+    for (const Cell& cell : args) {
+        const Vector& v = get<Vector>(cell);
         vec.append(v.begin(), v.end());
+    }
 
     return vec;
 }
@@ -354,10 +360,10 @@ inline Cell fun_vec_append(const varg& args)
 inline Cell fun_vec_fillb(const varg& args)
 {
     argn(args, 2, 4);
-    Vector vec = args[0];
 
-    Number pos = args.size() > 2 ? args[2] : Number{ 0 },
-           end = args.size() > 3 ? args[3] : Number{ vec.size() };
+    auto vec = get<Vector>(args[0]);
+    auto pos = args.size() > 2 ? get<Number>(args[2]) : Number{ 0 },
+         end = args.size() > 3 ? get<Number>(args[3]) : Number{ vec.size() };
 
     is_int(pos) && !is_negative(pos) && pos <= end
         || (throw std::invalid_argument("invalid first vector index"), 0);
@@ -405,15 +411,13 @@ inline Cell fun_readline(const varg& args)
     String line = str("");
 
     if (args.size() > 0) {
-        Port port = args[0];
+        Port port = get<Port>(args[0]);
         port.is_open() || (throw std::invalid_argument("port is closed"), 0);
         std::getline(port.stream(), *line);
     } else {
         std::string str;
         std::getline(std::cin, str);
-        std::cout << "--> str: " << str << std::endl;
     }
-
     return line;
 }
 
@@ -423,9 +427,9 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
     /* Section 6.1: Equivalence predicates */
     case Intern::op_eq:
     case Intern::op_eqv:
-        return argn(args, 2), args[0] == args[1];
+        return args.at(0) == args.at(1);
     case Intern::op_equal:
-        return argn(args, 2), is_equal(args[0], args[1]);
+        return is_equal(args.at(0), args.at(1));
 
     /* Section 6.2: Numbers */
     case Intern::op_numeq:
@@ -447,57 +451,57 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
     case Intern::op_div:
         return fun_div(args);
     case Intern::op_zero:
-        return argn(args, 1), !(std::get<Number>(args[0]) != Number{ 0 });
+        return is_zero(get<Number>(args.at(0)));
     case Intern::op_sin:
-        return argn(args, 1), pscm::sin(args[0]);
+        return pscm::sin(get<Number>(args.at(0)));
     case Intern::op_cos:
-        return argn(args, 1), pscm::cos(args[0]);
+        return pscm::cos(get<Number>(args.at(0)));
     case Intern::op_tan:
-        return argn(args, 1), pscm::tan(args[0]);
+        return pscm::tan(get<Number>(args.at(0)));
     case Intern::op_asin:
-        return argn(args, 1), pscm::asin(args[0]);
+        return pscm::asin(get<Number>(args.at(0)));
     case Intern::op_acos:
-        return argn(args, 1), pscm::acos(args[0]);
+        return pscm::acos(get<Number>(args.at(0)));
     case Intern::op_atan:
-        return argn(args, 1), pscm::atan(args[0]);
+        return pscm::atan(get<Number>(args.at(0)));
     case Intern::op_sinh:
-        return argn(args, 1), pscm::sinh(args[0]);
+        return pscm::sinh(get<Number>(args.at(0)));
     case Intern::op_cosh:
-        return argn(args, 1), pscm::cosh(args[0]);
+        return pscm::cosh(get<Number>(args.at(0)));
     case Intern::op_tanh:
-        return argn(args, 1), pscm::tanh(args[0]);
+        return pscm::tanh(get<Number>(args.at(0)));
     case Intern::op_asinh:
-        return argn(args, 1), pscm::asinh(args[0]);
+        return pscm::asinh(get<Number>(args.at(0)));
     case Intern::op_acosh:
-        return argn(args, 1), pscm::acosh(args[0]);
+        return pscm::acosh(get<Number>(args.at(0)));
     case Intern::op_atanh:
-        return argn(args, 1), pscm::atanh(args[0]);
+        return pscm::atanh(get<Number>(args.at(0)));
     case Intern::op_exp:
-        return argn(args, 1), pscm::exp(args[0]);
+        return pscm::exp(get<Number>(args.at(0)));
     case Intern::op_pow:
-        return argn(args, 2), pscm::pow(args[0], args[1]);
+        return pscm::pow(get<Number>(args.at(0)), get<Number>(args.at(1)));
     case Intern::op_square:
-        return argn(args, 1), args[0] * args[0];
+        return get<Number>(args.at(0)) * get<Number>(args.at(0));
     case Intern::op_log:
         return fun_log(args);
     case Intern::op_log10:
-        return argn(args, 1), pscm::log10(args[0]);
+        return pscm::log10(get<Number>(args.at(0)));
     case Intern::op_sqrt:
-        return argn(args, 1), pscm::sqrt(args[0]);
+        return pscm::sqrt(get<Number>(args.at(0)));
     case Intern::op_abs:
-        return argn(args, 1), pscm::abs(args[0]);
+        return pscm::abs(get<Number>(args.at(0)));
     case Intern::op_real:
-        return argn(args, 1), pscm::real(args[0]);
+        return pscm::real(get<Number>(args.at(0)));
     case Intern::op_imag:
-        return argn(args, 1), pscm::imag(args[0]);
+        return pscm::imag(get<Number>(args.at(0)));
     case Intern::op_arg:
-        return argn(args, 1), pscm::arg(args[0]);
+        return pscm::arg(get<Number>(args.at(0)));
     case Intern::op_conj:
-        return argn(args, 1), pscm::conj(args[0]);
+        return pscm::conj(get<Number>(args.at(0)));
     case Intern::op_rect:
-        return argn(args, 2), pscm::rect(args[0], args[1]);
+        return pscm::rect(get<Number>(args.at(0)), get<Number>(args.at(1)));
     case Intern::op_polar:
-        return argn(args, 2), pscm::polar(args[0], args[1]);
+        return pscm::polar(get<Number>(args.at(0)), get<Number>(args.at(1)));
 
     /* Section 6.3: Booleans */
     case Intern::op_not:
@@ -539,7 +543,7 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
     case Intern::op_vec:
         return Vector{ args };
     case Intern::op_veclen:
-        return argn(args, 1), Number{ std::get<Vector>(args[0]).size() };
+        return argn(args, 1), Number{ get<Vector>(args[0]).size() };
     case Intern::op_vecref:
         return fun_vector_ref(args);
     case Intern::op_vecsetb:
@@ -565,11 +569,11 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
 
     /* Section 6.13: Input and output */
     case Intern::op_callw_infile:
-        return fun_callw_infile(senv, args.at(0), args.at(1));
+        return fun_callw_infile(senv, get<String>(args.at(0)), args.at(1));
     case Intern::op_open_infile:
-        return fun_open_infile(args.at(0));
+        return fun_open_infile(get<String>(args.at(0)));
     case Intern::op_open_outfile:
-        return fun_open_outfile(args.at(0));
+        return fun_open_outfile(get<String>(args.at(0)));
     case Intern::op_readline:
         return fun_readline(args);
 

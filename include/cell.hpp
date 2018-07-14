@@ -33,6 +33,18 @@ struct Cell : Variant {
     operator T() const { return std::get<T>(static_cast<Variant>(*this)); }
 };
 
+template <typename T>
+T& get(Cell& cell) { return std::get<T>(static_cast<Variant&>(cell)); }
+
+template <typename T>
+T&& get(Cell&& cell) { return std::get<T>(static_cast<Variant&&>(std::move(cell))); }
+
+template <typename T>
+const T& get(const Cell& cell) { return std::get<T>(static_cast<Variant&>(const_cast<Cell&>(cell))); }
+
+template <typename T>
+const T&& get(const Cell&& cell) { return std::get<T>(static_cast<const Variant&&>(std::move(cell))); }
+
 static const None none{}; //!< void return symbol
 static const Nil nil{}; //!< empty list symbol
 
@@ -46,8 +58,9 @@ constexpr bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
 constexpr bool is_symbol(const Cell& cell) { return is_type<Symbol>(cell); }
 constexpr bool is_symenv(const Cell& cell) { return is_type<Symenv>(cell); }
 constexpr bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
-constexpr bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !static_cast<Bool>(cell); }
-constexpr bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || static_cast<Bool>(cell); }
+
+inline bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !get<Bool>(cell); }
+inline bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || get<Bool>(cell); }
 
 /**
  * @brief Scheme equal? predicate to test two cells for same content.
@@ -73,19 +86,19 @@ Cons* cons(const Cell& car, Cell&& cdr);
 Cons* cons(const Cell& car, const Cell& cdr);
 
 //! Convenience functions to access a list of Cons cell-pairs.
-inline Cell& car(Cons* cons) { return cons->first; }
-inline Cell& cdr(Cons* cons) { return cons->second; }
-inline Cell& cddr(Cons* cons) { return cdr(cdr(cons)); }
-inline Cell& cadr(Cons* cons) { return car(cdr(cons)); }
-inline Cell& caddr(Cons* cons) { return car(cddr(cons)); }
+inline const Cell& car(const Cell& cons) { return get<Cons*>(cons)->first; }
+inline const Cell& cdr(const Cell& cons) { return get<Cons*>(cons)->second; }
+inline const Cell& cddr(const Cell& cons) { return cdr(cdr(cons)); }
+inline const Cell& cadr(const Cell& cons) { return car(cdr(cons)); }
+inline const Cell& caddr(const Cell& cons) { return car(cddr(cons)); }
 
 //! Set the first cell of a Cons cell-pair.
 template <typename T>
-void set_car(Cons* cons, T&& t) { cons->first = std::forward<T>(t); }
+void set_car(const Cell& cons, T&& t) { std::get<Cons*>(cons)->first = std::forward<T>(t); }
 
 //! Set the second cell of a Cons cell-pair.
 template <typename T>
-void set_cdr(Cons* cons, T&& t) { cons->second = std::forward<T>(t); }
+void set_cdr(const Cell& cons, T&& t) { std::get<Cons*>(cons)->second = std::forward<T>(t); }
 
 //! Predicate return true if cell is a proper nil terminated list or a circular list.
 bool is_list(Cell cell);
@@ -136,11 +149,11 @@ Cons* alist(Cons (&cons)[size], T&& t, Args&&... args)
 
 //! Recursion base case, if list is shorter then the array size.
 template <size_t size>
-inline Nil alist(Cons (&cons)[size]) { return nil; }
+inline Nil alist(Cons (&)[size]) { return nil; }
 
 //! Error condition if list is longer then the array size.
 template <typename T1, typename T2, typename... Args>
-Nil alist(Cons (&cons)[1], T1&&, T2&&, Args&&... args)
+Nil alist(Cons (&)[1], T1&&, T2&&, Args&&...)
 {
     static_assert(always_false<Cons>{}, "invalid cons array size");
     return nil;

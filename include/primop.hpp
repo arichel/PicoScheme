@@ -1,5 +1,5 @@
 /*********************************************************************************/ /**
- * @file primop.hpp
+ * @file
  *
  * @version   0.1
  * @date      2018-
@@ -11,7 +11,7 @@
 
 #include <vector>
 
-#include "cell.hpp"
+#include "types.hpp"
 
 namespace pscm {
 

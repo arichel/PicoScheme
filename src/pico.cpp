@@ -46,10 +46,22 @@ start:
 
 int main()
 {
-    //repl();
-    //return 0;
+    repl();
+    return 0;
 
     try {
+
+        Cell cell = 'a';
+
+        Char& c = pscm::get<Char>(cell);
+
+        pscm::get<Char>(cell) = 'b';
+
+        cout << "char: " << cell << endl;
+
+        cout << reinterpret_cast<size_t>(&get<Char>(cell)) << "  " << reinterpret_cast<size_t>(&c) << endl;
+
+        return 0;
 
         Symenv e = senv();
 

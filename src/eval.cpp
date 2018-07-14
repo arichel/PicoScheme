@@ -7,11 +7,14 @@
  * @copyright MIT License
  *************************************************************************************/
 #include "eval.hpp"
+#include "cell.hpp"
 #include "parser.hpp"
 #include "primop.hpp"
 #include "proc.hpp"
 
 namespace pscm {
+
+using std::get;
 
 /**
  * @brief Evaluate a scheme (set! symbol expr) expression.
@@ -24,7 +27,7 @@ namespace pscm {
  */
 static Cell syntax_setb(const Symenv& senv, const Cell& args)
 {
-    senv->set(car(args), eval(senv, cadr(args)));
+    senv->set(get<Symbol>(car(args)), eval(senv, cadr(args)));
     return none;
 }
 
@@ -119,13 +122,23 @@ static Cell syntax_define(const Symenv& senv, Cell args)
     args = car(args);
 
     if (is_pair(args))
-        senv->add(car(args), Proc{ senv, cdr(args), expr });
+        senv->add(get<Symbol>(car(args)), Proc{ senv, cdr(args), expr });
     else
-        senv->add(args, eval(senv, car(expr)));
+        senv->add(get<Symbol>(args), eval(senv, car(expr)));
 
     return none;
 }
 
+/**
+ * @brief Evaluate argument list into an argument vector.
+ *
+ * @param senv Symbol environment, where to evaluate the argument list.
+ * @param args Argument list to evaluate.
+ * @param is_list true:   procedure call argument list.
+ *                false:  apply expression argument list, where the last list item
+ *                        must be nil or an argument list itself.
+ * @return Vector of evaluated arguments.
+ */
 Cell eval_list(const Symenv& senv, Cell list, bool is_list)
 {
     if (!is_pair(list))
@@ -157,26 +170,39 @@ Cell eval_list(const Symenv& senv, Cell list, bool is_list)
     return head;
 }
 
+/**
+ * @brief Evaluate argument list into an argument vector.
+ *
+ * @param senv Symbol environment, where to evaluate the argument list.
+ * @param args Argument list to evaluate.
+ * @param is_list true:   procedure call argument list.
+ *                false:  apply expression argument list, where the last list item
+ *                        must be nil or an argument list itself.
+ * @return Vector of evaluated arguments.
+ */
 static std::vector<Cell> eval_args(const Symenv& senv, Cell args, bool is_list = true)
 {
     std::vector<Cell> vec;
 
-    if (is_list) {
+    if (is_list) { // expression: (proc x y ... z)
         for (/* */; is_pair(args); args = cdr(args))
             vec.push_back(eval(senv, car(args)));
 
         return vec;
     }
+    // expression: (apply proc x y ... (args ...))
     Cell last = nil;
 
+    // evaluate (x y ...)
     for (/* */; is_pair(args); args = cdr(args))
         vec.push_back(last = eval(senv, car(args)));
 
-    if (is_nil(last)) {
+    if (is_nil(last)) { // last list (args ...) is nil
         if (!vec.empty())
             vec.pop_back();
         return vec;
     }
+    // append arguments from last list (args ...)
     vec.back() = car(last);
     for (args = cdr(last); is_pair(args); args = cdr(args))
         vec.push_back(car(args));
@@ -190,7 +216,7 @@ Cell eval(Symenv senv, Cell expr)
 
     for (;;) {
         if (is_symbol(expr))
-            return senv->get(expr);
+            return senv->get(get<Symbol>(expr));
 
         if (!is_pair(expr))
             return expr;
@@ -199,11 +225,11 @@ Cell eval(Symenv senv, Cell expr)
         proc = eval(senv, car(expr));
 
         if (is_proc(proc)) {
-            tie(senv, args) = apply(senv, proc, args);
+            tie(senv, args) = apply(senv, get<Proc>(proc), args);
             expr = syntax_begin(senv, args);
             continue;
         }
-        switch (Intern opcode = proc) {
+        switch (Intern opcode = get<Intern>(proc)) {
 
         case Intern::_quote:
             return car(args);
@@ -220,9 +246,9 @@ Cell eval(Symenv senv, Cell expr)
 
         case Intern::_apply:
             if (is_intern(proc = eval(senv, car(args))))
-                return call(senv, proc, eval_args(senv, cdr(args), false));
+                return call(senv, get<Intern>(proc), eval_args(senv, cdr(args), false));
 
-            tie(senv, args) = apply(senv, proc, cdr(args), false);
+            tie(senv, args) = apply(senv, get<Proc>(proc), cdr(args), false);
             expr = syntax_begin(senv, args);
             break;
 

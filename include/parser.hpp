@@ -41,12 +41,14 @@ private:
         String, // "([^"]*)"
         Number, // (+|-)[0-9]+(\.[0-9]+)
         Symbol, // [a-zA-Z_%:+-][a-zA-Z_%:+-]*
+        Vector,
 
         Eof,
         Error
     };
 
     Cell parse_list(std::istream& in);
+    Cell parse_vector(std::istream& in);
     Token get_token(std::istream& in);
 
     Token lex_symbol(const std::string& str);
