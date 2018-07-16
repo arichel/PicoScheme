@@ -64,6 +64,53 @@ static Cell syntax_if(const Symenv& senv, const Cell& args)
         return none;
 }
 
+/**
+ * @brief syntax_cond
+ *
+ * @verbatim
+ * (cond <clause>_1 <clause>_2 ...)
+ *
+ * <clause> := (<test> <expression> ...)
+ *          |  (<test> => <expression> ...)
+ *          |  (else  <expression> ...)
+ * @endverbatim
+ */
+static Cell syntax_cond(const Symenv& senv, Cell args)
+{
+    Cell test = false, expr = nil;
+
+    // for each clause evaluate <test> condition
+    for (/* */; is_pair(args); args = cdr(args)) {
+        is_pair(car(args)) || (throw std::invalid_argument("invalid cond syntax"), 0);
+
+        if (is_false(test)) {
+            test = eval(senv, caar(args));
+
+            if (is_true(test))
+                expr = cdar(args);
+        }
+    }
+    if (is_true(test)) {
+        if (is_nil(expr))
+            return test;
+
+        const Cell& first = car(expr);
+
+        // clause: (<test> => <expr> ...)  -> (apply <expr> <test> nil) ...
+        if (is_arrow(first) || (is_symbol(first) && is_arrow(eval(senv, first)))) {
+            !is_else(test) || (throw std::invalid_argument("invalid cond syntax"), 0);
+
+            Cons cell[4];
+            for (expr = cdr(expr); is_pair(cdr(expr)); expr = cdr(expr))
+                eval(senv, alist(cell, Intern::_apply, car(expr), test, nil));
+
+            return list(Intern::_apply, car(expr), test, nil);
+        } else
+            return syntax_begin(senv, expr);
+    }
+    return none;
+}
+
 static Cell syntax_when(const Symenv& senv, Cell args)
 {
     if (is_true(eval(senv, car(args))) && is_pair(args = cdr(args))) {
@@ -229,7 +276,7 @@ Cell eval(Symenv senv, Cell expr)
             expr = syntax_begin(senv, args);
             continue;
         }
-        switch (Intern opcode = get<Intern>(proc)) {
+        switch (auto opcode = get<Intern>(proc)) {
 
         case Intern::_quote:
             return car(args);
@@ -240,15 +287,14 @@ Cell eval(Symenv senv, Cell expr)
         case Intern::_lambda:
             return Proc{ senv, car(args), cdr(args) };
 
-        case Intern::_begin:
-            expr = syntax_begin(senv, args);
-            break;
-
         case Intern::_apply:
             if (is_intern(proc = eval(senv, car(args))))
                 return call(senv, get<Intern>(proc), eval_args(senv, cdr(args), false));
 
             tie(senv, args) = apply(senv, get<Proc>(proc), cdr(args), false);
+            [[fallthrough]];
+
+        case Intern::_begin:
             expr = syntax_begin(senv, args);
             break;
 
@@ -257,6 +303,10 @@ Cell eval(Symenv senv, Cell expr)
 
         case Intern::_if:
             expr = syntax_if(senv, args);
+            break;
+
+        case Intern::_cond:
+            expr = syntax_cond(senv, args);
             break;
 
         case Intern::_when:

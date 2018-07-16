@@ -46,38 +46,33 @@ start:
 
 int main()
 {
-    repl();
-    return 0;
+    //repl();
+    //return 0;
 
     try {
-
-        Cell cell = 'a';
-
-        Char& c = pscm::get<Char>(cell);
-
-        pscm::get<Char>(cell) = 'b';
-
-        cout << "char: " << cell << endl;
-
-        cout << reinterpret_cast<size_t>(&get<Char>(cell)) << "  " << reinterpret_cast<size_t>(&c) << endl;
-
-        return 0;
-
         Symenv e = senv();
+        Cell expr;
 
-        std::string str = {
-            "(call-with-input-file \"test.txt\" "
-            "   (lambda (port) port))"
-            ";       (display (read-line port))"
-            ";       (display (read-line port))))"
-        };
+        Cell lambda = pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x"));
+        Cell clause = pscm::list(pscm::list(lambda, str("hallo paul")), Intern::_arrow, lambda);
+        Cell apply = pscm::list(Intern::_apply, lambda, num(1), nil);
+        Cell cond = pscm::list(Intern::_cond, clause);
 
-        str = "(apply (lambda (x y ) (* x y)) 2 100 ())";
+        expr = cond;
 
-        std::istringstream is{ str };
+        //        std::string str = {
+        //            "(call-with-input-file \"test.txt\" "
+        //            "   (lambda (port) port))"
+        //            ";       (display (read-line port))"
+        //            ";       (display (read-line port))))"
+        //        };
 
-        Parser parser;
-        Cell expr = parser.parse(is);
+        //        str = "(apply (lambda (x y ) (* x y)) 2 100 ())";
+
+        //        std::istringstream is{ str };
+
+        //        Parser parser;
+        //        expr = parser.parse(is);
 
         cout << expr << " ---> ";
         Cell proc = eval(e, expr);

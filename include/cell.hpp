@@ -61,6 +61,8 @@ constexpr bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
 
 inline bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !get<Bool>(cell); }
 inline bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || get<Bool>(cell); }
+inline bool is_else(const Cell& cell) { return is_intern(cell) && get<Intern>(cell) == Intern::_else; }
+inline bool is_arrow(const Cell& cell) { return is_intern(cell) && get<Intern>(cell) == Intern::_arrow; }
 
 /**
  * @brief Scheme equal? predicate to test two cells for same content.
@@ -88,6 +90,8 @@ Cons* cons(const Cell& car, const Cell& cdr);
 //! Convenience functions to access a list of Cons cell-pairs.
 inline const Cell& car(const Cell& cons) { return get<Cons*>(cons)->first; }
 inline const Cell& cdr(const Cell& cons) { return get<Cons*>(cons)->second; }
+inline const Cell& caar(const Cell& cons) { return car(car(cons)); }
+inline const Cell& cdar(const Cell& cons) { return cdr(car(cons)); }
 inline const Cell& cddr(const Cell& cons) { return cdr(cdr(cons)); }
 inline const Cell& cadr(const Cell& cons) { return car(cdr(cons)); }
 inline const Cell& caddr(const Cell& cons) { return car(cddr(cons)); }
