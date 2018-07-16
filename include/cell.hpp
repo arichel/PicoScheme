@@ -48,16 +48,17 @@ const T&& get(const Cell&& cell) { return std::get<T>(static_cast<const Variant&
 static const None none{}; //!< void return symbol
 static const Nil nil{}; //!< empty list symbol
 
-constexpr bool is_nil(const Cell& cell) { return is_type<Nil>(cell); }
-constexpr bool is_none(const Cell& cell) { return is_type<None>(cell); }
-constexpr bool is_bool(const Cell& cell) { return is_type<Bool>(cell); }
-constexpr bool is_char(const Cell& cell) { return is_type<Char>(cell); }
-constexpr bool is_string(const Cell& cell) { return is_type<String>(cell); }
-constexpr bool is_pair(const Cell& cell) { return is_type<Cons*>(cell); }
-constexpr bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
-constexpr bool is_symbol(const Cell& cell) { return is_type<Symbol>(cell); }
-constexpr bool is_symenv(const Cell& cell) { return is_type<Symenv>(cell); }
-constexpr bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
+inline bool is_nil(const Cell& cell) { return is_type<Nil>(cell); }
+inline bool is_none(const Cell& cell) { return is_type<None>(cell); }
+inline bool is_bool(const Cell& cell) { return is_type<Bool>(cell); }
+inline bool is_char(const Cell& cell) { return is_type<Char>(cell); }
+inline bool is_string(const Cell& cell) { return is_type<String>(cell); }
+inline bool is_pair(const Cell& cell) { return is_type<Cons*>(cell); }
+inline bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
+inline bool is_port(const Cell& cell) { return is_type<Port>(cell); }
+inline bool is_symbol(const Cell& cell) { return is_type<Symbol>(cell); }
+inline bool is_symenv(const Cell& cell) { return is_type<Symenv>(cell); }
+inline bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
 
 inline bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !get<Bool>(cell); }
 inline bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || get<Bool>(cell); }

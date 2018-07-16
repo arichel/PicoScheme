@@ -412,13 +412,68 @@ inline Cell fun_readline(const varg& args)
 
     if (args.size() > 0) {
         Port port = get<Port>(args[0]);
-        port.is_open() || (throw std::invalid_argument("port is closed"), 0);
+        port.is_open() && port.is_input() || (throw std::invalid_argument("port is closed"), 0);
+
         std::getline(port.stream(), *line);
     } else {
         std::string str;
         std::getline(std::cin, str);
     }
     return line;
+}
+
+inline Cell fun_read(const varg& args)
+{
+    argn(args, 0, 1);
+    Port port;
+
+    if (args.size() > 0) {
+        port = get<Port>(args[0]);
+        port.is_open() && port.is_input() || (throw std::invalid_argument("port is closed"), 0);
+    }
+    Parser parser;
+    return parser.parse(port.stream());
+}
+
+inline Cell fun_readchar(const varg& args)
+{
+    argn(args, 0, 1);
+    Port port;
+
+    if (args.size() > 0) {
+        port = get<Port>(args[0]);
+        port.is_open() && port.is_input() || (throw std::invalid_argument("port is closed"), 0);
+    }
+    return static_cast<Char>(port.stream().get());
+}
+
+inline Cell fun_peekchar(const varg& args)
+{
+    argn(args, 0, 1);
+    Port port;
+
+    if (args.size() > 0) {
+        port = get<Port>(args[0]);
+        port.is_open() && port.is_input() || (throw std::invalid_argument("port is closed"), 0);
+    }
+    return static_cast<Char>(port.stream().peek());
+}
+
+inline Cell fun_readstr(const varg& args)
+{
+    argn(args, 1, 2);
+    Port port;
+
+    Number num = get<Number>(args[0]);
+    if (is_int(num) || is_negative(num))
+        throw std::invalid_argument("must be a nonnegative number");
+
+    if (args.size() > 1) {
+        port = get<Port>(args[0]);
+        port.is_open() && port.is_input() || (throw std::invalid_argument("port is closed"), 0);
+    }
+    Parser parser;
+    return parser.parse(port.stream());
 }
 
 Cell call(const Symenv& senv, Intern primop, const varg& args)
@@ -568,6 +623,20 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
         return argn(args, 1), is_proc(args[0]) || (is_intern(args[0]) && std::get<Intern>(args[0]) >= Intern::op_eq);
 
     /* Section 6.13: Input and output */
+    case Intern::op_isport:
+        return is_type<Port>(args.at(0));
+    case Intern::op_isinport:
+        return is_type<Port>(args.at(0)) && get<Port>(args[0]).is_input();
+    case Intern::op_isoutport:
+        return is_type<Port>(args.at(0)) && get<Port>(args[0]).is_output();
+    case Intern::op_istxtport:
+        return is_type<Port>(args.at(0)) && !get<Port>(args[0]).is_binary();
+    case Intern::op_isbinport:
+        return is_type<Port>(args.at(0)) && get<Port>(args[0]).is_binary();
+    case Intern::op_isinport_open:
+        return is_type<Port>(args.at(0)) && get<Port>(args[0]).is_input() && get<Port>(args[0]).is_open();
+    case Intern::op_isoutport_open:
+        return is_type<Port>(args.at(0)) && get<Port>(args[0]).is_output() && get<Port>(args[0]).is_open();
     case Intern::op_callw_infile:
         return fun_callw_infile(senv, get<String>(args.at(0)), args.at(1));
     case Intern::op_open_infile:
@@ -576,6 +645,18 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
         return fun_open_outfile(get<String>(args.at(0)));
     case Intern::op_readline:
         return fun_readline(args);
+    case Intern::op_read:
+        return fun_read(args);
+    case Intern::op_readchar:
+        return fun_readchar(args);
+    case Intern::op_peekchar:
+        return fun_peekchar(args);
+    case Intern::op_readstr:
+        return fun_readstr(args);
+    case Intern::op_eof:
+        return Char{ EOF };
+    case Intern::op_iseof:
+        return is_type<Char>(args.at(0)) && get<Char>(args[0]) == EOF;
 
     default:
         throw std::invalid_argument("invalid primary operation");

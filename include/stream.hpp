@@ -31,6 +31,7 @@ public:
     bool is_strport() const noexcept;
     bool is_fileport() const noexcept;
     bool is_open() const noexcept;
+    bool is_binary() const noexcept;
 
     std::iostream& stream();
 
@@ -57,6 +58,7 @@ private:
         return std::holds_alternative<T>(*pstream);
     }
     std::shared_ptr<stream_variant> pstream;
+    std::ios_base::openmode mode;
 };
 }; // namespace pscm
 #endif // STREAM_HPP

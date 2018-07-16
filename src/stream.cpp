@@ -79,22 +79,20 @@ std::ostream& operator<<(std::ostream& os, const Cell& cell)
 
 Port::Port()
     : pstream{ std::make_shared<stream_variant>(std::in_place_type_t<std::iostream>(), std::cout.rdbuf()) }
+    , mode{ std::ios_base::out | std::ios_base::in }
 {
     is_open() || (throw std::invalid_argument("could open standard port"), 0);
 }
 
-bool Port::is_output() const noexcept
-{
-    return std::visit([](auto& stream) { return stream.out & std::ios_base::out; }, *pstream);
-}
-
-bool Port::is_input() const noexcept
-{
-    return std::visit([](auto& stream) { return stream.in & std::ios_base::in; }, *pstream);
-}
-
 bool Port::is_strport() const noexcept { return is_type<std::stringstream>(); }
+
 bool Port::is_fileport() const noexcept { return is_type<std::fstream>(); }
+
+bool Port::is_input() const noexcept { return mode & std::ios_base::in; }
+
+bool Port::is_output() const noexcept { return mode & std::ios_base::out; }
+
+bool Port::is_binary() const noexcept { return mode & std::ios_base::binary; }
 
 bool Port::is_open() const noexcept
 {
@@ -128,6 +126,7 @@ void Port::close()
 bool Port::open(const std::filesystem::path& path, std::ios_base::openmode mode)
 {
     close();
+    mode = mode;
     *pstream = std::fstream{ path, mode };
     return is_open();
 }
@@ -135,6 +134,7 @@ bool Port::open(const std::filesystem::path& path, std::ios_base::openmode mode)
 bool Port::open_str(const std::string& str, std::ios_base::openmode mode)
 {
     close();
+    mode = mode;
     *pstream = std::stringstream{ str, mode };
     return is_open();
 }

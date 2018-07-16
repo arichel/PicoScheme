@@ -162,7 +162,15 @@ static Cell syntax_or(const Symenv& senv, Cell args)
     }
     return res;
 }
-
+/**
+ * @brief syntax_define
+ *
+ * @verbatim
+  * (define <symbol> <expr>)
+ * (define (<symbol <args>) <body>)
+  * @endverbatim
+ *
+ */
 static Cell syntax_define(const Symenv& senv, Cell args)
 {
     Cell expr = cdr(args);

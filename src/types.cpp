@@ -123,6 +123,11 @@ static Symenv topenv{
         { sym("procedure?"), Intern::op_isproc },
 
         /* Section 6.13: Input and output */
+        { sym("port?"), Intern::op_isport },
+        { sym("input-port?"), Intern::op_isinport },
+        { sym("output-port?"), Intern::op_isoutport },
+        { sym("textual-port?"), Intern::op_istxtport },
+        { sym("binary-port?"), Intern::op_isbinport },
         { sym("call-with-input-file"), Intern::op_callw_infile },
         { sym("open-input-file"), Intern::op_open_infile },
         { sym("open-output-file"), Intern::op_open_outfile },
