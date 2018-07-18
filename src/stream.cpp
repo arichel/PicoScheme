@@ -99,8 +99,8 @@ bool Port::is_open() const noexcept
     return std::visit([](auto& os) {
         using S = std::decay_t<decltype(os)>;
 
-        if constexpr (std::is_same_v<S, std::ofstream>)
-            return os.is_open();
+        if
+            constexpr(std::is_same_v<S, std::ofstream>) return os.is_open();
         else
             return os.good();
     },
@@ -114,16 +114,19 @@ void Port::close()
         os.flush();
         os.clear();
 
-        if constexpr (std::is_same_v<S, std::fstream>) {
-            if (os.is_open())
-                os.close();
-        } else
+        if
+            constexpr(std::is_same_v<S, std::fstream>)
+            {
+                if (os.is_open())
+                    os.close();
+            }
+        else
             os.setstate(std::ios_base::eofbit);
     },
         *pstream);
 }
 
-bool Port::open(const std::filesystem::path& path, std::ios_base::openmode mode)
+bool Port::open(const std::string& path, std::ios_base::openmode mode)
 {
     close();
     mode = mode;

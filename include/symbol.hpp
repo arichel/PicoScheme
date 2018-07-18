@@ -121,7 +121,6 @@ public:
     using value_type = T;
 
     using key_type = typename Sym::key_type;
-    using shared_type = std::shared_ptr<SymbolEnv>;
 
     /**
      * @brief Construct a symbol environment as top- or sub-environment.
@@ -139,7 +138,7 @@ public:
     SymbolEnv(std::initializer_list<std::pair<Sym, T>> args)
         : table{ args.size() }
     {
-        for (auto& [sym, val] : args)
+        for (auto & [ sym, val ] : args)
             add(sym, val);
     }
 

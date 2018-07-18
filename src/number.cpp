@@ -45,11 +45,11 @@ bool operator!=(const Number& lhs, const Number& rhs)
     using value_type = Complex::value_type;
 
     return visit([](auto x, auto y) {
-        if constexpr (std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>)
-            return x != Complex{ (value_type)y, 0 };
+        if
+            constexpr(std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>) return x != Complex{ (value_type)y, 0 };
 
-        else if constexpr (!std::is_same_v<Complex, decltype(x)> && std::is_same_v<Complex, decltype(y)>)
-            return Complex{ (value_type)x, 0 } != y;
+        else if
+            constexpr(!std::is_same_v<Complex, decltype(x)> && std::is_same_v<Complex, decltype(y)>) return Complex{ (value_type)x, 0 } != y;
 
         else {
             using T = std::common_type_t<decltype(x), decltype(y)>;
@@ -70,34 +70,43 @@ bool operator==(const Number& lhs, const Number& rhs)
 bool operator<(const Number& lhs, const Number& rhs)
 {
     return visit([](auto x, auto y) {
-        if constexpr (!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>) {
-            using T = std::common_type_t<decltype(x), decltype(y)>;
-            return (T)x < (T)y;
-        } else
+        if
+            constexpr(!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>)
+            {
+                using T = std::common_type_t<decltype(x), decltype(y)>;
+                return (T)x < (T)y;
+            }
+        else
             return (throw std::invalid_argument("uncomparable complex number"), false);
     },
         static_cast<const Number::base_type&>(lhs), static_cast<const Number::base_type&>(rhs));
 }
 
-bool operator>(Number lhs, Number rhs)
+bool operator>(const Number& lhs, const Number& rhs)
 {
     return visit([](auto x, auto y) {
-        if constexpr (!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>) {
-            using T = std::common_type_t<decltype(x), decltype(y)>;
-            return (T)x > (T)y;
-        } else
+        if
+            constexpr(!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>)
+            {
+                using T = std::common_type_t<decltype(x), decltype(y)>;
+                return (T)x > (T)y;
+            }
+        else
             return (throw std::invalid_argument("uncomparable complex number"), false);
     },
-        static_cast<Number::base_type>(lhs), static_cast<Number::base_type>(rhs));
+        static_cast<const Number::base_type&>(lhs), static_cast<const Number::base_type&>(rhs));
 }
 
 bool operator<=(const Number& lhs, const Number& rhs)
 {
     return visit([](auto x, auto y) {
-        if constexpr (!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>) {
-            using T = std::common_type_t<decltype(x), decltype(y)>;
-            return (T)x <= (T)y;
-        } else
+        if
+            constexpr(!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>)
+            {
+                using T = std::common_type_t<decltype(x), decltype(y)>;
+                return (T)x <= (T)y;
+            }
+        else
             return (throw std::invalid_argument("uncomparable complex number"), false);
     },
         static_cast<const Number::base_type&>(lhs), static_cast<const Number::base_type&>(rhs));
@@ -106,10 +115,13 @@ bool operator<=(const Number& lhs, const Number& rhs)
 bool operator>=(const Number& lhs, const Number& rhs)
 {
     return visit([](auto x, auto y) {
-        if constexpr (!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>) {
-            using T = std::common_type_t<decltype(x), decltype(y)>;
-            return (T)x >= (T)y;
-        } else
+        if
+            constexpr(!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>)
+            {
+                using T = std::common_type_t<decltype(x), decltype(y)>;
+                return (T)x >= (T)y;
+            }
+        else
             return (throw std::invalid_argument("uncomparable complex number"), false);
     },
         static_cast<const Number::base_type&>(lhs), static_cast<const Number::base_type&>(rhs));
@@ -126,8 +138,8 @@ Number inv(const Number& x)
     x != Number{} || (throw std::invalid_argument("divide by zero"), 0);
 
     return visit([](auto& x) -> Number {
-        if constexpr (std::is_same_v<const Complex&, decltype(x)>)
-            return 1 / x;
+        if
+            constexpr(std::is_same_v<const Complex&, decltype(x)>) return 1 / x;
         else
             return 1 / (Float)x;
     },

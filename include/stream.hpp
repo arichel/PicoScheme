@@ -9,7 +9,6 @@
 #ifndef STREAM_HPP
 #define STREAM_HPP
 
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -35,16 +34,21 @@ public:
 
     std::iostream& stream();
 
-    bool open(const std::filesystem::path& path, std::ios_base::openmode mode = std::ios_base::out | std::ios_base::in);
+    bool open(const std::string& path,
+        std::ios_base::openmode mode = std::ios_base::out | std::ios_base::in);
 
-    bool open_str(const std::string& str = {}, std::ios_base::openmode mode = std::ios_base::out | std::ios_base::in);
+    bool open_str(const std::string& str = {},
+        std::ios_base::openmode mode = std::ios_base::out | std::ios_base::in);
 
     void close();
 
     std::string str() const;
 
     template <typename T>
-    explicit operator T&() { return std::get<T>(*pstream); }
+    explicit operator T&()
+    {
+        return std::get<T>(*pstream);
+    }
 
     bool operator!=(const Port& stream) const noexcept;
     bool operator==(const Port& stream) const noexcept;

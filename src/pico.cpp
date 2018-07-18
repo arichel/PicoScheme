@@ -46,8 +46,8 @@ start:
 
 int main()
 {
-    //repl();
-    //return 0;
+    repl();
+    return 0;
 
     try {
         Symenv e = senv();

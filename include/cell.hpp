@@ -25,6 +25,10 @@ struct Cell : Variant {
     using Variant::Variant;
     using Variant::operator=;
 
+    Cell(const Cell&) = default;
+    Cell(Cell&&) = default;
+    Cell& operator=(const Cell&) = default;
+
     /**
      * @brief Type conversion operator to return the value hold by this Cell.
      * @throw std::bad_variant_access
@@ -72,7 +76,7 @@ inline bool is_arrow(const Cell& cell) { return is_intern(cell) && get<Intern>(c
  * item is equal. Two strings are equal if each individual
  * character is equal.
  */
-inline bool is_equal(const Cell& lhs, const Cell& rhs);
+bool is_equal(const Cell& lhs, const Cell& rhs);
 
 /**
  * @brief Construct a new cons cell-pair from the global cell store and
@@ -118,14 +122,15 @@ Cell list_ref(Cell list, Int k);
 
 inline Cell port() { return &std::cout; }
 
+//! Recursion base case
+inline Cell list() { return nil; }
+
 //! Build a cons list of all arguments
 template <typename T, typename... Args>
 Cons* list(T&& t, Args&&... args)
 {
     return cons(std::forward<T>(t), list(std::forward<Args>(args)...));
 }
-//! Recursion base case
-inline Cell list() { return nil; }
 
 /**
  * @brief Build a cons list from all arguments directly in
@@ -144,8 +149,12 @@ Cons* alist(Cons (&cons)[size], T&& t, Args&&... args)
 {
     cons[0].first = std::forward<T>(t);
 
-    if constexpr (size > 1)
-        cons[0].second = alist(reinterpret_cast<Cons(&)[size - 1]>(cons[1]), std::forward<Args>(args)...);
+    if
+        constexpr(size > 1)
+            cons[0]
+                .second
+            = alist(reinterpret_cast<Cons(&)[size - 1]>(cons[1]),
+                std::forward<Args>(args)...);
     else
         cons[0].second = nil;
 
@@ -160,7 +169,7 @@ inline Nil alist(Cons (&)[size]) { return nil; }
 template <typename T1, typename T2, typename... Args>
 Nil alist(Cons (&)[1], T1&&, T2&&, Args&&...)
 {
-    static_assert(always_false<Cons>{}, "invalid cons array size");
+    //static_assert(always_false<Cons>{}, "invalid cons array size");
     return nil;
 }
 

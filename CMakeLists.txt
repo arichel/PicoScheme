@@ -11,4 +11,9 @@ endif(MSVC)
 file(GLOB SOURCES "src/*.cpp")
 
 add_executable(${PROJECT_NAME} ${SOURCES})
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    CXX_STANDARD 17
+    CXX_EXTENSIONS OFF)
+
 target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/include")

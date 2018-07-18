@@ -131,7 +131,7 @@ Parser::Token Parser::lex_symbol(const std::string& str)
 Parser::Token Parser::lex_char(const std::string& str, Char& c)
 {
     constexpr struct {
-        char* name;
+        const char* name;
         char c;
     } stab[]{
         { "#\\alarm", '\a' },

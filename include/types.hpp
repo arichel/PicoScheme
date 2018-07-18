@@ -1,6 +1,8 @@
 #ifndef TYPES_HPP
 #define TYPES_HPP
 
+#include <vector>
+
 #include "number.hpp"
 #include "proc.hpp"
 #include "stream.hpp"
@@ -19,8 +21,7 @@ using Cons = std::pair<Cell, Cell>;
 using String = std::shared_ptr<std::basic_string<Char>>;
 using Vector = SharedVector<Cell, std::vector<Cell>>;
 
-using Variant = std::variant<
-    None, Nil, Bool, Char, Number, Intern, Cons*, String,
+using Variant = std::variant<None, Nil, Bool, Char, Number, Intern, Cons*, String,
     Vector, Port, Symbol, Symenv, Proc>;
 
 enum class Intern {

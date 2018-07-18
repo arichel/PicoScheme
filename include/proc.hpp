@@ -1,13 +1,16 @@
 #ifndef PROC_HPP
 #define PROC_HPP
 
+#include <memory>
+#include <utility>
+
 #include "symbol.hpp"
 
 namespace pscm {
 
 struct Cell;
 using Symbol = SymbolTable<std::string>::Symbol;
-using Symenv = SymbolEnv<Symbol, Cell>::shared_type;
+using Symenv = std::shared_ptr<SymbolEnv<Symbol, Cell>>;
 
 /**
  * @brief Procedure type to represent a scheme closure.
