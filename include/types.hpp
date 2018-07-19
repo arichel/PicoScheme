@@ -6,7 +6,7 @@
 #include "number.hpp"
 #include "proc.hpp"
 #include "stream.hpp"
-#include "svector.hpp"
+//#include "svector.hpp"
 
 namespace pscm {
 
@@ -19,10 +19,11 @@ using Bool = bool;
 using Char = char;
 using Cons = std::pair<Cell, Cell>;
 using String = std::shared_ptr<std::basic_string<Char>>;
-using Vector = SharedVector<Cell, std::vector<Cell>>;
+//using Vector = SharedVector<Cell, std::vector<Cell>>;
+using VectorPtr = std::shared_ptr<std::vector<Cell>>;
 
 using Variant = std::variant<None, Nil, Bool, Char, Number, Intern, Cons*, String,
-    Vector, Port, Symbol, Symenv, Proc>;
+    VectorPtr, Port, Symbol, Symenv, Proc>;
 
 enum class Intern {
     /* Scheme syntax opcodes: */
@@ -204,6 +205,8 @@ enum class Intern {
 
     /* Section 6.11: Exceptions */
     /* Section 6.12: Environments and evaluation */
+    op_exit,
+
     /* Section 6.13: Input and output */
     op_isport,
     op_isinport,
@@ -261,7 +264,6 @@ enum class Intern {
     op_fileok,
     op_delfile,
     op_cmdline,
-    op_exit,
     op_exitb,
     op_getenv,
     op_currsec,
@@ -272,9 +274,9 @@ enum class Intern {
 
 Symbol sym(const char* name);
 Symenv senv(const Symenv& env = nullptr);
-Vector vec(Number size, const Cell& val);
+VectorPtr vec(Number size, const Cell& val);
 String str(const Char* s);
 
-}; // namespace pscm
+} // namespace pscm
 
 #endif // TYPES_HPP

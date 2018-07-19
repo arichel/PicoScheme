@@ -6,7 +6,9 @@
  * @author    Paul Pudewills
  * @copyright MIT License
  *************************************************************************************/
+#include <algorithm>
 #include <iostream>
+#include <memory>
 
 #include "cell.hpp"
 #include "eval.hpp"
@@ -236,7 +238,7 @@ inline Cell fun_make_vector(const varg& args)
     is_int(size) && !is_negative(size)
         || (throw std::invalid_argument("vector length must be a non-negative integer"), 0);
 
-    return args.size() > 1 ? Vector{ size, args[1] } : Vector{ size };
+    return vec(size, args.size() > 1 ? args[1] : Cell{ none });
 }
 
 inline Cell fun_vector_ref(const varg& args)
@@ -248,7 +250,7 @@ inline Cell fun_vector_ref(const varg& args)
     is_int(pos) && !is_negative(pos)
         || (throw std::invalid_argument("vector position must be a non-negative integer"), 0);
 
-    return std::get<Vector>(args[0]).at(pos);
+    return std::get<VectorPtr>(args[0])->at(pos);
 }
 
 inline Cell fun_vector_setb(const varg& args)
@@ -259,7 +261,7 @@ inline Cell fun_vector_setb(const varg& args)
     is_int(pos) && !is_negative(pos)
         || (throw std::invalid_argument("vector position must be a non-negative integer"), 0);
 
-    std::get<Vector>(Cell{ args[0] }).at(pos) = args[2];
+    std::get<VectorPtr>(args[0])->at(pos) = args[2];
     return none;
 }
 
@@ -267,23 +269,23 @@ inline Cell fun_vec2list(const varg& args)
 {
     argn(args, 1, 3);
 
-    const Vector& vec = get<Vector>(args[0]);
+    const VectorPtr& vec = get<VectorPtr>(args[0]);
 
     Number pos = args.size() > 1 ? get<Number>(args[1]) : Number{ 0 },
-           end = args.size() > 2 ? get<Number>(args[2]) : Number{ vec.size() };
+           end = args.size() > 2 ? get<Number>(args[2]) : Number{ vec->size() };
 
     is_int(pos) && !is_negative(pos) && pos <= end
         || (throw std::invalid_argument("invalid first vector index"), 0);
 
-    is_int(end) && !is_negative(end) && end <= Number{ vec.size() }
+    is_int(end) && !is_negative(end) && end <= Number{ vec->size() }
         || (throw std::invalid_argument("invalid second vector index"), 0);
 
-    if (!vec.size())
+    if (!vec->size())
         return nil;
 
-    Cell list = cons(vec.at(pos), nil), tail = list;
+    Cell list = cons(vec->at(pos), nil), tail = list;
 
-    std::for_each(vec.begin() + pos + 1, vec.begin() + end, [&tail](const Cell& cell) {
+    std::for_each(vec->begin() + pos + 1, vec->begin() + end, [&tail](const Cell& cell) {
         set_cdr(tail, cons(cell, nil));
         tail = cdr(tail);
     });
@@ -292,45 +294,43 @@ inline Cell fun_vec2list(const varg& args)
 
 inline Cell fun_list2vec(const varg& args)
 {
-    argn(args, 1);
-
-    Vector vec;
-    Cell list = args[0];
+    Cell list = args.at(0);
+    VectorPtr v = std::make_shared<VectorPtr::element_type>();
 
     for (/* */; is_pair(list); list = cdr(list))
-        vec.append(car(list));
+        v->push_back(car(list));
 
     is_nil(list) || (throw std::invalid_argument("not a proper list"), 0);
-    return vec;
+    return v;
 }
 
 inline Cell fun_vec_copy(const varg& args)
 {
     argn(args, 1, 3);
 
-    const Vector& vec = get<Vector>(args[0]);
+    const VectorPtr& v = get<VectorPtr>(args[0]);
     Number pos = args.size() > 1 ? get<Number>(args[1]) : Number{ 0 },
-           end = args.size() > 2 ? get<Number>(args[2]) : Number{ vec.size() };
+           end = args.size() > 2 ? get<Number>(args[2]) : Number{ v->size() };
 
     is_int(pos) && !is_negative(pos) && pos <= end
         || (throw std::invalid_argument("invalid first vector index"), 0);
 
-    is_int(end) && !is_negative(end) && end <= Number{ vec.size() }
+    is_int(end) && !is_negative(end) && end <= Number{ v->size() }
         || (throw std::invalid_argument("invalid second vector index"), 0);
 
-    return Vector{ vec.begin() + pos, vec.begin() + end };
+    return std::make_shared<VectorPtr::element_type>(v->begin() + pos, v->begin() + end);
 }
 
 inline Cell fun_vec_copyb(const varg& args)
 {
     argn(args, 3, 5);
 
-    Vector vec = get<Vector>(args[0]);
-    const Vector& src = get<Vector>(args[2]);
+    const VectorPtr& src = get<VectorPtr>(args[2]);
+    VectorPtr dst = get<VectorPtr>(args[0]);
 
     auto idx = get<Number>(args[1]),
          pos = args.size() > 3 ? get<Number>(args[3]) : Number{ 0 },
-         end = args.size() > 4 ? get<Number>(args[4]) : Number{ src.size() };
+         end = args.size() > 4 ? get<Number>(args[4]) : Number{ src->size() };
 
     is_int(idx) && !is_negative(idx)
         || (throw std::invalid_argument("invalid destination vector index"), 0);
@@ -338,22 +338,22 @@ inline Cell fun_vec_copyb(const varg& args)
     is_int(pos) && !is_negative(pos) && pos <= end
         || (throw std::invalid_argument("invalid first vector index"), 0);
 
-    is_int(end) && !is_negative(end) && end <= Number{ src.size() }
+    is_int(end) && !is_negative(end) && end <= Number{ src->size() }
         || (throw std::invalid_argument("invalid second vector index"), 0);
 
-    vec.copy(src.begin() + pos, src.begin() + end, idx);
-    return vec;
+    std::copy(src->begin() + pos, src->begin() + end, dst->begin() + idx);
+    return dst;
 }
 
 inline Cell fun_vec_append(const varg& args)
 {
-    auto vec = get<Vector>(args.at(0));
+    VectorPtr vec = get<VectorPtr>(args.at(0));
 
     for (const Cell& cell : args) {
-        const Vector& v = get<Vector>(cell);
-        vec.append(v.begin(), v.end());
-    }
+        const VectorPtr& v = get<VectorPtr>(cell);
 
+        std::copy(v->begin(), v->end(), std::back_inserter(*vec));
+    }
     return vec;
 }
 
@@ -361,17 +361,17 @@ inline Cell fun_vec_fillb(const varg& args)
 {
     argn(args, 2, 4);
 
-    auto vec = get<Vector>(args[0]);
+    VectorPtr vec = get<VectorPtr>(args[0]);
     auto pos = args.size() > 2 ? get<Number>(args[2]) : Number{ 0 },
-         end = args.size() > 3 ? get<Number>(args[3]) : Number{ vec.size() };
+         end = args.size() > 3 ? get<Number>(args[3]) : Number{ vec->size() };
 
     is_int(pos) && !is_negative(pos) && pos <= end
         || (throw std::invalid_argument("invalid first vector index"), 0);
 
-    is_int(end) && !is_negative(end) && end <= Number{ vec.size() }
+    is_int(end) && !is_negative(end) && end <= Number{ vec->size() }
         || (throw std::invalid_argument("invalid second vector index"), 0);
 
-    vec.fill(args[1], { pos, end });
+    std::fill(vec->begin() + pos, vec->end() + std::min(vec->size(), static_cast<size_t>(end)), args[1]);
     return vec;
 }
 
@@ -388,7 +388,6 @@ inline Cell fun_callw_infile(const Symenv& senv, const String& filnam, const Cel
 inline Cell fun_open_infile(const String& filnam)
 {
     Port port;
-
     port.open(*filnam, std::ios_base::in)
         || (throw std::invalid_argument("could not open port"), 0);
 
@@ -582,23 +581,23 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
 
     /* Section 6.6: Characters */
     case Intern::op_ischar:
-        return argn(args, 1), is_type<Char>(args[0]);
+        return is_type<Char>(args.at(0));
     case Intern::op_charint:
-        return argn(args, 1), num(std::get<Char>(args[0]));
+        return num(std::get<Char>(args.at(0)));
 
     /* Section 6.7: Strings */
     case Intern::op_isstr:
-        return argn(args, 1), is_type<String>(args[0]);
+        return is_type<String>(args.at(0));
 
     /* Section 6.8: Vectors */
     case Intern::op_isvec:
-        return argn(args, 1), is_type<Vector>(args[0]);
+        return is_type<VectorPtr>(args.at(0));
     case Intern::op_mkvec:
         return fun_make_vector(args);
     case Intern::op_vec:
-        return Vector{ args };
+        return std::make_shared<VectorPtr::element_type>(args);
     case Intern::op_veclen:
-        return argn(args, 1), Number{ get<Vector>(args[0]).size() };
+        return Number{ get<VectorPtr>(args.at(0))->size() };
     case Intern::op_vecref:
         return fun_vector_ref(args);
     case Intern::op_vecsetb:
@@ -621,6 +620,11 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
     /* Section 6.10: Control features */
     case Intern::op_isproc:
         return argn(args, 1), is_proc(args[0]) || (is_intern(args[0]) && std::get<Intern>(args[0]) >= Intern::op_eq);
+
+    /* Section 6.11: Exceptions */
+    /* Section 6.12: Environments and evaluation */
+    case Intern::op_exit:
+        return Intern::op_exit;
 
     /* Section 6.13: Input and output */
     case Intern::op_isport:

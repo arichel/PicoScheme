@@ -25,23 +25,27 @@ void repl()
     Parser reader;
     Cell expr;
 
-start:
-    try {
-        for (;;) {
-            expr = reader.parse(std::cin);
-            expr = eval(env, expr);
-            std::cout << "store=" << store_size() << " : " << expr << std::endl;
+    for (;;)
+        try {
+
+            for (;;) {
+                expr = reader.parse(std::cin);
+                expr = eval(env, expr);
+
+                if (is_intern(expr) && get<Intern>(expr) == Intern::op_exit)
+                    return;
+
+                std::cout << expr << std::endl;
+            }
+        } catch (std::bad_variant_access& e) {
+            std::cerr << e.what() << ": " << expr << endl;
+
+        } catch (std::out_of_range& e) {
+            std::cerr << e.what() << ": " << expr << endl;
+
+        } catch (std::invalid_argument& e) {
+            std::cerr << e.what() << ": " << expr << endl;
         }
-    } catch (std::bad_variant_access& e) {
-        cout << e.what() << ": " << expr << endl;
-
-    } catch (std::out_of_range& e) {
-        cout << e.what() << ": " << expr << endl;
-
-    } catch (std::invalid_argument& e) {
-        cout << e.what() << ": " << expr << endl;
-    }
-    goto start;
 }
 
 int main()
@@ -51,28 +55,10 @@ int main()
 
     try {
         Symenv e = senv();
-        Cell expr;
+        Cell expr = 'a';
 
-        Cell lambda = pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x"));
-        Cell clause = pscm::list(pscm::list(lambda, str("hallo paul")), Intern::_arrow, lambda);
-        Cell apply = pscm::list(Intern::_apply, lambda, num(1), nil);
-        Cell cond = pscm::list(Intern::_cond, clause);
-
-        expr = cond;
-
-        //        std::string str = {
-        //            "(call-with-input-file \"test.txt\" "
-        //            "   (lambda (port) port))"
-        //            ";       (display (read-line port))"
-        //            ";       (display (read-line port))))"
-        //        };
-
-        //        str = "(apply (lambda (x y ) (* x y)) 2 100 ())";
-
-        //        std::istringstream is{ str };
-
-        //        Parser parser;
-        //        expr = parser.parse(is);
+        Char& c = expr;
+        c = 'b';
 
         cout << expr << " ---> ";
         Cell proc = eval(e, expr);

@@ -42,10 +42,10 @@ static std::ostream& operator<<(std::ostream& os, Cons* cons)
     return os;
 }
 
-static std::ostream& operator<<(std::ostream& os, const Vector& vec)
+static std::ostream& operator<<(std::ostream& os, const VectorPtr& vec)
 {
     os << "#(";
-    for (const Cell& cell : vec)
+    for (const Cell& cell : *vec)
         os << cell << ' ';
     return os << ')';
 }
@@ -63,7 +63,7 @@ std::ostream& operator<<(std::ostream& os, const Cell& cell)
         [&os](Number arg) { os << arg; },
         [&os](Intern arg) { os << "<intern " << static_cast<int>(arg) << '>'; },
         [&os](String arg) { os << '"' << *arg << '"'; },
-        [&os](Vector arg) { os << arg; },
+        [&os](VectorPtr arg) { os << arg; },
         [&os](Symbol arg) { os << arg.value(); },
         [&os](Symenv arg) { os << "<symenv>"; },
         [&os](Proc arg) { os << "<proc>"; },
@@ -78,8 +78,9 @@ std::ostream& operator<<(std::ostream& os, const Cell& cell)
 }
 
 Port::Port()
-    : pstream{ std::make_shared<stream_variant>(std::in_place_type_t<std::iostream>(), std::cout.rdbuf()) }
-    , mode{ std::ios_base::out | std::ios_base::in }
+    : pstream{ std::make_shared<stream_variant>(std::in_place_type_t<std::iostream>(),
+          std::cout.rdbuf()) }
+    , mode{ std::ios_base::out }
 {
     is_open() || (throw std::invalid_argument("could open standard port"), 0);
 }
@@ -149,7 +150,10 @@ std::string Port::str() const
 
 std::iostream& Port::stream()
 {
-    return std::visit([](auto& os) -> std::iostream& { return os; }, *pstream);
+    return std::visit([](auto& os) -> std::iostream& {
+        return os;
+    },
+        *pstream);
 }
 
 bool Port::operator!=(const Port& stream) const noexcept
@@ -162,4 +166,4 @@ bool Port::operator==(const Port& stream) const noexcept
     return !(*this != stream);
 }
 
-}; // namespace pscm
+} // namespace pscm

@@ -15,6 +15,8 @@
 
 namespace pscm {
 
+using std::get;
+
 size_t store_size();
 
 /**
@@ -23,31 +25,35 @@ size_t store_size();
 struct Cell : Variant {
     using base_type = Variant;
     using Variant::Variant;
-    using Variant::operator=;
+    //using Variant::operator=;
 
     Cell(const Cell&) = default;
     Cell(Cell&&) = default;
     Cell& operator=(const Cell&) = default;
+    Cell& operator=(Cell&&) = default;
 
     /**
      * @brief Type conversion operator to return the value hold by this Cell.
      * @throw std::bad_variant_access
      */
     template <typename T>
-    operator T() const { return std::get<T>(static_cast<Variant>(*this)); }
+    operator T&() const { return std::get<T>(static_cast<Variant>(*this)); }
+
+    template <typename T>
+    operator T&() { return std::get<T>(*this); }
 };
 
-template <typename T>
-T& get(Cell& cell) { return std::get<T>(static_cast<Variant&>(cell)); }
+//template <typename T>
+//T& get(Cell& cell) { return std::get<T>(static_cast<Variant&>(cell)); }
 
-template <typename T>
-T&& get(Cell&& cell) { return std::get<T>(static_cast<Variant&&>(std::move(cell))); }
+//template <typename T>
+//T&& get(Cell&& cell) { return std::get<T>(static_cast<Variant&&>(std::move(cell))); }
 
-template <typename T>
-const T& get(const Cell& cell) { return std::get<T>(static_cast<Variant&>(const_cast<Cell&>(cell))); }
+//template <typename T>
+//const T& get(const Cell& cell) { return std::get<T>(static_cast<Variant&>(const_cast<Cell&>(cell))); }
 
-template <typename T>
-const T&& get(const Cell&& cell) { return std::get<T>(static_cast<const Variant&&>(std::move(cell))); }
+//template <typename T>
+//const T&& get(const Cell&& cell) { return std::get<T>(static_cast<const Variant&&>(std::move(cell))); }
 
 static const None none{}; //!< void return symbol
 static const Nil nil{}; //!< empty list symbol
@@ -119,8 +125,6 @@ Int list_length(Cell list);
 
 //! Return the kth element of a proper or cicular list.
 Cell list_ref(Cell list, Int k);
-
-inline Cell port() { return &std::cout; }
 
 //! Recursion base case
 inline Cell list() { return nil; }

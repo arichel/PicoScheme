@@ -122,6 +122,10 @@ static Symenv topenv{
         /* Section 6.10: Control features */
         { sym("procedure?"), Intern::op_isproc },
 
+        /* Section 6.11: Exceptions */
+        /* Section 6.12: Environments and evaluation */
+        { sym("exit"), Intern::op_exit },
+
         /* Section 6.13: Input and output */
         { sym("port?"), Intern::op_isport },
         { sym("input-port?"), Intern::op_isinport },
@@ -150,12 +154,12 @@ String str(const Char* s)
     return std::make_shared<String::element_type>(s);
 }
 
-Vector vec(Number size, const Cell& val = none)
+VectorPtr vec(Number size = 0, const Cell& val = none)
 {
     is_int(size) && std::get<Int>(size) >= 0
         || (throw std::invalid_argument("vector length must be a non-negative integer"), 0);
 
-    return Vector{ size, val };
+    return std::make_shared<VectorPtr::element_type>(size, val);
 }
 
-}; // namespace pscm
+} // namespace pscm

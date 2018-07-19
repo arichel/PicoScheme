@@ -6,6 +6,7 @@
  * @author    Paul Pudewills
  * @copyright MIT License
  *************************************************************************************/
+#include <algorithm>
 #include <cstring>
 
 #include "cell.hpp"
@@ -16,12 +17,9 @@ namespace pscm {
 using std::cout;
 using std::endl;
 
-template <typename T>
-inline constexpr T min(T x, T y) { return x < y ? x : y; };
-
 /**
  * @brief Lexical analyse the argument string for an integer, a floating point or complex number.
-
+ *
  * @param str  String to lexical analyse.
  * @param num  Uppon success, return the converted number.
  */
@@ -214,7 +212,7 @@ bool Parser::is_special(int c)
  */
 bool Parser::is_digit(const std::string& str, size_t n)
 {
-    n = n ? min(n, str.size()) : str.size();
+    n = n ? std::min(n, str.size()) : str.size();
 
     if (str.empty() || (str.size() == 1 && !isdigit(str.front())))
         return false;
@@ -329,7 +327,7 @@ Cell Parser::parse(std::istream& in)
 
 Cell Parser::parse_vector(std::istream& in)
 {
-    Vector vec;
+    VectorPtr v = vec(0, none);
     Token tok = get_token(in);
 
     if (tok == Token::OBrace)
@@ -340,7 +338,7 @@ Cell Parser::parse_vector(std::istream& in)
                 return vec;
 
             put_back = tok;
-            vec.append(parse(in));
+            v->push_back(parse(in));
         }
     throw std::invalid_argument("error parsing vector");
 }
@@ -387,4 +385,4 @@ Cell Parser::parse_list(std::istream& in)
 error:
     throw std::invalid_argument("error parsing list");
 }
-}; // namespace pscm
+} // namespace pscm

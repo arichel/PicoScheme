@@ -64,5 +64,5 @@ private:
     std::shared_ptr<stream_variant> pstream;
     std::ios_base::openmode mode;
 };
-}; // namespace pscm
+} // namespace pscm
 #endif // STREAM_HPP
