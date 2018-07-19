@@ -127,12 +127,6 @@ bool operator>=(const Number& lhs, const Number& rhs)
         static_cast<const Number::base_type&>(lhs), static_cast<const Number::base_type&>(rhs));
 }
 
-Number neg(const Number& x)
-{
-    return visit([](auto& x) -> Number { return -x; },
-        static_cast<const Number::base_type&>(x));
-}
-
 Number inv(const Number& x)
 {
     x != Number{} || (throw std::invalid_argument("divide by zero"), 0);
@@ -143,6 +137,12 @@ Number inv(const Number& x)
         else
             return 1 / (Float)x;
     },
+        static_cast<const Number::base_type&>(x));
+}
+
+Number operator-(const Number& x)
+{
+    return visit([](auto& x) -> Number { return -x; },
         static_cast<const Number::base_type&>(x));
 }
 

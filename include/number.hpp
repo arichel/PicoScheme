@@ -170,9 +170,9 @@ inline bool is_zero(const Number& x) { return !(x != Number{ 0 }); }
 inline bool is_negative(const Number& x) { return x < Number{ 0 }; }
 inline bool is_positive(const Number& x) { return x > Number{ 0 }; }
 
-Number neg(const Number& x);
 Number inv(const Number& x);
 
+Number operator-(const Number& x);
 Number operator+(const Number& lhs, const Number& rhs);
 Number operator-(const Number& lhs, const Number& rhs);
 Number operator*(const Number& lhs, const Number& rhs);
@@ -209,5 +209,6 @@ Number arg(const Number& z);
 Number conj(const Number& z);
 Number rect(const Number& x, const Number& y);
 Number polar(const Number& r, const Number& theta);
-}; // namspace pscm
+
+} // namspace pscm
 #endif // NUMBER_HPP

@@ -173,9 +173,7 @@ static Cell fun_add(const varg& args)
 
 static Cell fun_sub(const varg& args)
 {
-    argn(args, 1, ~0);
-
-    auto res = args.size() > 1 ? get<Number>(args[0]) : neg(get<Number>(args[0]));
+    auto res = args.size() > 1 ? get<Number>(args.at(0)) : -get<Number>(args.at(0));
 
     for (auto iter = ++args.begin(); iter != args.end(); ++iter)
         res -= get<Number>(*iter);
@@ -195,7 +193,7 @@ static Cell fun_mul(const varg& args)
 
 static Cell fun_div(const varg& args)
 {
-    auto res = args.size() > 1 ? get<Number>(args.at(0)) : inv(get<Number>(args.at(0)));
+    auto res = args.size() > 1 ? get<Number>(args[0]) : inv(get<Number>(args.at(0)));
 
     for (auto iter = ++args.begin(); iter != args.end(); ++iter)
         res /= get<Number>(*iter);
@@ -208,7 +206,7 @@ static Cell fun_log(const varg& args)
     if (args.size() < 2)
         return pscm::log(get<Number>(args.at(0)));
     else {
-        const Number &x = get<Number>(args.at(0)), &y = get<Number>(args.at(1));
+        const Number &y = get<Number>(args.at(1)), &x = get<Number>(args[0]);
 
         return y != Number{ 10 } ? pscm::log(x) / pscm::log(y)
                                  : pscm::log10(x);
@@ -217,23 +215,19 @@ static Cell fun_log(const varg& args)
 
 static Cell fun_write(const varg& args)
 {
-    argn(args, 1, 2);
-
     if (args.size() > 1) {
-        Port& port = std::get<Port>(const_cast<Cell&>(args[1]));
+        Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
 
         port.stream() << args[0];
     } else
-        std::cout << args[0];
+        std::cout << args.at(0);
 
     return none;
 }
 
 inline Cell fun_make_vector(const varg& args)
 {
-    argn(args, 1, 2);
-
-    const Number& size = get<Number>(args[0]);
+    const Number& size = get<Number>(args.at(0));
 
     is_int(size) && !is_negative(size)
         || (throw std::invalid_argument("vector length must be a non-negative integer"), 0);
@@ -243,9 +237,7 @@ inline Cell fun_make_vector(const varg& args)
 
 inline Cell fun_vector_ref(const varg& args)
 {
-    argn(args, 2);
-
-    const Number& pos = get<Number>(args[1]);
+    const Number& pos = get<Number>(args.at(1));
 
     is_int(pos) && !is_negative(pos)
         || (throw std::invalid_argument("vector position must be a non-negative integer"), 0);
