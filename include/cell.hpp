@@ -12,6 +12,7 @@
 #include <iostream> // to be phased out
 
 #include "types.hpp"
+#include "utils.hpp"
 
 namespace pscm {
 
@@ -25,6 +26,8 @@ size_t store_size();
 struct Cell : Variant {
     using base_type = Variant;
     using Variant::Variant;
+    using Variant::index;
+
     //using Variant::operator=;
 
     Cell(const Cell&) = default;
@@ -155,10 +158,9 @@ Cons* alist(Cons (&cons)[size], T&& t, Args&&... args)
 
     if
         constexpr(size > 1)
-            cons[0]
-                .second
-            = alist(reinterpret_cast<Cons(&)[size - 1]>(cons[1]),
-                std::forward<Args>(args)...);
+        {
+            cons[0].second = alist(reinterpret_cast<Cons(&)[size - 1]>(cons[1]), std::forward<Args>(args)...);
+        }
     else
         cons[0].second = nil;
 
@@ -177,5 +179,5 @@ Nil alist(Cons (&)[1], T1&&, T2&&, Args&&...)
     return nil;
 }
 
-}; // namespace pscm
+} // namespace pscm
 #endif // CELL_HPP

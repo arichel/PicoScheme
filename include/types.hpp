@@ -1,12 +1,12 @@
 #ifndef TYPES_HPP
 #define TYPES_HPP
 
+#include <cstddef>
 #include <vector>
 
 #include "number.hpp"
 #include "proc.hpp"
 #include "stream.hpp"
-//#include "svector.hpp"
 
 namespace pscm {
 
@@ -14,12 +14,11 @@ struct Cell;
 enum class Intern;
 
 using None = std::monostate;
-using Nil = nullptr_t;
+using Nil = std::nullptr_t;
 using Bool = bool;
 using Char = char;
 using Cons = std::pair<Cell, Cell>;
 using String = std::shared_ptr<std::basic_string<Char>>;
-//using Vector = SharedVector<Cell, std::vector<Cell>>;
 using VectorPtr = std::shared_ptr<std::vector<Cell>>;
 
 using Variant = std::variant<None, Nil, Bool, Char, Number, Intern, Cons*, String,

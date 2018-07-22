@@ -32,8 +32,6 @@ static Cell syntax_setb(const Symenv& senv, const Cell& args)
 }
 
 /**
- * @brief  Evaluate a scheme (begin expr_0 ... expr_n) expression.
- *
  * Evaluate each expression in argument list up the last, which
  * is returned unevaluated. This last expression is evaluated at
  * the call site to support unbound tail-recursion.
@@ -41,7 +39,7 @@ static Cell syntax_setb(const Symenv& senv, const Cell& args)
  * @return Unevaluated last expression or special symbol none for an
  *         empty argument list.
  */
-static Cell syntax_begin(const Symenv& senv, Cell args)
+Cell syntax_begin(const Symenv& senv, Cell args)
 {
     if (is_pair(args)) {
         for (/* */; is_pair(cdr(args)); args = cdr(args))
@@ -81,7 +79,7 @@ static Cell syntax_cond(const Symenv& senv, Cell args)
 
     // for each clause evaluate <test> condition
     for (/* */; is_pair(args); args = cdr(args)) {
-        is_pair(car(args)) || (throw std::invalid_argument("invalid cond syntax"), 0);
+        is_pair(car(args)) || (void(throw std::invalid_argument("invalid cond syntax")), 0);
 
         if (is_false(test)) {
             test = eval(senv, caar(args));
@@ -98,7 +96,7 @@ static Cell syntax_cond(const Symenv& senv, Cell args)
 
         // clause: (<test> => <expr> ...)  -> (apply <expr> <test> nil) ...
         if (is_arrow(first) || (is_symbol(first) && is_arrow(eval(senv, first)))) {
-            !is_else(test) || (throw std::invalid_argument("invalid cond syntax"), 0);
+            !is_else(test) || (void(throw std::invalid_argument("invalid cond syntax")), 0);
 
             Cons cell[4];
             for (expr = cdr(expr); is_pair(cdr(expr)); expr = cdr(expr))
@@ -142,7 +140,7 @@ static Cell syntax_and(const Symenv& senv, Cell args)
             if (is_false(res = eval(senv, car(args))))
                 return res;
 
-        is_nil(cdr(args)) || (throw std::invalid_argument("not a proper list"), 0);
+        is_nil(cdr(args)) || (void(throw std::invalid_argument("not a proper list")), 0);
         return car(args);
     }
     return res;
@@ -157,7 +155,7 @@ static Cell syntax_or(const Symenv& senv, Cell args)
             if (is_true(res = eval(senv, car(args))))
                 return res;
 
-        is_nil(cdr(args)) || (throw std::invalid_argument("not a proper list"), 0);
+        is_nil(cdr(args)) || (void(throw std::invalid_argument("not a proper list")), 0);
         return car(args);
     }
     return res;
@@ -221,7 +219,7 @@ Cell eval_list(const Symenv& senv, Cell list, bool is_list)
         else
             set_cdr(tail, eval(senv, car(list)));
 
-    is_nil(tail) || is_pair(tail) || (throw std::invalid_argument("invalid apply argument list"), 0);
+    is_nil(tail) || is_pair(tail) || (void(throw std::invalid_argument("invalid apply argument list")), 0);
     return head;
 }
 
@@ -338,4 +336,4 @@ Cell eval(Symenv senv, Cell expr)
         }
     }
 }
-}; // namespace pscm
+} // namespace pscm

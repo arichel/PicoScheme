@@ -33,10 +33,13 @@ public:
      * @param args  Formal lambda expression argument list or symbol.
      * @param code  Non empty list of one or more scheme expression forming the lambda body.
      */
-    Proc(const Symenv& senv, const Cell& args, const Cell& code);
+    Proc(const Symenv& senv, const Cell& args, const Cell& code, bool is_macro = false);
     Proc(const Proc& proc);
     Proc(Proc&& proc) noexcept;
     ~Proc();
+
+    /// Predicate returns true if closure should be applied as macro.
+    bool is_macro() const noexcept;
 
     Proc& operator=(const Proc&);
     Proc& operator=(Proc&&) noexcept;
@@ -59,6 +62,12 @@ public:
      *         expression list.
      */
     std::pair<Symenv, Cell> apply(const Symenv& senv, Cell args, bool is_list = true) const;
+
+    /**
+     * @brief Replace expression with the expanded closure macro.
+     * @param expr (closure-macro arg0 ... arg_n)
+     */
+    Cell expand(Cell& expr) const;
 
 private:
     struct Closure;

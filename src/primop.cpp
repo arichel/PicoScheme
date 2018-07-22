@@ -658,4 +658,4 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
         throw std::invalid_argument("invalid primary operation");
     }
 }
-}; // namespace pscm
+} // namespace pscm

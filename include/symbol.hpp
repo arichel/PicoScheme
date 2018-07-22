@@ -143,7 +143,7 @@ public:
     }
 
     /**
-     * @brief Insert a new symbol and value reassign value for an existing symbol
+     * @brief Insert a new symbol and value or reassign value for an existing symbol
      *        in this environment only.
      */
     void add(const Sym& sym, const T& val)
