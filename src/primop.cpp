@@ -56,7 +56,7 @@ static Cell fun_list(const varg& args)
 
 static Cell fun_booleq(const varg& args)
 {
-    argn(args, 2, ~0);
+    argn(args, 2, ~size_t{ 0 });
 
     if (!is_bool(args[0]))
         return false;
@@ -72,9 +72,7 @@ static Cell fun_booleq(const varg& args)
 
 static Cell fun_numeq(const varg& args)
 {
-    argn(args, 2, ~0);
-
-    if (args[0] != args[1])
+    if (args.at(0) != args.at(1))
         return false;
 
     auto val = get<Number>(args[1]);
@@ -87,9 +85,7 @@ static Cell fun_numeq(const varg& args)
 
 static Cell fun_numlt(const varg& args)
 {
-    argn(args, 2, ~0);
-
-    auto lhs = get<Number>(args[0]), rhs = get<Number>(args[1]);
+    auto lhs = get<Number>(args.at(0)), rhs = get<Number>(args.at(1));
 
     if (!(lhs < rhs))
         return false;
@@ -106,9 +102,7 @@ static Cell fun_numlt(const varg& args)
 
 static Cell fun_numgt(const varg& args)
 {
-    argn(args, 2, ~0);
-
-    auto lhs = get<Number>(args[0]), rhs = get<Number>(args[1]);
+    auto lhs = get<Number>(args.at(0)), rhs = get<Number>(args.at(1));
 
     if (!(lhs > rhs))
         return false;
@@ -125,7 +119,7 @@ static Cell fun_numgt(const varg& args)
 
 static Cell fun_numle(const varg& args)
 {
-    argn(args, 2, ~0);
+    argn(args, 2, ~size_t{ 0 });
 
     auto lhs = get<Number>(args[0]), rhs = get<Number>(args[1]);
 
@@ -144,7 +138,7 @@ static Cell fun_numle(const varg& args)
 
 static Cell fun_numge(const varg& args)
 {
-    argn(args, 2, ~0);
+    argn(args, 2, ~size_t{ 0 });
 
     auto lhs = get<Number>(args[0]), rhs = get<Number>(args[1]);
 
@@ -225,39 +219,130 @@ static Cell fun_write(const varg& args)
     return none;
 }
 
-inline Cell fun_make_vector(const varg& args)
+static Cell fun_append(const varg& args)
+{
+    if (!args.size())
+        return nil;
+
+    if (args.size() == 1)
+        return args.front();
+
+    Cell head = args.back(), tail = nil;
+
+    for (size_t i = 0; i < args.size() - 1; ++i) {
+        for (Cell list = args[i]; is_pair(list); list = cdr(list)) {
+            if (is_nil(tail)) {
+                head = cons(car(list), nil);
+                tail = head;
+            } else {
+                set_cdr(tail, cons(car(list), nil));
+                tail = cdr(tail);
+            }
+        }
+    }
+    if (is_pair(tail))
+        set_cdr(tail, args.back());
+
+    return head;
+}
+
+static Cell fun_makelist(const varg& args)
+{
+    Int size = get<Int>(get<Number>(args.at(0)));
+    if (size < 1)
+        return nil;
+
+    Cell val = none;
+    if (args.size() > 1)
+        val = args[1];
+
+    Cell head = cons(val, nil);
+
+    for (Cell tail = head; size > 1; --size, tail = cdr(tail))
+        set_cdr(tail, cons(val, nil));
+
+    return head;
+}
+
+static Cell fun_reverse(const varg& args)
+{
+    Cell list = args.at(0), head = nil;
+
+    for (/* */; is_pair(list); head = cons(car(list), head), list = cdr(list))
+        ;
+
+    return head;
+}
+
+static Cell fun_reverseb(const varg& args)
+{
+    Cell list = args.at(0), head = nil;
+
+    for (Cell tail = list; is_pair(list); head = list, list = tail) {
+        tail = cdr(tail);
+        set_cdr(list, head);
+    }
+    return head;
+}
+
+static Cell fun_listref(const varg& args)
+{
+    Int k = get<Int>(get<Number>(args.at(1)));
+
+    Cell list = args[0];
+    for (/* */; k > 0 && is_pair(list); list = cdr(list), --k)
+        ;
+
+    (is_pair(list) && !k) || ((void)(throw std::invalid_argument("invalid list index")), 0);
+    return car(list);
+}
+
+static Cell fun_listsetb(const varg& args)
+{
+    Int k = get<Int>(get<Number>(args.at(1)));
+
+    Cell list = args[0];
+    for (/* */; k > 0 && is_pair(list); list = cdr(list), --k)
+        ;
+
+    (is_pair(list) && !k) || ((void)(throw std::invalid_argument("invalid list index")), 0);
+    set_car(list, args.at(2));
+    return none;
+}
+
+static Cell fun_make_vector(const varg& args)
 {
     const Number& size = get<Number>(args.at(0));
 
-    is_int(size) && !is_negative(size)
-        || (throw std::invalid_argument("vector length must be a non-negative integer"), 0);
+    (is_int(size) && !is_negative(size))
+        || ((void)(throw std::invalid_argument("vector length must be a non-negative integer")), 0);
 
     return vec(size, args.size() > 1 ? args[1] : Cell{ none });
 }
 
-inline Cell fun_vector_ref(const varg& args)
+static Cell fun_vector_ref(const varg& args)
 {
     const Number& pos = get<Number>(args.at(1));
 
-    is_int(pos) && !is_negative(pos)
-        || (throw std::invalid_argument("vector position must be a non-negative integer"), 0);
+    (is_int(pos) && !is_negative(pos))
+        || ((void)(throw std::invalid_argument("vector position must be a non-negative integer")), 0);
 
     return std::get<VectorPtr>(args[0])->at(pos);
 }
 
-inline Cell fun_vector_setb(const varg& args)
+static Cell fun_vector_setb(const varg& args)
 {
     argn(args, 3);
     auto pos = get<Number>(args[1]);
 
-    is_int(pos) && !is_negative(pos)
-        || (throw std::invalid_argument("vector position must be a non-negative integer"), 0);
+    (is_int(pos) && !is_negative(pos))
+        || ((void)(throw std::invalid_argument("vector position must be a non-negative integer")), 0);
 
     std::get<VectorPtr>(args[0])->at(pos) = args[2];
     return none;
 }
 
-inline Cell fun_vec2list(const varg& args)
+static Cell fun_vec2list(const varg& args)
 {
     argn(args, 1, 3);
 
@@ -266,11 +351,11 @@ inline Cell fun_vec2list(const varg& args)
     Number pos = args.size() > 1 ? get<Number>(args[1]) : Number{ 0 },
            end = args.size() > 2 ? get<Number>(args[2]) : Number{ vec->size() };
 
-    is_int(pos) && !is_negative(pos) && pos <= end
-        || (throw std::invalid_argument("invalid first vector index"), 0);
+    (is_int(pos) && !is_negative(pos) && pos <= end)
+        || ((void)(throw std::invalid_argument("invalid first vector index")), 0);
 
-    is_int(end) && !is_negative(end) && end <= Number{ vec->size() }
-        || (throw std::invalid_argument("invalid second vector index"), 0);
+    (is_int(end) && !is_negative(end) && end <= Number{ vec->size() })
+        || ((void)(throw std::invalid_argument("invalid second vector index")), 0);
 
     if (!vec->size())
         return nil;
@@ -284,7 +369,7 @@ inline Cell fun_vec2list(const varg& args)
     return list;
 }
 
-inline Cell fun_list2vec(const varg& args)
+static Cell fun_list2vec(const varg& args)
 {
     Cell list = args.at(0);
     VectorPtr v = std::make_shared<VectorPtr::element_type>();
@@ -292,11 +377,11 @@ inline Cell fun_list2vec(const varg& args)
     for (/* */; is_pair(list); list = cdr(list))
         v->push_back(car(list));
 
-    is_nil(list) || (throw std::invalid_argument("not a proper list"), 0);
+    is_nil(list) || ((void)(throw std::invalid_argument("not a proper list")), 0);
     return v;
 }
 
-inline Cell fun_vec_copy(const varg& args)
+static Cell fun_vec_copy(const varg& args)
 {
     argn(args, 1, 3);
 
@@ -304,16 +389,16 @@ inline Cell fun_vec_copy(const varg& args)
     Number pos = args.size() > 1 ? get<Number>(args[1]) : Number{ 0 },
            end = args.size() > 2 ? get<Number>(args[2]) : Number{ v->size() };
 
-    is_int(pos) && !is_negative(pos) && pos <= end
-        || (throw std::invalid_argument("invalid first vector index"), 0);
+    (is_int(pos) && !is_negative(pos) && pos <= end)
+        || ((void)(throw std::invalid_argument("invalid first vector index")), 0);
 
-    is_int(end) && !is_negative(end) && end <= Number{ v->size() }
-        || (throw std::invalid_argument("invalid second vector index"), 0);
+    (is_int(end) && !is_negative(end) && end <= Number{ v->size() })
+        || ((void)(throw std::invalid_argument("invalid second vector index")), 0);
 
     return std::make_shared<VectorPtr::element_type>(v->begin() + pos, v->begin() + end);
 }
 
-inline Cell fun_vec_copyb(const varg& args)
+static Cell fun_vec_copyb(const varg& args)
 {
     argn(args, 3, 5);
 
@@ -324,20 +409,20 @@ inline Cell fun_vec_copyb(const varg& args)
          pos = args.size() > 3 ? get<Number>(args[3]) : Number{ 0 },
          end = args.size() > 4 ? get<Number>(args[4]) : Number{ src->size() };
 
-    is_int(idx) && !is_negative(idx)
-        || (throw std::invalid_argument("invalid destination vector index"), 0);
+    (is_int(idx) && !is_negative(idx))
+        || ((void)(throw std::invalid_argument("invalid destination vector index")), 0);
 
-    is_int(pos) && !is_negative(pos) && pos <= end
-        || (throw std::invalid_argument("invalid first vector index"), 0);
+    (is_int(pos) && !is_negative(pos) && pos <= end)
+        || ((void)(throw std::invalid_argument("invalid first vector index")), 0);
 
-    is_int(end) && !is_negative(end) && end <= Number{ src->size() }
-        || (throw std::invalid_argument("invalid second vector index"), 0);
+    (is_int(end) && !is_negative(end) && end <= Number{ src->size() })
+        || ((void)(throw std::invalid_argument("invalid second vector index")), 0);
 
     std::copy(src->begin() + pos, src->begin() + end, dst->begin() + idx);
     return dst;
 }
 
-inline Cell fun_vec_append(const varg& args)
+static Cell fun_vec_append(const varg& args)
 {
     VectorPtr vec = get<VectorPtr>(args.at(0));
 
@@ -349,61 +434,65 @@ inline Cell fun_vec_append(const varg& args)
     return vec;
 }
 
-inline Cell fun_vec_fillb(const varg& args)
+static Cell fun_vec_fillb(const varg& args)
 {
+    using size_type = VectorPtr::element_type::size_type;
+
     argn(args, 2, 4);
 
     VectorPtr vec = get<VectorPtr>(args[0]);
     auto pos = args.size() > 2 ? get<Number>(args[2]) : Number{ 0 },
          end = args.size() > 3 ? get<Number>(args[3]) : Number{ vec->size() };
 
-    is_int(pos) && !is_negative(pos) && pos <= end
-        || (throw std::invalid_argument("invalid first vector index"), 0);
+    (is_int(pos) && !is_negative(pos) && pos <= end)
+        || ((void)(throw std::invalid_argument("invalid first vector index")), 0);
 
-    is_int(end) && !is_negative(end) && end <= Number{ vec->size() }
-        || (throw std::invalid_argument("invalid second vector index"), 0);
+    (is_int(end) && !is_negative(end) && end <= Number{ vec->size() })
+        || ((void)(throw std::invalid_argument("invalid second vector index")), 0);
 
-    std::fill(vec->begin() + pos, vec->end() + std::min(vec->size(), static_cast<size_t>(end)), args[1]);
+    std::fill(vec->begin() + pos,
+        vec->end() + std::min(vec->size(), static_cast<size_type>(end)), args[1]);
     return vec;
 }
 
-inline Cell fun_callw_infile(const Symenv& senv, const String& filnam, const Cell& proc)
+static Cell fun_callw_infile(const Symenv& senv, const String& filnam, const Cell& proc)
 {
     Port port;
     port.open(*filnam, std::ios_base::in)
-        || (throw std::invalid_argument("could not open port"), 0);
+        || ((void)(throw std::invalid_argument("could not open port")), 0);
 
     Cons cons[4];
     return eval(senv, alist(cons, Intern::_apply, proc, port, nil));
 }
 
-inline Cell fun_open_infile(const String& filnam)
+static Cell fun_open_infile(const String& filnam)
 {
     Port port;
     port.open(*filnam, std::ios_base::in)
-        || (throw std::invalid_argument("could not open port"), 0);
+        || ((void)(throw std::invalid_argument("could not open port")), 0);
 
     return port;
 }
 
-inline Cell fun_open_outfile(const String& filnam)
+static Cell fun_open_outfile(const String& filnam)
 {
     Port port;
 
     port.open(*filnam, std::ios_base::out)
-        || (throw std::invalid_argument("could not open port"), 0);
+        || ((void)(throw std::invalid_argument("could not open port")), 0);
 
     return port;
 }
 
-inline Cell fun_readline(const varg& args)
+static Cell fun_readline(const varg& args)
 {
     argn(args, 0, 1);
     String line = str("");
 
     if (args.size() > 0) {
         Port port = get<Port>(args[0]);
-        port.is_open() && port.is_input() || (throw std::invalid_argument("port is closed"), 0);
+        (port.is_open() && port.is_input())
+            || ((void)(throw std::invalid_argument("port is closed")), 0);
 
         std::getline(port.stream(), *line);
     } else {
@@ -413,44 +502,47 @@ inline Cell fun_readline(const varg& args)
     return line;
 }
 
-inline Cell fun_read(const varg& args)
+static Cell fun_read(const varg& args)
 {
     argn(args, 0, 1);
     Port port;
 
     if (args.size() > 0) {
         port = get<Port>(args[0]);
-        port.is_open() && port.is_input() || (throw std::invalid_argument("port is closed"), 0);
+        (port.is_open() && port.is_input())
+            || ((void)(throw std::invalid_argument("port is closed")), 0);
     }
     Parser parser;
     return parser.parse(port.stream());
 }
 
-inline Cell fun_readchar(const varg& args)
+static Cell fun_readchar(const varg& args)
 {
     argn(args, 0, 1);
     Port port;
 
     if (args.size() > 0) {
         port = get<Port>(args[0]);
-        port.is_open() && port.is_input() || (throw std::invalid_argument("port is closed"), 0);
+        (port.is_open() && port.is_input())
+            || ((void)(throw std::invalid_argument("port is closed")), 0);
     }
     return static_cast<Char>(port.stream().get());
 }
 
-inline Cell fun_peekchar(const varg& args)
+static Cell fun_peekchar(const varg& args)
 {
     argn(args, 0, 1);
     Port port;
 
     if (args.size() > 0) {
         port = get<Port>(args[0]);
-        port.is_open() && port.is_input() || (throw std::invalid_argument("port is closed"), 0);
+        (port.is_open() && port.is_input())
+            || ((void)(throw std::invalid_argument("port is closed")), 0);
     }
     return static_cast<Char>(port.stream().peek());
 }
 
-inline Cell fun_readstr(const varg& args)
+static Cell fun_readstr(const varg& args)
 {
     argn(args, 1, 2);
     Port port;
@@ -461,10 +553,25 @@ inline Cell fun_readstr(const varg& args)
 
     if (args.size() > 1) {
         port = get<Port>(args[0]);
-        port.is_open() && port.is_input() || (throw std::invalid_argument("port is closed"), 0);
+        (port.is_open() && port.is_input())
+            || ((void)(throw std::invalid_argument("port is closed")), 0);
     }
     Parser parser;
     return parser.parse(port.stream());
+}
+
+static Cell fun_macroexp(const Symenv& senv, const varg& args)
+{
+    Cell expr = args.at(0);
+
+    if (!is_pair(expr))
+        return expr;
+
+    Cell proc = eval(senv, car(expr));
+    if (!is_macro(proc))
+        return expr;
+
+    return get<Proc>(proc).expand(expr);
 }
 
 Cell call(const Symenv& senv, Intern primop, const varg& args)
@@ -551,25 +658,59 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
 
     /* Section 6.3: Booleans */
     case Intern::op_not:
-        return argn(args, 1), !is_true(args[0]);
+        return (void)(argn(args, 1)), !is_true(args[0]);
     case Intern::op_isbool:
-        return argn(args, 1), is_bool(args[0]);
+        return (void)(argn(args, 1)), is_bool(args[0]);
     case Intern::op_isbooleq:
         return fun_booleq(args);
 
     /* Section 6.4: Pair and lists */
     case Intern::op_cons:
-        return argn(args, 2), cons(args[0], args[1]);
+        return (void)(argn(args, 2)), cons(args[0], args[1]);
     case Intern::op_car:
-        return argn(args, 1), car(args[0]);
+        return (void)(argn(args, 1)), car(args[0]);
     case Intern::op_cdr:
-        return argn(args, 1), cdr(args[0]);
+        return (void)(argn(args, 1)), cdr(args[0]);
+    case Intern::op_caar:
+        return (void)(argn(args, 1)), caar(args[0]);
+    case Intern::op_cddr:
+        return (void)(argn(args, 1)), cddr(args[0]);
+    case Intern::op_cadr:
+        return (void)(argn(args, 1)), cadr(args[0]);
+    case Intern::op_cdar:
+        return (void)(argn(args, 1)), cdar(args[0]);
     case Intern::op_setcar:
-        return argn(args, 2), set_car(args[0], args[1]), none;
+        return (void)(argn(args, 2)), (void)(set_car(args[0], args[1])), none;
     case Intern::op_setcdr:
-        return argn(args, 2), set_cdr(args[0], args[1]), none;
+        return (void)(argn(args, 2)), (void)(set_cdr(args[0], args[1])), none;
     case Intern::op_list:
         return fun_list(args);
+    case Intern::op_mklist:
+        return fun_makelist(args);
+    case Intern::op_ispair:
+        return is_pair(args.at(0));
+    case Intern::op_islist:
+        return is_list(args.at(0));
+    case Intern::op_append:
+        return fun_append(args);
+    case Intern::op_length:
+        return Number{ list_length(args.at(0)) };
+    case Intern::op_listref:
+        return fun_listref(args);
+    case Intern::op_listsetb:
+        return fun_listsetb(args);
+    case Intern::op_reverse:
+        return fun_reverse(args);
+    case Intern::op_reverseb:
+        return fun_reverseb(args);
+
+    /* Section 6.5: Symbols */
+    case Intern::op_issym:
+        return is_symbol(args.at(0));
+    case Intern::op_symstr:
+        return std::make_shared<String::element_type>(get<Symbol>(args.at(0)).value());
+    case Intern::op_strsym:
+        return sym(get<String>(args.at(0))->c_str());
 
     /* Section 6.6: Characters */
     case Intern::op_ischar:
@@ -611,12 +752,18 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
 
     /* Section 6.10: Control features */
     case Intern::op_isproc:
-        return argn(args, 1), is_proc(args[0]) || (is_intern(args[0]) && std::get<Intern>(args[0]) >= Intern::op_eq);
+        return (void)(argn(args, 1)), is_proc(args[0]) || (is_intern(args[0]) && std::get<Intern>(args[0]) >= Intern::op_eq);
 
     /* Section 6.11: Exceptions */
     /* Section 6.12: Environments and evaluation */
     case Intern::op_exit:
         return Intern::op_exit;
+    case Intern::op_replenv:
+        return senv;
+    case Intern::op_eval:
+        return eval(args.size() > 1 ? get<Symenv>(args[1]) : senv, args[0]);
+    case Intern::op_macroexp:
+        return fun_macroexp(senv, args);
 
     /* Section 6.13: Input and output */
     case Intern::op_isport:

@@ -32,12 +32,16 @@ static Symenv topenv{
         { sym("=>"), Intern::_arrow },
         { sym("when"), Intern::_when },
         { sym("unless"), Intern::_unless },
-        { sym("quote"), Intern::_quote },
         { sym("begin"), Intern::_begin },
         { sym("define"), Intern::_define },
         { sym("set!"), Intern::_setb },
         { sym("apply"), Intern::_apply },
         { sym("lambda"), Intern::_lambda },
+        { sym("define-macro"), Intern::_macro },
+        { sym("quote"), Intern::_quote },
+        { sym("quasiquote"), Intern::_quasiquote },
+        { sym("unquote"), Intern::_unquote },
+        { sym("unquote-splicing"), Intern::_unquotesplice },
 
         /* Section 6.1: Equivalence predicates */
         { sym("eq?"), Intern::op_eq },
@@ -91,9 +95,27 @@ static Symenv topenv{
         { sym("cons"), Intern::op_cons },
         { sym("car"), Intern::op_car },
         { sym("cdr"), Intern::op_cdr },
+        { sym("caar"), Intern::op_caar },
+        { sym("cddr"), Intern::op_cddr },
+        { sym("cadr"), Intern::op_cadr },
+        { sym("cdar"), Intern::op_cdar },
         { sym("set-car!"), Intern::op_setcar },
         { sym("set-cdr!"), Intern::op_setcdr },
         { sym("list"), Intern::op_list },
+        { sym("pair?"), Intern::op_ispair },
+        { sym("list?"), Intern::op_islist },
+        { sym("make-list"), Intern::op_mklist },
+        { sym("append"), Intern::op_append },
+        { sym("length"), Intern::op_length },
+        { sym("list-ref"), Intern::op_listref },
+        { sym("list-set!"), Intern::op_listsetb },
+        { sym("reverse"), Intern::op_reverse },
+        { sym("reverse!"), Intern::op_reverseb },
+
+        /* Section 6.5: Symbols */
+        { sym("symbol?"), Intern::op_issym },
+        { sym("symbol->string"), Intern::op_symstr },
+        { sym("string->symbol"), Intern::op_strsym },
 
         /* Section 6.6: Characters */
         { sym("char?"), Intern::op_ischar },
@@ -125,6 +147,9 @@ static Symenv topenv{
         /* Section 6.11: Exceptions */
         /* Section 6.12: Environments and evaluation */
         { sym("exit"), Intern::op_exit },
+        { sym("interaction-environment"), Intern::op_replenv },
+        { sym("eval"), Intern::op_eval },
+        { sym("macro-expand"), Intern::op_macroexp },
 
         /* Section 6.13: Input and output */
         { sym("port?"), Intern::op_isport },
@@ -156,8 +181,8 @@ String str(const Char* s)
 
 VectorPtr vec(Number size = 0, const Cell& val = none)
 {
-    is_int(size) && std::get<Int>(size) >= 0
-        || (throw std::invalid_argument("vector length must be a non-negative integer"), 0);
+    (is_int(size) && std::get<Int>(size) >= 0)
+        || ((void)(throw std::invalid_argument("vector length must be a non-negative integer")), 0);
 
     return std::make_shared<VectorPtr::element_type>(size, val);
 }

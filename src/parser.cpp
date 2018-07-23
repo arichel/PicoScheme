@@ -23,7 +23,7 @@ using std::endl;
  * @param str  String to lexical analyse.
  * @param num  Uppon success, return the converted number.
  */
-Parser::Token Parser::lex_number(const std::string& str, Number& num)
+Parser::Token Parser::lex_number(const std::string& str, Number& num) const
 {
     bool is_flo = false, is_cpx = false;
 
@@ -42,7 +42,8 @@ Parser::Token Parser::lex_number(const std::string& str, Number& num)
     // Sign character of floating point:
     if (strchr("+-.", *ic)) {
         is_flo = *ic == '.';
-        ++ic, ++ip;
+        ++ic;
+        ++ip;
     }
 
     if (isdigit(*ic)) {
@@ -60,7 +61,7 @@ Parser::Token Parser::lex_number(const std::string& str, Number& num)
 
                 if (!strchr("eE", *(ic - 1))) {
                     is_cpx = true;
-                    z.real(std::stof(str.substr(0, pos = ip)));
+                    z.real(std::stod(str.substr(0, pos = ip)));
 
                     if (*ic != '+')
                         z.imag(-1);
@@ -69,15 +70,15 @@ Parser::Token Parser::lex_number(const std::string& str, Number& num)
                 is_cpx = true;
 
                 if (isdigit(str.at(pos)) || pos + 1 < str.size())
-                    z.imag(z.imag() >= 0 ? std::stof(str.substr(pos, str.size()))
-                                         : -std::stof(str.substr(pos, str.size())));
+                    z.imag(z.imag() >= 0 ? std::stod(str.substr(pos, str.size()))
+                                         : -std::stod(str.substr(pos, str.size())));
             } else
                 return Token::Error;
         }
         if (is_cpx)
             num = z;
         else if (is_flo)
-            num = std::stof(strtok);
+            num = std::stod(strtok);
         else
             num = std::stol(strtok);
 
@@ -89,7 +90,7 @@ Parser::Token Parser::lex_number(const std::string& str, Number& num)
 /**
  * @brief Read characters from input stream into argument string.
  */
-Parser::Token Parser::lex_string(std::string& str, std::istream& in)
+Parser::Token Parser::lex_string(std::string& str, std::istream& in) const
 {
     str.clear();
 
@@ -102,7 +103,7 @@ Parser::Token Parser::lex_string(std::string& str, std::istream& in)
 
         default:
             if (isprint(c))
-                str.push_back(c);
+                str.push_back(static_cast<Char>(c));
             else
                 return Token::Error;
         }
@@ -114,7 +115,7 @@ Parser::Token Parser::lex_string(std::string& str, std::istream& in)
  * @brief Lexical analyse the argument string for valid scheme
  *        symbol characters.
  */
-Parser::Token Parser::lex_symbol(const std::string& str)
+Parser::Token Parser::lex_symbol(const std::string& str) const
 {
     if (str.empty() || !is_alpha(str.front()))
         return Token::Error;
@@ -126,7 +127,7 @@ Parser::Token Parser::lex_symbol(const std::string& str)
     return Token::Symbol;
 }
 
-Parser::Token Parser::lex_char(const std::string& str, Char& c)
+Parser::Token Parser::lex_char(const std::string& str, Char& c) const
 {
     constexpr struct {
         const char* name;
@@ -145,17 +146,21 @@ Parser::Token Parser::lex_char(const std::string& str, Char& c)
     };
     constexpr size_t ntab = sizeof(stab) / sizeof(*stab);
 
-    if (str.size() == 3)
-        return c = str[2], Token::Char;
+    if (str.size() == 3) {
+        c = str[2];
+        return Token::Char;
 
-    else if (str.size() > 3 && str[2] == 'x') {
+    } else if (str.size() > 3 && str[2] == 'x') {
         std::string s{ str.substr(1) };
         s[0] = '0';
-        return c = std::stoi(s), Token::Char;
+        c = std::stoi(s);
+        return Token::Char;
     } else
         for (size_t i = 0; i < ntab; ++i)
-            if (stab[i].name == str)
-                return c = stab[i].c, Token::Char;
+            if (stab[i].name == str) {
+                c = stab[i].c;
+                return Token::Char;
+            }
 
     return Token::Error;
 }
@@ -184,10 +189,22 @@ Parser::Token Parser::lex_special(const std::string& str)
         return Token::Error;
     }
 }
+
+Parser::Token Parser::lex_unquote(const std::string& str) const
+{
+    if (str.size() == 1)
+        return Token::Unquote;
+
+    if (str.size() == 2 && str[1] == '@')
+        return Token::UnquoteSplice;
+
+    return Token::Error;
+}
+
 /**
  * @brief Skip a comment line.
  */
-Parser::Token Parser::skip_comment(std::istream& in)
+Parser::Token Parser::skip_comment(std::istream& in) const
 {
     in.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     return Token::Comment;
@@ -197,7 +214,7 @@ Parser::Token Parser::skip_comment(std::istream& in)
  * @brief Predicate returns true if the argument character is a special
  *        scheme character, starting a new expression, string or comment.
  */
-bool Parser::is_special(int c)
+bool Parser::is_special(int c) const
 {
     return strchr("()\"'`,@;", c);
 }
@@ -210,7 +227,7 @@ bool Parser::is_special(int c)
  * @param n   Unless zero, test the first n characters or the whole string
  *            otherwise.
  */
-bool Parser::is_digit(const std::string& str, size_t n)
+bool Parser::is_digit(const std::string& str, size_t n) const
 {
     n = n ? std::min(n, str.size()) : str.size();
 
@@ -226,7 +243,7 @@ bool Parser::is_digit(const std::string& str, size_t n)
 /**
  * @brief Predicate return true if argument character is an allowed scheme character.
  */
-bool Parser::is_alpha(int c)
+bool Parser::is_alpha(int c) const
 {
     return isalpha(c) || strchr("_?!+-*/<>=:@", c);
 }
@@ -246,12 +263,12 @@ Parser::Token Parser::get_token(std::istream& in)
         ;
 
     strtok.clear();
-    strtok.push_back(c);
+    strtok.push_back(static_cast<Char>(c));
 
     // Read chars until a trailing whitespace, a special scheme character or EOF is reached:
     if (!is_special(c)) {
         while (in && !isspace(c = in.get()) && !is_special(c) && c != EOF)
-            strtok.push_back(c);
+            strtok.push_back(static_cast<Char>(c));
         in.unget();
     }
     if (in.bad())
@@ -272,6 +289,12 @@ Parser::Token Parser::get_token(std::istream& in)
     case '\'':
         return Token::Quote;
 
+    case '`':
+        return Token::QuasiQuote;
+
+    case ',':
+        return lex_unquote(strtok);
+
     case ';':
         return skip_comment(in);
 
@@ -291,7 +314,7 @@ Parser::Token Parser::get_token(std::istream& in)
 
 Cell Parser::parse(std::istream& in)
 {
-    switch (Token tok = get_token(in)) {
+    switch (get_token(in)) {
 
     case Token::True:
         return true;
@@ -304,6 +327,15 @@ Cell Parser::parse(std::istream& in)
 
     case Token::Quote:
         return list(Intern::_quote, parse(in));
+
+    case Token::QuasiQuote:
+        return list(Intern::_quasiquote, parse(in));
+
+    case Token::Unquote:
+        return list(Intern::_unquote, parse(in));
+
+    case Token::UnquoteSplice:
+        return list(Intern::_unquotesplice, parse(in));
 
     case Token::Number:
         return numtok;

@@ -93,7 +93,7 @@ Cell list_ref(Cell list, Int k)
     for (/* */; k > 0 && is_pair(list); list = cdr(list), --k)
         ;
 
-    !k || (void(throw std::invalid_argument("invalid list length")), 0);
+    !k || ((void)(throw std::invalid_argument("invalid list index")), 0);
     return car(list);
 }
 }

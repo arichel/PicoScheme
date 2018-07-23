@@ -72,6 +72,7 @@ inline bool is_port(const Cell& cell) { return is_type<Port>(cell); }
 inline bool is_symbol(const Cell& cell) { return is_type<Symbol>(cell); }
 inline bool is_symenv(const Cell& cell) { return is_type<Symenv>(cell); }
 inline bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
+inline bool is_macro(const Cell& cell) { return is_proc(cell) && get<Proc>(cell).is_macro(); }
 
 inline bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !get<Bool>(cell); }
 inline bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || get<Bool>(cell); }

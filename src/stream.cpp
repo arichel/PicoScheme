@@ -50,6 +50,56 @@ static std::ostream& operator<<(std::ostream& os, const VectorPtr& vec)
     return os << ')';
 }
 
+static std::ostream& operator<<(std::ostream& os, Intern opcode)
+{
+    switch (opcode) {
+    case Intern::_or:
+        return os << "or";
+    case Intern::_and:
+        return os << "and";
+    case Intern::_if:
+        return os << "if";
+    case Intern::_cond:
+        return os << "cond";
+    case Intern::_else:
+        return os << "else";
+    case Intern::_arrow:
+        return os << "=>";
+    case Intern::_when:
+        return os << "when";
+    case Intern::_unless:
+        return os << "unless";
+    case Intern::_define:
+        return os << "define";
+    case Intern::_setb:
+        return os << "set!";
+    case Intern::_begin:
+        return os << "begin";
+    case Intern::_lambda:
+        return os << "lambda";
+    case Intern::_macro:
+        return os << "define-macro";
+    case Intern::_apply:
+        return os << "apply";
+    case Intern::_quote:
+        return os << "quote";
+    case Intern::_quasiquote:
+        return os << "quasiquote";
+    case Intern::_unquote:
+        return os << "unquote";
+    case Intern::_unquotesplice:
+        return os << "unquote-splicing";
+
+    default:
+        return os << "#<primop " << static_cast<int>(opcode) << '>';
+    }
+}
+
+static std::ostream& operator<<(std::ostream& os, Proc proc)
+{
+    return proc.is_macro() ? os << "#<macro>" : os << "#<closure>";
+}
+
 /**
  * @brief Output stream operator for Cell type arguments.
  */
@@ -61,13 +111,13 @@ std::ostream& operator<<(std::ostream& os, const Cell& cell)
         [&os](Bool arg) { os << (arg ? "#t" : "#f"); },
         [&os](Char arg) { os << "#\\" << arg; },
         [&os](Number arg) { os << arg; },
-        [&os](Intern arg) { os << "<intern " << static_cast<int>(arg) << '>'; },
+        [&os](Intern arg) { os << arg; },
         [&os](String arg) { os << '"' << *arg << '"'; },
         [&os](VectorPtr arg) { os << arg; },
         [&os](Symbol arg) { os << arg.value(); },
-        [&os](Symenv arg) { os << "<symenv>"; },
-        [&os](Proc arg) { os << "<proc>"; },
-        [&os](Port) { os << "<port>"; },
+        [&os](Symenv arg) { os << "#<symenv " << arg.get() << '>'; },
+        [&os](Proc arg) { os << arg; },
+        [&os](Port) { os << "#<port>"; },
         [&os](Cons* arg) { os << arg; },
 
         /* catch missing overloads and emit compile time error message */

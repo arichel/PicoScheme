@@ -50,15 +50,18 @@ void repl()
 
 int main()
 {
-    repl();
-    return 0;
+    //    repl();
+    //    return 0;
 
     try {
         Symenv e = senv();
-        Cell expr = 'a';
+        //        Cell list = cons(Intern::_quote, cons(pscm::list(num(1), num(2), num(3)), nil));
+        //        Cell expr = pscm::list(Intern::op_listref, list, num(1.));
 
-        Char& c = expr;
-        c = 'b';
+        std::istringstream stream("(list-ref '(0 1 2) 1.)");
+
+        Parser parser;
+        Cell expr = parser.parse(stream);
 
         cout << expr << " ---> ";
         Cell proc = eval(e, expr);

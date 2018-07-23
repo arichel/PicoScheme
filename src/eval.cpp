@@ -14,24 +14,12 @@
 
 namespace pscm {
 
-using std::get;
+//using std::get;
 
 /**
- * @brief Evaluate a scheme (set! symbol expr) expression.
+ * @brief  Evaluate a sequence (begin expr_0 ... expr_n) of scheme
+ *         expressions in consecutive order.
  *
- * Evaluate expression an set the symbol value to the result.
- * The symbol must be found in the argument environment or
- * any reachable parent environment.
- *
- * @return Special value none
- */
-static Cell syntax_setb(const Symenv& senv, const Cell& args)
-{
-    senv->set(get<Symbol>(car(args)), eval(senv, cadr(args)));
-    return none;
-}
-
-/**
  * Evaluate each expression in argument list up the last, which
  * is returned unevaluated. This last expression is evaluated at
  * the call site to support unbound tail-recursion.
@@ -54,10 +42,8 @@ static Cell syntax_if(const Symenv& senv, const Cell& args)
 {
     if (is_true(eval(senv, car(args))))
         return cadr(args);
-
     else if (Cell last = cddr(args); !is_nil(last))
         return car(last);
-
     else
         return none;
 }
@@ -161,28 +147,6 @@ static Cell syntax_or(const Symenv& senv, Cell args)
     return res;
 }
 /**
- * @brief syntax_define
- *
- * @verbatim
-  * (define <symbol> <expr>)
- * (define (<symbol <args>) <body>)
-  * @endverbatim
- *
- */
-static Cell syntax_define(const Symenv& senv, Cell args)
-{
-    Cell expr = cdr(args);
-    args = car(args);
-
-    if (is_pair(args))
-        senv->add(get<Symbol>(car(args)), Proc{ senv, cdr(args), expr });
-    else
-        senv->add(get<Symbol>(args), eval(senv, car(expr)));
-
-    return none;
-}
-
-/**
  * @brief Evaluate argument list into an argument vector.
  *
  * @param senv Symbol environment, where to evaluate the argument list.
@@ -274,38 +238,55 @@ Cell eval(Symenv senv, Cell expr)
         if (!is_pair(expr))
             return expr;
 
-        args = cdr(expr);
-        proc = eval(senv, car(expr));
+        if (is_proc(proc = eval(senv, car(expr)))) {
 
-        if (is_proc(proc)) {
-            tie(senv, args) = apply(senv, get<Proc>(proc), args);
-            expr = syntax_begin(senv, args);
+            if (is_macro(proc))
+                expr = get<Proc>(proc).expand(expr);
+            else {
+                tie(senv, args) = get<Proc>(proc).apply(senv, cdr(expr));
+                expr = syntax_begin(senv, args);
+            }
             continue;
         }
+        args = cdr(expr);
         switch (auto opcode = get<Intern>(proc)) {
 
         case Intern::_quote:
             return car(args);
 
+        case Intern::_setb:
+            senv->set(get<Symbol>(car(args)), eval(senv, cadr(args)));
+            return none;
+
         case Intern::_define:
-            return syntax_define(senv, args);
+            if (is_pair(car(args)))
+                senv->add(get<Symbol>(caar(args)), Proc{ senv, cdar(args), cdr(args) });
+            else
+                senv->add(get<Symbol>(car(args)), eval(senv, cadr(args)));
+            return none;
 
         case Intern::_lambda:
             return Proc{ senv, car(args), cdr(args) };
+
+        case Intern::_macro:
+            senv->add(get<Symbol>(caar(args)), Proc{ senv, cdar(args), cdr(args), true });
+            return none;
 
         case Intern::_apply:
             if (is_intern(proc = eval(senv, car(args))))
                 return call(senv, get<Intern>(proc), eval_args(senv, cdr(args), false));
 
-            tie(senv, args) = apply(senv, get<Proc>(proc), cdr(args), false);
-            [[fallthrough]];
+            if (is_macro(proc))
+                expr = get<Proc>(proc).expand(args);
+            else {
+                tie(senv, args) = get<Proc>(proc).apply(senv, cdr(args), false);
+                expr = syntax_begin(senv, args);
+            }
+            break;
 
         case Intern::_begin:
             expr = syntax_begin(senv, args);
             break;
-
-        case Intern::_setb:
-            return syntax_setb(senv, args);
 
         case Intern::_if:
             expr = syntax_if(senv, args);

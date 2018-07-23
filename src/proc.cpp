@@ -54,7 +54,6 @@ struct Proc::Closure {
             && code != impl.code
             && is_macro != impl.is_macro;
     }
-
     Symenv senv; //!< Symbol environment pointer.
     Cell args; //!< Formal parameter symbol list or single symbol.
     Cell code; //!< Lambda body expression list.
@@ -97,9 +96,9 @@ bool Proc::operator==(const Proc& proc) const noexcept
 }
 
 /**
- * Evaluate each argument list item in the current environment and assign
- * the result to symbols of the closure formal parameter list in a new
- * child environment of the previously captured closure environment.
+ * First evaluate each argument list item in the current environment senv.
+ * Assign the result to symbols of the closure formal parameter list into
+ * a new child environment of the previously captured closure environment.
  *
  * @remark A dotted formal parameter list or a single symbol argument
  *         requires additional cell-storage to build the evaluated
@@ -146,9 +145,6 @@ std::pair<Symenv, Cell> Proc::apply(const Symenv& senv, Cell args, bool is_list)
  */
 Cell Proc::expand(Cell& expr) const
 {
-    get<Proc>(car(expr)).is_macro()
-        || ((void)(throw std::invalid_argument("not a macro expression")), 0);
-
     Cell args = cdr(expr), iter = impl->args; // macro formal parameter symbol list
 
     // Create a new child environment and set the closure environment as father:
@@ -164,7 +160,6 @@ Cell Proc::expand(Cell& expr) const
     // Expand and replace argument expression with evaluated macro:
     set_car(expr, Intern::_begin);
     set_cdr(expr, args = eval(newenv, syntax_begin(newenv, impl->code)));
-
     return args;
 }
 

@@ -66,6 +66,7 @@ public:
     /**
      * @brief Replace expression with the expanded closure macro.
      * @param expr (closure-macro arg0 ... arg_n)
+     * @return The expanded macro body.
      */
     Cell expand(Cell& expr) const;
 

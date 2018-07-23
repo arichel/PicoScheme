@@ -12,6 +12,8 @@ file(GLOB SOURCES "src/*.cpp")
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wno-sign-conversion)
+
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 17
     CXX_EXTENSIONS OFF)

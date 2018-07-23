@@ -34,6 +34,9 @@ private:
 
         Dot,
         Quote,
+        QuasiQuote,
+        Unquote,
+        UnquoteSplice,
         True,
         False,
         Char, //
@@ -51,16 +54,17 @@ private:
     Cell parse_vector(std::istream& in);
     Token get_token(std::istream& in);
 
-    Token lex_symbol(const std::string& str);
-    Token lex_char(const std::string& str, Char& c);
+    Token lex_symbol(const std::string& str) const;
+    Token lex_unquote(const std::string& str) const;
+    Token lex_char(const std::string& str, Char& c) const;
     Token lex_special(const std::string& str);
-    Token lex_number(const std::string& str, Number& num);
-    Token lex_string(std::string& str, std::istream& in);
-    Token skip_comment(std::istream& in);
+    Token lex_number(const std::string& str, Number& num) const;
+    Token lex_string(std::string& str, std::istream& in) const;
+    Token skip_comment(std::istream& in) const;
 
-    bool is_alpha(int c);
-    bool is_special(int c);
-    bool is_digit(const std::string& str, size_t n = 0);
+    bool is_alpha(int c) const;
+    bool is_special(int c) const;
+    bool is_digit(const std::string& str, size_t n = 0) const;
 
     Token put_back = Token::None;
     std::string strtok;

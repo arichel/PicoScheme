@@ -34,12 +34,16 @@ enum class Intern {
     _arrow,
     _when,
     _unless,
-    _quote,
     _define,
     _setb,
     _begin,
     _lambda,
+    _macro,
     _apply,
+    _quote,
+    _quasiquote,
+    _unquote,
+    _unquotesplice,
 
     /* Section 6.1: Equivalence predicates */
     op_eq,
@@ -104,9 +108,11 @@ enum class Intern {
     op_mklist,
     op_length,
     op_append,
+    op_reverse,
+    op_reverseb,
     op_tail,
-    op_ref,
-    op_set,
+    op_listref,
+    op_listsetb,
     op_memq,
     op_memv,
     op_member,
@@ -205,6 +211,9 @@ enum class Intern {
     /* Section 6.11: Exceptions */
     /* Section 6.12: Environments and evaluation */
     op_exit,
+    op_replenv,
+    op_eval,
+    op_macroexp,
 
     /* Section 6.13: Input and output */
     op_isport,

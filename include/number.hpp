@@ -39,6 +39,14 @@ struct Number : std::variant<Int, Float, Complex> {
 
     Number(const Number&) = default;
     Number& operator=(const Number&) = default;
+    Number& operator=(Number&&) = default;
+
+    template <typename T>
+    Number& operator=(T&& x)
+    {
+        *this = Number{ x };
+        return *this;
+    }
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     constexpr Number(T x)
@@ -138,7 +146,7 @@ constexpr inline Number operator""_cpx(long double val) { return Number{ 0., sta
 template <typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const Complex& z)
 {
-    if (auto im = z.imag()) {
+    if (auto im = z.imag(); im != 0) {
         if (im < 0)
             return os << z.real() << (im != -1 ? im : '-') << 'i';
         else if (im != 1)
