@@ -36,7 +36,7 @@ struct Cell : Variant {
     Cell& operator=(Cell&&) = default;
 
     /**
-     * @brief Type conversion operator to return the value hold by this Cell.
+     * Type conversion operator to return the value hold by this Cell.
      * @throw std::bad_variant_access
      */
     template <typename T>
