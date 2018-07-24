@@ -70,5 +70,5 @@ private:
     Char chrtok;
 };
 
-}; // namespace pscm
+} // namespace pscm
 #endif // PARSER_HPP

@@ -1,10 +1,6 @@
 /********************************************************************************/ /**
- * @file pico.hpp
+ * @file pico.cpp
  *
- * @version   0.1
- * @date      2018-
- * @author    Paul Pudewills
- * @copyright MIT License
  *************************************************************************************/
 #include <assert.h>
 #include <iostream>
@@ -26,7 +22,10 @@ int main()
 
     try {
 
-        cout << sizeof(Proc) << ' ' << sizeof(Number) << ' ' << sizeof(Port) << endl;
+        Cell s0 = str("hallo");
+
+        Cell s1 = s0;
+
         return 0;
 
         SymenvPtr e = senv();

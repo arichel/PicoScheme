@@ -23,18 +23,17 @@ namespace pscm {
  */
 Cell eval(SymenvPtr senv, Cell expr);
 
+/**
+ * Return a new list of evaluated expressions in argument list.
+ *
+ * @param senv Symbol environment, where to evaluate the argument list.
+ * @param args Argument list to evaluate.
+ * @param is_list true:   procedure call argument list.
+ *                false:  apply expression argument list, where the last list item
+ *                        must be nil or an argument list itself.
+ * @return List of evaluated arguments.
+ */
 Cell eval_list(const SymenvPtr& senv, Cell list, bool is_list = true);
-
-namespace syntax {
-    /**
-     * Scheme begin syntax to evaluate a sequence of scheme
-     * expressions in consecutive order.
-     *
-     * @return Unevaluated last expression or special symbol none for an
-     *         empty argument list.
-     */
-    Cell _begin(const SymenvPtr& senv, Cell args);
-}
 
 /**
  * Interactive scheme read eval print loop.
@@ -50,5 +49,17 @@ void repl(const SymenvPtr& symenv = nullptr,
     std::istream& in = std::cin, std::ostream& out = std::cout);
 
 } // namespace pscm
+
+namespace pscm::syntax {
+/**
+ * Scheme begin syntax to evaluate a sequence of scheme
+ * expressions in consecutive order.
+ *
+ * @return Unevaluated last expression or special symbol none for an
+ *         empty argument list.
+ */
+Cell _begin(const SymenvPtr& senv, Cell args);
+
+} // pscm::syntax
 
 #endif // EVAL_HPP

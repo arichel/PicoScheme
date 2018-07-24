@@ -9,8 +9,6 @@
 #ifndef CELL_HPP
 #define CELL_HPP
 
-#include <iostream> // to be phased out
-
 #include "types.hpp"
 #include "utils.hpp"
 
@@ -21,19 +19,11 @@ using std::get;
 size_t store_size();
 
 /**
- * @brief A scheme cell is a variant type of all supported scheme types.
+ * A scheme cell is a variant type of all supported scheme types.
  */
 struct Cell : Variant {
     using base_type = Variant;
     using Variant::Variant;
-    using Variant::index;
-
-    //using Variant::operator=;
-
-    Cell(const Cell&) = default;
-    Cell(Cell&&) = default;
-    Cell& operator=(const Cell&) = default;
-    Cell& operator=(Cell&&) = default;
 
     /**
      * Type conversion operator to return the value hold by this Cell.
@@ -80,7 +70,7 @@ inline bool is_else(const Cell& cell) { return is_intern(cell) && get<Intern>(ce
 inline bool is_arrow(const Cell& cell) { return is_intern(cell) && get<Intern>(cell) == Intern::_arrow; }
 
 /**
- * @brief Scheme equal? predicate to test two cells for same content.
+ * Scheme equal? predicate to test two cells for same content.
  *
  * Two lists or vectors are considered equal, if each
  * item is equal. Two strings are equal if each individual
@@ -89,9 +79,10 @@ inline bool is_arrow(const Cell& cell) { return is_intern(cell) && get<Intern>(c
 bool is_equal(const Cell& lhs, const Cell& rhs);
 
 /**
- * @brief Construct a new cons cell-pair from the global cell store and
- *        return a pointer to it. Pointer life time is managed by the
- *        garbage collector.
+ * Construct a new cons cell-pair from the global cell store and
+ * return a pointer to it.
+ *
+ * Pointer life time is managed by the garbage collector.
  *
  * @param  car Cell to assign to Cons->first.
  * @param  cdr Cell to assign to Cons->second.
@@ -119,9 +110,10 @@ void set_car(const Cell& cons, T&& t) { std::get<Cons*>(cons)->first = std::forw
 template <typename T>
 void set_cdr(const Cell& cons, T&& t) { std::get<Cons*>(cons)->second = std::forward<T>(t); }
 
-//! Predicate return true if cell is a proper nil terminated list or a circular list.
+//! Predicate returns true if cell is a proper nil terminated list or a circular list.
 bool is_list(Cell cell);
 
+//! Predicate returns true if each list item from both lists is equal according to @ref pscm::is_equal.
 bool is_list_equal(Cell lhs, Cell rhs);
 
 //! Return the length of a proper list or the period length of a circular list.
@@ -141,8 +133,8 @@ Cons* list(T&& t, Args&&... args)
 }
 
 /**
- * @brief Build a cons list from all arguments directly in
- *        in argument cons cell array.
+ * Build a cons list from all arguments directly in
+ * in argument cons cell array.
  *
  * This array embedded cons-list is used for short temporary
  * argument lists to circumvent to unecessarly fill the
@@ -176,7 +168,7 @@ inline Nil alist(Cons (&)[size]) { return nil; }
 template <typename T1, typename T2, typename... Args>
 Nil alist(Cons (&)[1], T1&&, T2&&, Args&&...)
 {
-    //static_assert(always_false<Cons>{}, "invalid cons array size");
+    throw std::invalid_argument("invalid cons array size");
     return nil;
 }
 
