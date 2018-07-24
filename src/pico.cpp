@@ -19,35 +19,6 @@
 using namespace std;
 using namespace pscm;
 
-void repl()
-{
-    Symenv env = senv();
-    Parser reader;
-    Cell expr;
-
-    for (;;)
-        try {
-
-            for (;;) {
-                expr = reader.parse(std::cin);
-                expr = eval(env, expr);
-
-                if (is_intern(expr) && get<Intern>(expr) == Intern::op_exit)
-                    return;
-
-                std::cout << expr << std::endl;
-            }
-        } catch (std::bad_variant_access& e) {
-            std::cerr << e.what() << ": " << expr << endl;
-
-        } catch (std::out_of_range& e) {
-            std::cerr << e.what() << ": " << expr << endl;
-
-        } catch (std::invalid_argument& e) {
-            std::cerr << e.what() << ": " << expr << endl;
-        }
-}
-
 int main()
 {
     //    repl();
@@ -59,7 +30,7 @@ int main()
         cout << x << " " << z << " : " << (z != x) << endl;
         return 0;
 
-        Symenv e = senv();
+        SymenvPtr e = senv();
         //        Cell list = cons(Intern::_quote, cons(pscm::list(num(1), num(2), num(3)), nil));
         //        Cell expr = pscm::list(Intern::op_listref, list, num(1.));
 

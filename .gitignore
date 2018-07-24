@@ -39,6 +39,10 @@ Thumbs.db
 *.pro.user*
 *.txt.user*
 
+# Doxygen documentation sub folders
+/doc/doxygen/html
+/doc/doxygen/latex
+
 # xemacs temporary files
 *.flc
 

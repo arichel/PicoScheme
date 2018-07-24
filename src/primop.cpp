@@ -1,6 +1,9 @@
 /*********************************************************************************/ /**
  * @file primop.cpp
  *
+ * Implementations of some scheme functions as defined in the r7rs
+ * reference document.
+ *
  * @version   0.1
  * @date      2018-
  * @author    Paul Pudewills
@@ -20,7 +23,7 @@ namespace pscm {
 using varg = std::vector<Cell>;
 
 /**
- * @brief Check argument vector size.
+ * Check argument vector size.
  * If parameter max is zero, exact n arguments are required otherwise
  * at least n up to max.
  *
@@ -205,10 +208,13 @@ static Cell fun_write(const varg& args)
 }
 
 /**
- * @brief Scheme @em list function.
- * @verbatim
- *   (list [arg_0 ... arg_n]) => nil | (arg_0 ... arg_n)
- * @endverbatim
+ * Scheme @em list function.
+ *
+ @verbatim
+   (list [arg_0 ... arg_n]) => nil | (arg_0 ... arg_n)
+ @endverbatim
+ *
+ * blub
  */
 static Cell fun_list(const varg& args)
 {
@@ -359,6 +365,7 @@ static Cell fun_listsetb(const varg& args)
  */
 static Cell fun_vector_ref(const varg& args)
 {
+
     using size_type = VectorPtr::element_type::size_type;
     auto pos = static_cast<size_type>(get<Int>(get<Number>(args.at(1))));
     return get<VectorPtr>(args[0])->at(pos);
@@ -379,10 +386,10 @@ static Cell fun_vector_setb(const varg& args)
 }
 
 /**
- * @brief Scheme @em list->vector function.
- * @verbatim
- *   (list->vector '(x0 x1 x2 ... xn)) => #(x0 x1 x2 ... xn)
- * @endverbatim
+ * Scheme @em list->vector function.
+   @verbatim
+   (list->vector '(x0 x1 x2 ... xn)) => #(x0 x1 x2 ... xn)
+   @endverbatim
  */
 static Cell fun_list2vec(const varg& args)
 {
@@ -397,10 +404,10 @@ static Cell fun_list2vec(const varg& args)
 }
 
 /**
- * @brief Scheme @em vector->list function.
- * @verbatim
- *   (vector->list  #(x0 x1 x2 ... xn) [pos [end]]) => '(x0 x1 x2 ... xn)
- * @endverbatim
+ * Scheme @em vector->list function.
+   @verbatim
+   (vector->list  #(x0 x1 x2 ... xn) [pos [end]]) => '(x0 x1 x2 ... xn)
+   @endverbatim
  */
 static Cell fun_vec2list(const varg& args)
 {
@@ -427,10 +434,10 @@ static Cell fun_vec2list(const varg& args)
 }
 
 /**
- * @brief Scheme @em vector-copy function.
- * @verbatim
- *   (vector-copy #(x0 x1 x2 ... xn) [pos [end]]) => #(x0 x1 x2 ... xn)
- * @endverbatim
+ * Scheme @em vector-copy function.
+   @verbatim
+   (vector-copy #(x0 x1 x2 ... xn) [pos [end]]) => #(x0 x1 x2 ... xn)
+   @endverbatim
  */
 static Cell fun_vec_copy(const varg& args)
 {
@@ -448,10 +455,10 @@ static Cell fun_vec_copy(const varg& args)
 }
 
 /**
- * @brief Scheme inplace @em vector-copy! function.
- * @verbatim
- *   (vector-copy! vec-dest idx vec-source [pos [end]]) => vec-dest
- * @endverbatim
+ * Scheme inplace @em vector-copy! function.
+   @verbatim
+   (vector-copy! vec-dest idx vec-source [pos [end]]) => vec-dest
+   @endverbatim
  */
 static Cell fun_vec_copyb(const varg& args)
 {
@@ -473,10 +480,10 @@ static Cell fun_vec_copyb(const varg& args)
 }
 
 /**
- * @brief Scheme inplace @em vector-fill! function.
- * @verbatim
- *   (vector-fill! vec value [pos [end]]) => vec
- * @endverbatim
+ * Scheme inplace @em vector-fill! function.
+   @verbatim
+   (vector-fill! vec value [pos [end]]) => vec
+   @endverbatim
  */
 static Cell fun_vec_fillb(const varg& args)
 {
@@ -495,10 +502,10 @@ static Cell fun_vec_fillb(const varg& args)
 }
 
 /**
- * @brief Scheme inplace @em vector-append function.
- * @verbatim
- *   (vector-append vec_0 vec_1 ... vec_n) => vec := {vec_0, vec_1, ..., vec_n}
- * @endverbatim
+ * Scheme inplace @em vector-append function.
+   @verbatim
+   (vector-append vec_0 vec_1 ... vec_n) => vec := {vec_0, vec_1, ..., vec_n}
+   @endverbatim
  */
 static Cell fun_vec_append(const varg& args)
 {
@@ -512,7 +519,7 @@ static Cell fun_vec_append(const varg& args)
     return vec;
 }
 
-static Cell fun_callw_infile(const Symenv& senv, const String& filnam, const Cell& proc)
+static Cell fun_callw_infile(const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
 {
     Port port;
     port.open(*filnam, std::ios_base::in)
@@ -522,7 +529,7 @@ static Cell fun_callw_infile(const Symenv& senv, const String& filnam, const Cel
     return eval(senv, alist(cons, Intern::_apply, proc, port, nil));
 }
 
-static Cell fun_open_infile(const String& filnam)
+static Cell fun_open_infile(const StringPtr& filnam)
 {
     Port port;
     port.open(*filnam, std::ios_base::in)
@@ -531,7 +538,7 @@ static Cell fun_open_infile(const String& filnam)
     return port;
 }
 
-static Cell fun_open_outfile(const String& filnam)
+static Cell fun_open_outfile(const StringPtr& filnam)
 {
     Port port;
 
@@ -544,7 +551,7 @@ static Cell fun_open_outfile(const String& filnam)
 static Cell fun_readline(const varg& args)
 {
     argn(args, 0, 1);
-    String line = str("");
+    StringPtr line = str("");
 
     if (args.size() > 0) {
         Port port = get<Port>(args[0]);
@@ -617,7 +624,7 @@ static Cell fun_readstr(const varg& args)
     return parser.parse(port.stream());
 }
 
-static Cell fun_macroexp(const Symenv& senv, const varg& args)
+static Cell fun_macroexp(const SymenvPtr& senv, const varg& args)
 {
     Cell expr = args.at(0);
 
@@ -631,7 +638,7 @@ static Cell fun_macroexp(const Symenv& senv, const varg& args)
     return get<Proc>(proc).expand(expr);
 }
 
-Cell call(const Symenv& senv, Intern primop, const varg& args)
+Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
 {
     switch (primop) {
     /* Section 6.1: Equivalence predicates */
@@ -765,9 +772,9 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
     case Intern::op_issym:
         return is_symbol(args.at(0));
     case Intern::op_symstr:
-        return std::make_shared<String::element_type>(get<Symbol>(args.at(0)).value());
+        return std::make_shared<StringPtr::element_type>(get<Symbol>(args.at(0)).value());
     case Intern::op_strsym:
-        return sym(get<String>(args.at(0))->c_str());
+        return sym(get<StringPtr>(args.at(0))->c_str());
 
     /* Section 6.6: Characters */
     case Intern::op_ischar:
@@ -777,13 +784,14 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
 
     /* Section 6.7: Strings */
     case Intern::op_isstr:
-        return is_type<String>(args.at(0));
+        return is_type<StringPtr>(args.at(0));
 
     /* Section 6.8: Vectors */
     case Intern::op_isvec:
         return is_type<VectorPtr>(args.at(0));
     case Intern::op_mkvec:
-        return args.size() > 1 ? vec(args[0], args[1]) : vec(args.at(0), none);
+        return args.size() > 1 ? vec(get<Number>(args[0]), args[1])
+                               : vec(get<Number>(args.at(0)), none);
     case Intern::op_vec:
         return std::make_shared<VectorPtr::element_type>(args);
     case Intern::op_veclen:
@@ -818,7 +826,7 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
     case Intern::op_replenv:
         return senv;
     case Intern::op_eval:
-        return eval(args.size() > 1 ? get<Symenv>(args[1]) : senv, args[0]);
+        return eval(args.size() > 1 ? get<SymenvPtr>(args[1]) : senv, args[0]);
     case Intern::op_macroexp:
         return fun_macroexp(senv, args);
 
@@ -838,11 +846,11 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
     case Intern::op_isoutport_open:
         return is_type<Port>(args.at(0)) && get<Port>(args[0]).is_output() && get<Port>(args[0]).is_open();
     case Intern::op_callw_infile:
-        return fun_callw_infile(senv, get<String>(args.at(0)), args.at(1));
+        return fun_callw_infile(senv, get<StringPtr>(args.at(0)), args.at(1));
     case Intern::op_open_infile:
-        return fun_open_infile(get<String>(args.at(0)));
+        return fun_open_infile(get<StringPtr>(args.at(0)));
     case Intern::op_open_outfile:
-        return fun_open_outfile(get<String>(args.at(0)));
+        return fun_open_outfile(get<StringPtr>(args.at(0)));
     case Intern::op_readline:
         return fun_readline(args);
     case Intern::op_read:

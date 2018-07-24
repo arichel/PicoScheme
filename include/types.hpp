@@ -18,11 +18,11 @@ using Nil = std::nullptr_t;
 using Bool = bool;
 using Char = char;
 using Cons = std::pair<Cell, Cell>;
-using String = std::shared_ptr<std::basic_string<Char>>;
+using StringPtr = std::shared_ptr<std::basic_string<Char>>;
 using VectorPtr = std::shared_ptr<std::vector<Cell>>;
 
-using Variant = std::variant<None, Nil, Bool, Char, Number, Intern, Cons*, String,
-    VectorPtr, Port, Symbol, Symenv, Proc>;
+using Variant = std::variant<None, Nil, Bool, Char, Number, Intern, Cons*,
+    StringPtr, VectorPtr, Port, Symbol, SymenvPtr, Proc>;
 
 enum class Intern {
     /* Scheme syntax opcodes: */
@@ -281,9 +281,9 @@ enum class Intern {
 };
 
 Symbol sym(const char* name);
-Symenv senv(const Symenv& env = nullptr);
+SymenvPtr senv(const SymenvPtr& env = nullptr);
 VectorPtr vec(Number size, const Cell& val);
-String str(const Char* s);
+StringPtr str(const Char* s);
 
 } // namespace pscm
 

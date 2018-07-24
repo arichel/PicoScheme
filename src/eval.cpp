@@ -12,22 +12,14 @@
 #include "primop.hpp"
 #include "proc.hpp"
 
-namespace pscm {
-
-//using std::get;
+namespace pscm::syntax {
 
 /**
- * @brief  Evaluate a sequence (begin expr_0 ... expr_n) of scheme
- *         expressions in consecutive order.
- *
  * Evaluate each expression in argument list up the last, which
  * is returned unevaluated. This last expression is evaluated at
  * the call site to support unbound tail-recursion.
- *
- * @return Unevaluated last expression or special symbol none for an
- *         empty argument list.
  */
-Cell syntax_begin(const Symenv& senv, Cell args)
+Cell _begin(const SymenvPtr& senv, Cell args)
 {
     if (is_pair(args)) {
         for (/* */; is_pair(cdr(args)); args = cdr(args))
@@ -38,7 +30,7 @@ Cell syntax_begin(const Symenv& senv, Cell args)
     return none;
 }
 
-static Cell syntax_if(const Symenv& senv, const Cell& args)
+static Cell _if(const SymenvPtr& senv, const Cell& args)
 {
     if (is_true(eval(senv, car(args))))
         return cadr(args);
@@ -49,7 +41,7 @@ static Cell syntax_if(const Symenv& senv, const Cell& args)
 }
 
 /**
- * @brief syntax_cond
+ * @brief Scheme syntax cond.
  *
  * @verbatim
  * (cond <clause>_1 <clause>_2 ...)
@@ -59,7 +51,7 @@ static Cell syntax_if(const Symenv& senv, const Cell& args)
  *          |  (else  <expression> ...)
  * @endverbatim
  */
-static Cell syntax_cond(const Symenv& senv, Cell args)
+static Cell _cond(const SymenvPtr& senv, Cell args)
 {
     Cell test = false, expr = nil;
 
@@ -90,12 +82,12 @@ static Cell syntax_cond(const Symenv& senv, Cell args)
 
             return list(Intern::_apply, car(expr), test, nil);
         } else
-            return syntax_begin(senv, expr);
+            return syntax::_begin(senv, expr);
     }
     return none;
 }
 
-static Cell syntax_when(const Symenv& senv, Cell args)
+static Cell _when(const SymenvPtr& senv, Cell args)
 {
     if (is_true(eval(senv, car(args))) && is_pair(args = cdr(args))) {
         for (/* */; is_pair(cdr(args)); args = cdr(args))
@@ -106,7 +98,7 @@ static Cell syntax_when(const Symenv& senv, Cell args)
     return none;
 }
 
-static Cell syntax_unless(const Symenv& senv, Cell args)
+static Cell _unless(const SymenvPtr& senv, Cell args)
 {
     if (is_false(eval(senv, car(args))) && is_pair(args = cdr(args))) {
         for (/* */; is_pair(cdr(args)); args = cdr(args))
@@ -117,7 +109,7 @@ static Cell syntax_unless(const Symenv& senv, Cell args)
     return none;
 }
 
-static Cell syntax_and(const Symenv& senv, Cell args)
+static Cell _and(const SymenvPtr& senv, Cell args)
 {
     Cell res = true;
 
@@ -132,7 +124,7 @@ static Cell syntax_and(const Symenv& senv, Cell args)
     return res;
 }
 
-static Cell syntax_or(const Symenv& senv, Cell args)
+static Cell _or(const SymenvPtr& senv, Cell args)
 {
     Cell res = false;
 
@@ -146,6 +138,10 @@ static Cell syntax_or(const Symenv& senv, Cell args)
     }
     return res;
 }
+
+} // namespace pscm::syntax
+
+namespace pscm {
 /**
  * @brief Evaluate argument list into an argument vector.
  *
@@ -156,7 +152,7 @@ static Cell syntax_or(const Symenv& senv, Cell args)
  *                        must be nil or an argument list itself.
  * @return Vector of evaluated arguments.
  */
-Cell eval_list(const Symenv& senv, Cell list, bool is_list)
+Cell eval_list(const SymenvPtr& senv, Cell list, bool is_list)
 {
     if (!is_pair(list))
         return nil;
@@ -197,7 +193,7 @@ Cell eval_list(const Symenv& senv, Cell list, bool is_list)
  *                        must be nil or an argument list itself.
  * @return Vector of evaluated arguments.
  */
-static std::vector<Cell> eval_args(const Symenv& senv, Cell args, bool is_list = true)
+static std::vector<Cell> eval_args(const SymenvPtr& senv, Cell args, bool is_list = true)
 {
     std::vector<Cell> vec;
 
@@ -227,7 +223,7 @@ static std::vector<Cell> eval_args(const Symenv& senv, Cell args, bool is_list =
     return vec;
 }
 
-Cell eval(Symenv senv, Cell expr)
+Cell eval(SymenvPtr senv, Cell expr)
 {
     Cell args, proc;
 
@@ -244,7 +240,7 @@ Cell eval(Symenv senv, Cell expr)
                 expr = get<Proc>(proc).expand(expr);
             else {
                 tie(senv, args) = get<Proc>(proc).apply(senv, cdr(expr));
-                expr = syntax_begin(senv, args);
+                expr = syntax::_begin(senv, args);
             }
             continue;
         }
@@ -280,36 +276,36 @@ Cell eval(Symenv senv, Cell expr)
                 expr = get<Proc>(proc).expand(args);
             else {
                 tie(senv, args) = get<Proc>(proc).apply(senv, cdr(args), false);
-                expr = syntax_begin(senv, args);
+                expr = syntax::_begin(senv, args);
             }
             break;
 
         case Intern::_begin:
-            expr = syntax_begin(senv, args);
+            expr = syntax::_begin(senv, args);
             break;
 
         case Intern::_if:
-            expr = syntax_if(senv, args);
+            expr = syntax::_if(senv, args);
             break;
 
         case Intern::_cond:
-            expr = syntax_cond(senv, args);
+            expr = syntax::_cond(senv, args);
             break;
 
         case Intern::_when:
-            expr = syntax_when(senv, args);
+            expr = syntax::_when(senv, args);
             break;
 
         case Intern::_unless:
-            expr = syntax_unless(senv, args);
+            expr = syntax::_unless(senv, args);
             break;
 
         case Intern::_and:
-            expr = syntax_and(senv, args);
+            expr = syntax::_and(senv, args);
             break;
 
         case Intern::_or:
-            expr = syntax_or(senv, args);
+            expr = syntax::_or(senv, args);
             break;
 
         default:
@@ -317,4 +313,32 @@ Cell eval(Symenv senv, Cell expr)
         }
     }
 }
+
+void repl(const SymenvPtr& symenv, std::istream& in, std::ostream& out)
+{
+    SymenvPtr env = senv(symenv);
+    Parser reader;
+    Cell expr;
+
+    for (;;)
+        try {
+            for (;;) {
+                expr = eval(env, reader.parse(in));
+
+                if (is_intern(expr) && get<Intern>(expr) == Intern::op_exit)
+                    return;
+
+                out << expr << std::endl;
+            }
+        } catch (std::bad_variant_access& e) {
+            std::cerr << e.what() << ": " << expr << std::endl;
+
+        } catch (std::out_of_range& e) {
+            std::cerr << e.what() << ": " << expr << std::endl;
+
+        } catch (std::invalid_argument& e) {
+            std::cerr << e.what() << ": " << expr << std::endl;
+        }
+}
+
 } // namespace pscm

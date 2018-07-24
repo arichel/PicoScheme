@@ -10,7 +10,7 @@ namespace pscm {
 
 struct Cell;
 using Symbol = SymbolTable<std::string>::Symbol;
-using Symenv = std::shared_ptr<SymbolEnv<Symbol, Cell>>;
+using SymenvPtr = std::shared_ptr<SymbolEnv<Symbol, Cell>>;
 
 /**
  * @brief Procedure type to represent a scheme closure.
@@ -33,7 +33,7 @@ public:
      * @param args  Formal lambda expression argument list or symbol.
      * @param code  Non empty list of one or more scheme expression forming the lambda body.
      */
-    Proc(const Symenv& senv, const Cell& args, const Cell& code, bool is_macro = false);
+    Proc(const SymenvPtr& senv, const Cell& args, const Cell& code, bool is_macro = false);
     Proc(const Proc& proc);
     Proc(Proc&& proc) noexcept;
     ~Proc();
@@ -61,7 +61,7 @@ public:
      * @return New child environment of the closure parent environment and the closure body
      *         expression list.
      */
-    std::pair<Symenv, Cell> apply(const Symenv& senv, Cell args, bool is_list = true) const;
+    std::pair<SymenvPtr, Cell> apply(const SymenvPtr& senv, Cell args, bool is_list = true) const;
 
     /**
      * @brief Replace expression with the expanded closure macro.
@@ -78,7 +78,7 @@ private:
 /**
  * @brief Conveniance function to call the Proc::apply member function.
  */
-std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list = true);
+std::pair<SymenvPtr, Cell> apply(const SymenvPtr& senv, const Proc& proc, const Cell& args, bool is_list = true);
 
 }; // namespace pscm
 

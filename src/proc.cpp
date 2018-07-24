@@ -37,7 +37,7 @@ static bool is_unique_symbol_list(Cell args)
  */
 struct Proc::Closure {
 
-    Closure(const Symenv& senv, const Cell& args, const Cell& code, bool is_macro)
+    Closure(const SymenvPtr& senv, const Cell& args, const Cell& code, bool is_macro)
         : senv{ senv }
         , args{ args }
         , code{ code }
@@ -54,7 +54,7 @@ struct Proc::Closure {
             && code != impl.code
             && is_macro != impl.is_macro;
     }
-    Symenv senv; //!< Symbol environment pointer.
+    SymenvPtr senv; //!< Symbol environment pointer.
     Cell args; //!< Formal parameter symbol list or single symbol.
     Cell code; //!< Lambda body expression list.
     bool is_macro;
@@ -64,7 +64,7 @@ Proc::Proc(Proc&&) noexcept = default;
 Proc& Proc::operator=(Proc&&) noexcept = default;
 Proc::~Proc() = default;
 
-Proc::Proc(const Symenv& senv, const Cell& args, const Cell& code, bool is_macro)
+Proc::Proc(const SymenvPtr& senv, const Cell& args, const Cell& code, bool is_macro)
     : impl{ std::make_unique<Closure>(senv, args, code, is_macro) }
 {
 }
@@ -104,10 +104,10 @@ bool Proc::operator==(const Proc& proc) const noexcept
  *         requires additional cell-storage to build the evaluated
  *         argument list.
  */
-std::pair<Symenv, Cell> Proc::apply(const Symenv& senv, Cell args, bool is_list) const
+std::pair<SymenvPtr, Cell> Proc::apply(const SymenvPtr& senv, Cell args, bool is_list) const
 {
     // Create a new child environment and set the closure environment as father:
-    Symenv newenv = std::make_shared<Symenv::element_type>(impl->senv);
+    SymenvPtr newenv = std::make_shared<SymenvPtr::element_type>(impl->senv);
 
     Cell iter = impl->args; // closure formal parameter symbol list
 
@@ -148,7 +148,7 @@ Cell Proc::expand(Cell& expr) const
     Cell args = cdr(expr), iter = impl->args; // macro formal parameter symbol list
 
     // Create a new child environment and set the closure environment as father:
-    Symenv newenv = std::make_shared<Symenv::element_type>(impl->senv);
+    SymenvPtr newenv = std::make_shared<SymenvPtr::element_type>(impl->senv);
 
     // Add unevaluated macro parameters to new environment:
     for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
@@ -159,11 +159,11 @@ Cell Proc::expand(Cell& expr) const
 
     // Expand and replace argument expression with evaluated macro:
     set_car(expr, Intern::_begin);
-    set_cdr(expr, args = eval(newenv, syntax_begin(newenv, impl->code)));
+    set_cdr(expr, args = eval(newenv, syntax::_begin(newenv, impl->code)));
     return args;
 }
 
-std::pair<Symenv, Cell> apply(const Symenv& senv, const Proc& proc, const Cell& args, bool is_list)
+std::pair<SymenvPtr, Cell> apply(const SymenvPtr& senv, const Proc& proc, const Cell& args, bool is_list)
 {
     return proc.apply(senv, args, is_list);
 }
