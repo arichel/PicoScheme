@@ -1,7 +1,0 @@
-<map id="cell.hpp" name="cell.hpp">
-<area shape="rect" id="node2" href="$cell_8cpp.html" title="cell.cpp" alt="" coords="5,80,72,107"/>
-<area shape="rect" id="node3" href="$parser_8cpp.html" title="parser.cpp" alt="" coords="96,80,179,107"/>
-<area shape="rect" id="node4" href="$primop_8cpp.html" title="Implementations of some scheme functions as defined in the r7rs reference document. " alt="" coords="203,80,290,107"/>
-<area shape="rect" id="node5" href="$stream_8cpp.html" title="stream.cpp" alt="" coords="314,80,401,107"/>
-<area shape="rect" id="node6" href="$types_8cpp.html" title="types.cpp" alt="" coords="425,80,503,107"/>
-</map>
