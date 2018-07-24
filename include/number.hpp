@@ -55,7 +55,7 @@ struct Number : std::variant<Int, Float, Complex> {
      */
     constexpr Number(Float x)
     {
-        if (x != static_cast<Int>(x))
+        if (x > floor(x) || x < ceil(x))
             *this = base_type{ x };
         else
             *this = static_cast<Int>(x);
@@ -71,7 +71,7 @@ struct Number : std::variant<Int, Float, Complex> {
     template <typename RE, typename IM>
     constexpr Number(RE x, IM y)
     {
-        if (y != Float{ 0 })
+        if (y > IM{ 0 } || y < IM{ 0 })
             *this = base_type{ Complex{ static_cast<Float>(x), static_cast<Float>(y) } };
         else
             *this = Number{ x };
@@ -95,8 +95,8 @@ struct Number : std::variant<Int, Float, Complex> {
                     else if
                         constexpr(std::is_floating_point_v<T>) return static_cast<T>(num);
 
-                    else
-                        return static_cast<T>((typename T::value_type)num);
+                    else // T is Complex:
+                        return static_cast<T>(static_cast<typename T::value_type>(num));
                 }
             else if
                 constexpr(std::is_same_v<TT, Float>)
@@ -104,8 +104,8 @@ struct Number : std::variant<Int, Float, Complex> {
                     if
                         constexpr(std::is_arithmetic_v<T>) return static_cast<T>(num);
 
-                    else
-                        return static_cast<T>((typename T::value_type)num);
+                    else // T is Complex
+                        return static_cast<T>(static_cast<typename T::value_type>(num));
                 }
             else if
                 constexpr(std::is_same_v<TT, Complex>)
@@ -143,10 +143,10 @@ constexpr inline Number operator""_cpx(long double val) { return Number{ 0., sta
 template <typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const Complex& z)
 {
-    if (auto im = z.imag(); im != 0) {
+    if (auto im = z.imag(); im > 0 || im < 0) {
         if (im < 0)
-            return os << z.real() << (im != -1 ? im : '-') << 'i';
-        else if (im != 1)
+            return os << z.real() << (im > -1 || im < -1 ? im : '-') << 'i';
+        else if (im > 1 || im < 1)
             return os << z.real() << '+' << im << 'i';
         else
             return os << z.real() << "+i";

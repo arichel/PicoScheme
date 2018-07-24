@@ -153,7 +153,7 @@ Parser::Token Parser::lex_char(const std::string& str, Char& c) const
     } else if (str.size() > 3 && str[2] == 'x') {
         std::string s{ str.substr(1) };
         s[0] = '0';
-        c = std::stoi(s);
+        c = static_cast<Char>(stoi(s));
         return Token::Char;
     } else
         for (size_t i = 0; i < ntab; ++i)

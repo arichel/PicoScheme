@@ -46,14 +46,14 @@ bool operator!=(const Number& lhs, const Number& rhs)
 
     return visit([](auto x, auto y) {
         if
-            constexpr(std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>) return x != Complex{ (value_type)y, 0 };
+            constexpr(std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>) return x != Complex{ static_cast<value_type>(y), 0 };
 
         else if
-            constexpr(!std::is_same_v<Complex, decltype(x)> && std::is_same_v<Complex, decltype(y)>) return Complex{ (value_type)x, 0 } != y;
+            constexpr(!std::is_same_v<Complex, decltype(x)> && std::is_same_v<Complex, decltype(y)>) return Complex{ static_cast<value_type>(x), 0 } != y;
 
         else {
             using T = std::common_type_t<decltype(x), decltype(y)>;
-            return (T)x != (T)y;
+            return static_cast<T>(x) != static_cast<T>(y);
         }
     },
         static_cast<const Number::base_type&>(lhs), static_cast<const Number::base_type&>(rhs));
@@ -74,10 +74,10 @@ bool operator<(const Number& lhs, const Number& rhs)
             constexpr(!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>)
             {
                 using T = std::common_type_t<decltype(x), decltype(y)>;
-                return (T)x < (T)y;
+                return static_cast<T>(x) < static_cast<T>(y);
             }
         else
-            return (throw std::invalid_argument("uncomparable complex number"), false);
+            return ((void)(throw std::invalid_argument("uncomparable complex number")), false);
     },
         static_cast<const Number::base_type&>(lhs), static_cast<const Number::base_type&>(rhs));
 }
@@ -89,10 +89,10 @@ bool operator>(const Number& lhs, const Number& rhs)
             constexpr(!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>)
             {
                 using T = std::common_type_t<decltype(x), decltype(y)>;
-                return (T)x > (T)y;
+                return static_cast<T>(x) > static_cast<T>(y);
             }
         else
-            return (throw std::invalid_argument("uncomparable complex number"), false);
+            return ((void)(throw std::invalid_argument("uncomparable complex number")), false);
     },
         static_cast<const Number::base_type&>(lhs), static_cast<const Number::base_type&>(rhs));
 }
@@ -104,10 +104,10 @@ bool operator<=(const Number& lhs, const Number& rhs)
             constexpr(!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>)
             {
                 using T = std::common_type_t<decltype(x), decltype(y)>;
-                return (T)x <= (T)y;
+                return static_cast<T>(x) <= static_cast<T>(y);
             }
         else
-            return (throw std::invalid_argument("uncomparable complex number"), false);
+            return ((void)(throw std::invalid_argument("uncomparable complex number")), false);
     },
         static_cast<const Number::base_type&>(lhs), static_cast<const Number::base_type&>(rhs));
 }
@@ -119,23 +119,23 @@ bool operator>=(const Number& lhs, const Number& rhs)
             constexpr(!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>)
             {
                 using T = std::common_type_t<decltype(x), decltype(y)>;
-                return (T)x >= (T)y;
+                return static_cast<T>(x) >= static_cast<T>(y);
             }
         else
-            return (throw std::invalid_argument("uncomparable complex number"), false);
+            return ((void)(throw std::invalid_argument("uncomparable complex number")), false);
     },
         static_cast<const Number::base_type&>(lhs), static_cast<const Number::base_type&>(rhs));
 }
 
 Number inv(const Number& x)
 {
-    x != Number{} || (throw std::invalid_argument("divide by zero"), 0);
+    x != Number{ 0 } || ((void)(throw std::invalid_argument("divide by zero")), 0);
 
     return visit([](auto& x) -> Number {
         if
             constexpr(std::is_same_v<const Complex&, decltype(x)>) return 1 / x;
         else
-            return 1 / (Float)x;
+            return 1 / static_cast<Float>(x);
     },
         static_cast<const Number::base_type&>(x));
 }
@@ -157,14 +157,14 @@ Number operator+(const Number& lhs, const Number& rhs)
 
     constexpr auto fun = overloads{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 + z1; },
-        [](const Complex& z, auto x) -> Number { return z + (value_type)x; },
-        [](auto x, const Complex& z) -> Number { return (value_type)x + z; },
+        [](const Complex& z, auto x) -> Number { return z + static_cast<value_type>(x); },
+        [](auto x, const Complex& z) -> Number { return static_cast<value_type>(x) + z; },
         [](Int i0, Int i1) -> Number {
-            return overflow_add(i0, i1) ? (value_type)i0 + (value_type)i1 : i0 + i1;
+            return overflow_add(i0, i1) ? static_cast<value_type>(i0) + static_cast<value_type>(i1) : i0 + i1;
         },
         [](auto x, auto y) -> Number {
             using T = std::common_type_t<decltype(x), decltype(y)>;
-            return (T)x + (T)y;
+            return static_cast<T>(x) + static_cast<T>(y);
         }
     };
     return visit(std::move(fun),
@@ -183,12 +183,12 @@ Number operator-(const Number& lhs, const Number& rhs)
 
     auto fun = overloads{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 - z1; },
-        [](const Complex& z, auto x) -> Number { return z - (value_type)x; },
-        [](auto x, const Complex& z) -> Number { return (value_type)x - z; },
-        [](Int i0, Int i1) -> Number { return overflow_sub(i0, i1) ? (value_type)i0 - (value_type)i1 : i0 - i1; },
+        [](const Complex& z, auto x) -> Number { return z - static_cast<value_type>(x); },
+        [](auto x, const Complex& z) -> Number { return static_cast<value_type>(x) - z; },
+        [](Int i0, Int i1) -> Number { return overflow_sub(i0, i1) ? static_cast<value_type>(i0) - static_cast<value_type>(i1) : i0 - i1; },
         [](auto x, auto y) -> Number {
             using T = std::common_type_t<decltype(x), decltype(y)>;
-            return (T)x - (T)y;
+            return static_cast<T>(x) - static_cast<T>(y);
         }
     };
     return visit(std::move(fun),
@@ -205,11 +205,11 @@ Number operator*(const Number& lhs, const Number& rhs)
 
     auto fun = overloads{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 * z1; },
-        [](const Complex& z, auto x) -> Number { return z * (value_type)x; },
-        [](auto x, const Complex& z) -> Number { return (value_type)x * z; },
+        [](const Complex& z, auto x) -> Number { return z * static_cast<value_type>(x); },
+        [](auto x, const Complex& z) -> Number { return static_cast<value_type>(x) * z; },
         [](auto x, auto y) -> Number {
             using T = std::common_type_t<decltype(x), decltype(y)>;
-            return (T)x * (T)y;
+            return static_cast<T>(x) * static_cast<T>(y);
         }
     };
     return visit(std::move(fun),
@@ -224,16 +224,16 @@ Number operator/(const Number& lhs, const Number& rhs)
 {
     using value_type = Complex::value_type;
 
-    rhs != Number{} || (throw std::invalid_argument("divide by zero"), 0);
+    rhs != Number{ 0 } || ((void)(throw std::invalid_argument("divide by zero")), 0);
 
     auto fun = overloads{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 / z1; },
-        [](const Complex& z, auto x) -> Number { return z / (value_type)x; },
-        [](auto x, const Complex& z) -> Number { return (value_type)x / z; },
-        [](Int x, Int y) -> Number { return x / (value_type)y; },
+        [](const Complex& z, auto x) -> Number { return z / static_cast<value_type>(x); },
+        [](auto x, const Complex& z) -> Number { return static_cast<value_type>(x) / z; },
+        [](Int x, Int y) -> Number { return x / static_cast<value_type>(y); },
         [](auto x, auto y) -> Number {
             using T = std::common_type_t<decltype(x), decltype(y)>;
-            return (T)x / (T)y;
+            return static_cast<T>(x) / static_cast<T>(y);
         }
     };
     return visit(std::move(fun),

@@ -54,6 +54,11 @@ int main()
     //    return 0;
 
     try {
+        Number x = 3, z = { 3, 0 };
+
+        cout << x << " " << z << " : " << (z != x) << endl;
+        return 0;
+
         Symenv e = senv();
         //        Cell list = cons(Intern::_quote, cons(pscm::list(num(1), num(2), num(3)), nil));
         //        Cell expr = pscm::list(Intern::op_listref, list, num(1.));

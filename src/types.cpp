@@ -179,7 +179,7 @@ String str(const Char* s)
     return std::make_shared<String::element_type>(s);
 }
 
-VectorPtr vec(Number size = 0, const Cell& val = none)
+VectorPtr vec(Number size, const Cell& val)
 {
     using size_type = VectorPtr::element_type::size_type;
 

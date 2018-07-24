@@ -39,21 +39,6 @@ static void argn(const varg& args, size_t n, size_t max = 0)
         throw std::invalid_argument("invalid number of arguments");
 }
 
-static Cell fun_list(const varg& args)
-{
-    Cell list = nil;
-
-    if (args.size()) {
-        list = cons(args.front(), nil);
-
-        Cell tail = list;
-
-        for (auto iter = ++args.begin(); iter != args.end(); ++iter, tail = cdr(tail))
-            set_cdr(tail, cons(*iter, nil));
-    }
-    return list;
-}
-
 static Cell fun_booleq(const varg& args)
 {
     argn(args, 2, ~size_t{ 0 });
@@ -219,6 +204,33 @@ static Cell fun_write(const varg& args)
     return none;
 }
 
+/**
+ * @brief Scheme @em list function.
+ * @verbatim
+ *   (list [arg_0 ... arg_n]) => nil | (arg_0 ... arg_n)
+ * @endverbatim
+ */
+static Cell fun_list(const varg& args)
+{
+    Cell list = nil;
+
+    if (args.size()) {
+        list = cons(args.front(), nil);
+
+        Cell tail = list;
+
+        for (auto iter = ++args.begin(); iter != args.end(); ++iter, tail = cdr(tail))
+            set_cdr(tail, cons(*iter, nil));
+    }
+    return list;
+}
+
+/**
+ * @brief Scheme @em append function.
+ * @verbatim
+ *   (append [list_0 list_1 ... expr]) => nil | expr | (list_0 . list_1 ... . expr)
+ * @endverbatim
+ */
 static Cell fun_append(const varg& args)
 {
     if (!args.size())
@@ -229,6 +241,7 @@ static Cell fun_append(const varg& args)
 
     Cell head = args.back(), tail = nil;
 
+    // Append each list:
     for (size_t i = 0; i < args.size() - 1; ++i) {
         for (Cell list = args[i]; is_pair(list); list = cdr(list)) {
             if (is_nil(tail)) {
@@ -240,12 +253,19 @@ static Cell fun_append(const varg& args)
             }
         }
     }
+    // Append last expression
     if (is_pair(tail))
         set_cdr(tail, args.back());
 
     return head;
 }
 
+/**
+ * @brief Scheme @em make-list function.
+ * @verbatim
+ *   (make-list len [fill = none]) => (fill ... fill)
+ * @endverbatim
+ */
 static Cell fun_makelist(const varg& args)
 {
     Int size = get<Int>(get<Number>(args.at(0)));
@@ -264,6 +284,12 @@ static Cell fun_makelist(const varg& args)
     return head;
 }
 
+/**
+ * @brief Scheme @em reverse list function.
+ * @verbatim
+ *   (reverse (list 1 2 ... n)) => (n n-1 ... 2 1)
+ * @endverbatim
+ */
 static Cell fun_reverse(const varg& args)
 {
     Cell list = args.at(0), head = nil;
@@ -274,6 +300,9 @@ static Cell fun_reverse(const varg& args)
     return head;
 }
 
+/**
+ * @brief Scheme inplace @em reverse! list function.
+ */
 static Cell fun_reverseb(const varg& args)
 {
     Cell list = args.at(0), head = nil;
@@ -285,6 +314,12 @@ static Cell fun_reverseb(const varg& args)
     return head;
 }
 
+/**
+ * @brief Scheme @em list-ref function.
+ * @verbatim
+ *   (list-ref '(x0 x1 x2 ... xn) 2) => x2
+ * @endverbatim
+ */
 static Cell fun_listref(const varg& args)
 {
     Int k = get<Int>(get<Number>(args.at(1)));
@@ -297,6 +332,12 @@ static Cell fun_listref(const varg& args)
     return car(list);
 }
 
+/**
+ * @brief Scheme @em list-set! function.
+ * @verbatim
+ *   (list-set! '(x0 x1 x2 ... xn) 2 'z2) => (x0 x1 z2 ... xn)
+ * @endverbatim
+ */
 static Cell fun_listsetb(const varg& args)
 {
     Int k = get<Int>(get<Number>(args.at(1)));
@@ -310,33 +351,39 @@ static Cell fun_listsetb(const varg& args)
     return none;
 }
 
-static Cell fun_make_vector(const varg& args)
-{
-    const Number& size = get<Number>(args.at(0));
-
-    (is_int(size) && !is_negative(size))
-        || ((void)(throw std::invalid_argument("vector length must be a non-negative integer")), 0);
-
-    return vec(size, args.size() > 1 ? args[1] : Cell{ none });
-}
-
+/**
+ * @brief Scheme @em vector-ref function.
+ * @verbatim
+ *   (vector-ref #(x0 x1 x2 ... xn) 2) => x2)
+ * @endverbatim
+ */
 static Cell fun_vector_ref(const varg& args)
 {
     using size_type = VectorPtr::element_type::size_type;
-
     auto pos = static_cast<size_type>(get<Int>(get<Number>(args.at(1))));
     return get<VectorPtr>(args[0])->at(pos);
 }
 
+/**
+ * @brief Scheme @em vector-set! function.
+ * @verbatim
+ *   (vector-set! #(x0 x1 x2 ... xn) 2 'z2) => #(x0 x1 z2 ... xn)
+ * @endverbatim
+ */
 static Cell fun_vector_setb(const varg& args)
 {
     using size_type = VectorPtr::element_type::size_type;
-
     auto pos = static_cast<size_type>(get<Int>(get<Number>(args.at(1))));
     get<VectorPtr>(args[0])->at(pos) = args.at(2);
     return none;
 }
 
+/**
+ * @brief Scheme @em list->vector function.
+ * @verbatim
+ *   (list->vector '(x0 x1 x2 ... xn)) => #(x0 x1 x2 ... xn)
+ * @endverbatim
+ */
 static Cell fun_list2vec(const varg& args)
 {
     Cell list = args.at(0);
@@ -349,6 +396,12 @@ static Cell fun_list2vec(const varg& args)
     return v;
 }
 
+/**
+ * @brief Scheme @em vector->list function.
+ * @verbatim
+ *   (vector->list  #(x0 x1 x2 ... xn) [pos [end]]) => '(x0 x1 x2 ... xn)
+ * @endverbatim
+ */
 static Cell fun_vec2list(const varg& args)
 {
     using size_type = VectorPtr::element_type::difference_type;
@@ -373,6 +426,12 @@ static Cell fun_vec2list(const varg& args)
     return list;
 }
 
+/**
+ * @brief Scheme @em vector-copy function.
+ * @verbatim
+ *   (vector-copy #(x0 x1 x2 ... xn) [pos [end]]) => #(x0 x1 x2 ... xn)
+ * @endverbatim
+ */
 static Cell fun_vec_copy(const varg& args)
 {
     using size_type = VectorPtr::element_type::difference_type;
@@ -388,6 +447,12 @@ static Cell fun_vec_copy(const varg& args)
     return std::make_shared<VectorPtr::element_type>(v->begin() + pos, v->begin() + end);
 }
 
+/**
+ * @brief Scheme inplace @em vector-copy! function.
+ * @verbatim
+ *   (vector-copy! vec-dest idx vec-source [pos [end]]) => vec-dest
+ * @endverbatim
+ */
 static Cell fun_vec_copyb(const varg& args)
 {
     using size_type = VectorPtr::element_type::difference_type;
@@ -407,6 +472,12 @@ static Cell fun_vec_copyb(const varg& args)
     return dst;
 }
 
+/**
+ * @brief Scheme inplace @em vector-fill! function.
+ * @verbatim
+ *   (vector-fill! vec value [pos [end]]) => vec
+ * @endverbatim
+ */
 static Cell fun_vec_fillb(const varg& args)
 {
     using size_type = VectorPtr::element_type::difference_type;
@@ -423,6 +494,12 @@ static Cell fun_vec_fillb(const varg& args)
     return vec;
 }
 
+/**
+ * @brief Scheme inplace @em vector-append function.
+ * @verbatim
+ *   (vector-append vec_0 vec_1 ... vec_n) => vec := {vec_0, vec_1, ..., vec_n}
+ * @endverbatim
+ */
 static Cell fun_vec_append(const varg& args)
 {
     VectorPtr vec = get<VectorPtr>(args.at(0));
@@ -706,7 +783,7 @@ Cell call(const Symenv& senv, Intern primop, const varg& args)
     case Intern::op_isvec:
         return is_type<VectorPtr>(args.at(0));
     case Intern::op_mkvec:
-        return fun_make_vector(args);
+        return args.size() > 1 ? vec(args[0], args[1]) : vec(args.at(0), none);
     case Intern::op_vec:
         return std::make_shared<VectorPtr::element_type>(args);
     case Intern::op_veclen:
