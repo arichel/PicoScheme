@@ -23,8 +23,8 @@ using varg = std::vector<pscm::Cell>;
 namespace pscm::primop {
 
 /**
-     * Scheme @em boolean=? predicate function
-     */
+ * Scheme @em boolean=? predicate function
+ */
 static Cell booleq(const varg& args)
 {
     if (!is_bool(args.at(0)))
@@ -40,8 +40,8 @@ static Cell booleq(const varg& args)
 }
 
 /**
-     * Scheme number equality = predicate function.
-     */
+ * Scheme number equality = predicate function.
+ */
 static Cell numeq(const varg& args)
 {
     if (args.at(0) != args.at(1))
@@ -56,8 +56,8 @@ static Cell numeq(const varg& args)
 }
 
 /**
-     * Scheme number lower then < predicate function
-     */
+ * Scheme number lower then < predicate function
+ */
 static Cell numlt(const varg& args)
 {
     auto lhs = get<Number>(args.at(0)), rhs = get<Number>(args.at(1));
@@ -76,8 +76,8 @@ static Cell numlt(const varg& args)
 }
 
 /**
-     * Scheme number greater then > predicate function.
-     */
+ * Scheme number greater then > predicate function.
+ */
 static Cell numgt(const varg& args)
 {
     auto lhs = get<Number>(args.at(0)), rhs = get<Number>(args.at(1));
@@ -96,8 +96,8 @@ static Cell numgt(const varg& args)
 }
 
 /**
-     * Scheme number lower equal <= predicate function.
-     */
+ * Scheme number lower equal <= predicate function.
+ */
 static Cell numle(const varg& args)
 {
     auto rhs = get<Number>(args.at(1)), lhs = get<Number>(args[0]);
@@ -116,8 +116,8 @@ static Cell numle(const varg& args)
 }
 
 /**
-     * Scheme number greater equal >= predicate function.
-     */
+ * Scheme number greater equal >= predicate function.
+ */
 static Cell numge(const varg& args)
 {
     auto rhs = get<Number>(args.at(1)), lhs = get<Number>(args[0]);
@@ -136,8 +136,8 @@ static Cell numge(const varg& args)
 }
 
 /**
-     * Scheme number addition + operator function.
-     */
+ * Scheme number addition + operator function.
+ */
 static Cell add(const varg& args)
 {
     Number res = 0;
@@ -149,8 +149,8 @@ static Cell add(const varg& args)
 }
 
 /**
-     * Scheme number substraction - operator function.
-     */
+ * Scheme number substraction - operator function.
+ */
 static Cell sub(const varg& args)
 {
     auto res = args.size() > 1 ? get<Number>(args.at(0)) : -get<Number>(args.at(0));
@@ -161,8 +161,8 @@ static Cell sub(const varg& args)
     return res;
 }
 /**
-     * Scheme number multiplication * operator function.
-     */
+ * Scheme number multiplication * operator function.
+ */
 static Cell mul(const varg& args)
 {
     Number res = 1;
@@ -174,8 +174,8 @@ static Cell mul(const varg& args)
 }
 
 /**
-     * Scheme number division / operator function.
-     */
+ * Scheme number division / operator function.
+ */
 static Cell div(const varg& args)
 {
     auto res = args.size() > 1 ? get<Number>(args[0]) : inv(get<Number>(args.at(0)));
@@ -187,8 +187,8 @@ static Cell div(const varg& args)
 }
 
 /**
-     * Scheme logarithm @em log function.
-     */
+ * Scheme logarithm @em log function.
+ */
 static Cell log(const varg& args)
 {
     if (args.size() < 2)
@@ -202,8 +202,8 @@ static Cell log(const varg& args)
 }
 
 /**
-     * Scheme output @em write function.
-     */
+ * Scheme output @em write function.
+ */
 static Cell write(const varg& args)
 {
     if (args.size() > 1) {
@@ -217,9 +217,9 @@ static Cell write(const varg& args)
 }
 
 /**
-     * Scheme @em list function.
-     * @verbatim (list [arg_0 ... arg_n]) => nil | (arg_0 ... arg_n) @endverbatim
-     */
+ * Scheme @em list function.
+ * @verbatim (list [arg_0 ... arg_n]) => nil | (arg_0 ... arg_n) @endverbatim
+ */
 static Cell list(const varg& args)
 {
     Cell list = nil;
@@ -236,9 +236,9 @@ static Cell list(const varg& args)
 }
 
 /**
-     * Scheme list @em append function.
-     * @verbatim (append [list_0 list_1 ... expr]) => nil | expr | (list_0 . list_1 ... . expr) @endverbatim
-     */
+ * Scheme list @em append function.
+ * @verbatim (append [list_0 list_1 ... expr]) => nil | expr | (list_0 . list_1 ... . expr) @endverbatim
+ */
 static Cell append(const varg& args)
 {
     if (!args.size())
@@ -269,9 +269,9 @@ static Cell append(const varg& args)
 }
 
 /**
-     * @brief Scheme @em make-list function.
-     * @verbatim (make-list len [fill = none]) => (fill ... fill) @endverbatim
-     */
+ * @brief Scheme @em make-list function.
+ * @verbatim (make-list len [fill = none]) => (fill ... fill) @endverbatim
+ */
 static Cell makelist(const varg& args)
 {
     Int size = get<Int>(get<Number>(args.at(0)));
@@ -291,9 +291,9 @@ static Cell makelist(const varg& args)
 }
 
 /**
-     * Scheme @em reverse list function.
-     * @verbatim (reverse (list 1 2 ... n)) => (n n-1 ... 2 1) @endverbatim
-     */
+ * Scheme @em reverse list function.
+ * @verbatim (reverse (list 1 2 ... n)) => (n n-1 ... 2 1) @endverbatim
+ */
 static Cell reverse(const varg& args)
 {
     Cell list = args.at(0), head = nil;
@@ -305,8 +305,8 @@ static Cell reverse(const varg& args)
 }
 
 /**
-     * Scheme inplace @em reverse! list function.
-     */
+ * Scheme inplace @em reverse! list function.
+ */
 static Cell reverseb(const varg& args)
 {
     Cell list = args.at(0), head = nil;
@@ -319,9 +319,9 @@ static Cell reverseb(const varg& args)
 }
 
 /**
-     * Scheme @em list-ref function.
-     * @verbatim (list-ref '(x0 x1 x2 ... xn) 2) => x2 @endverbatim
-     */
+ * Scheme @em list-ref function.
+ * @verbatim (list-ref '(x0 x1 x2 ... xn) 2) => x2 @endverbatim
+ */
 static Cell listref(const varg& args)
 {
     Int k = get<Int>(get<Number>(args.at(1)));
@@ -335,9 +335,9 @@ static Cell listref(const varg& args)
 }
 
 /**
-     * @brief Scheme @em list-set! function.
-     * @verbatim (list-set! '(x0 x1 x2 ... xn) 2 'z2) => (x0 x1 z2 ... xn) @endverbatim
-     */
+ * @brief Scheme @em list-set! function.
+ * @verbatim (list-set! '(x0 x1 x2 ... xn) 2 'z2) => (x0 x1 z2 ... xn) @endverbatim
+ */
 static Cell listsetb(const varg& args)
 {
     Int k = get<Int>(get<Number>(args.at(1)));
@@ -352,9 +352,9 @@ static Cell listsetb(const varg& args)
 }
 
 /**
-     * @brief Scheme @em vector-ref function.
-     * @verbatim (vector-ref #(x0 x1 x2 ... xn) 2) => x2) @endverbatim
-     */
+ * @brief Scheme @em vector-ref function.
+ * @verbatim (vector-ref #(x0 x1 x2 ... xn) 2) => x2) @endverbatim
+ */
 static Cell vector_ref(const varg& args)
 {
     using size_type = VectorPtr::element_type::size_type;
@@ -363,9 +363,9 @@ static Cell vector_ref(const varg& args)
 }
 
 /**
-     * @brief Scheme @em vector-set! function.
-     * @verbatim (vector-set! #(x0 x1 x2 ... xn) 2 'z2) => #(x0 x1 z2 ... xn) @endverbatim
-     */
+ * @brief Scheme @em vector-set! function.
+ * @verbatim (vector-set! #(x0 x1 x2 ... xn) 2 'z2) => #(x0 x1 z2 ... xn) @endverbatim
+ */
 static Cell vector_setb(const varg& args)
 {
     using size_type = VectorPtr::element_type::size_type;
@@ -375,9 +375,9 @@ static Cell vector_setb(const varg& args)
 }
 
 /**
-     * Scheme @em list->vector function.
-     * @verbatim (list->vector '(x0 x1 x2 ... xn)) => #(x0 x1 x2 ... xn) @endverbatim
-     */
+ * Scheme @em list->vector function.
+ * @verbatim (list->vector '(x0 x1 x2 ... xn)) => #(x0 x1 x2 ... xn) @endverbatim
+ */
 static Cell list2vec(const varg& args)
 {
     Cell list = args.at(0);
@@ -391,9 +391,9 @@ static Cell list2vec(const varg& args)
 }
 
 /**
-     * Scheme @em vector->list function.
-     * @verbatim (vector->list  #(x0 x1 x2 ... xn) [pos [end]]) => '(x0 x1 x2 ... xn)  @endverbatim
-     */
+ * Scheme @em vector->list function.
+ * @verbatim (vector->list  #(x0 x1 x2 ... xn) [pos [end]]) => '(x0 x1 x2 ... xn)  @endverbatim
+ */
 static Cell vec2list(const varg& args)
 {
     using size_type = VectorPtr::element_type::difference_type;
@@ -419,9 +419,9 @@ static Cell vec2list(const varg& args)
 }
 
 /**
-     * Scheme @em vector-copy function.
-     * @verbatim (vector-copy #(x0 x1 x2 ... xn) [pos [end]]) => #(x0 x1 x2 ... xn) @endverbatim
-     */
+ * Scheme @em vector-copy function.
+ * @verbatim (vector-copy #(x0 x1 x2 ... xn) [pos [end]]) => #(x0 x1 x2 ... xn) @endverbatim
+ */
 static Cell vec_copy(const varg& args)
 {
     using size_type = VectorPtr::element_type::difference_type;
@@ -438,9 +438,9 @@ static Cell vec_copy(const varg& args)
 }
 
 /**
-     * Scheme inplace @em vector-copy! function.
-     * @verbatim (vector-copy! vec-dest idx vec-source [pos [end]]) => vec-dest @endverbatim
-     */
+ * Scheme inplace @em vector-copy! function.
+ * @verbatim (vector-copy! vec-dest idx vec-source [pos [end]]) => vec-dest @endverbatim
+ */
 static Cell vec_copyb(const varg& args)
 {
     using size_type = VectorPtr::element_type::difference_type;
@@ -461,9 +461,9 @@ static Cell vec_copyb(const varg& args)
 }
 
 /**
-     * Scheme inplace @em vector-fill! function.
-     * @verbatim (vector-fill! vec value [pos [end]]) => vec @endverbatim
-     */
+ * Scheme inplace @em vector-fill! function.
+ * @verbatim (vector-fill! vec value [pos [end]]) => vec @endverbatim
+ */
 static Cell vec_fillb(const varg& args)
 {
     using size_type = VectorPtr::element_type::difference_type;
@@ -481,9 +481,9 @@ static Cell vec_fillb(const varg& args)
 }
 
 /**
-     * Scheme inplace @em vector-append function.
-     * @verbatim (vector-append vec_0 vec_1 ... vec_n) => vec := {vec_0, vec_1, ..., vec_n} @endverbatim
-     */
+ * Scheme inplace @em vector-append function.
+ * @verbatim (vector-append vec_0 vec_1 ... vec_n) => vec := {vec_0, vec_1, ..., vec_n} @endverbatim
+ */
 static Cell vec_append(const varg& args)
 {
     VectorPtr vec = get<VectorPtr>(args.at(0));

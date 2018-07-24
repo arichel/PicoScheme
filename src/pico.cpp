@@ -25,9 +25,8 @@ int main()
     //    return 0;
 
     try {
-        Number x = 3, z = { 3, 0 };
 
-        cout << x << " " << z << " : " << (z != x) << endl;
+        cout << sizeof(Proc) << ' ' << sizeof(Number) << ' ' << sizeof(Port) << endl;
         return 0;
 
         SymenvPtr e = senv();

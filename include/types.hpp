@@ -21,7 +21,7 @@ using Cons = std::pair<Cell, Cell>;
 using StringPtr = std::shared_ptr<std::basic_string<Char>>;
 using VectorPtr = std::shared_ptr<std::vector<Cell>>;
 
-using Variant = std::variant<None, Nil, Bool, Char, Number, Intern, Cons*,
+using Variant = std::variant<None, Nil, Intern, Bool, Char, Number, Cons*,
     StringPtr, VectorPtr, Port, Symbol, SymenvPtr, Proc>;
 
 enum class Intern {
