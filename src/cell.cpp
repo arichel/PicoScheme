@@ -46,7 +46,7 @@ bool is_equal(const Cell& lhs, const Cell& rhs)
         return false;
 
     auto test = overloads{
-        [](const String& lhs, const String& rhs) -> bool { return *lhs == *rhs; },
+        [](const StringPtr& lhs, const StringPtr& rhs) -> bool { return *lhs == *rhs; },
         [](const VectorPtr& lhs, const VectorPtr& rhs) -> bool { return lhs == rhs || *lhs == *rhs; },
         [](Cons* lhs, Cons* rhs) -> bool { return is_list_equal(lhs, rhs); },
         [](auto&, auto&) -> bool { return false; }

@@ -15,11 +15,11 @@ namespace pscm {
 static constexpr size_t dflt_bucket_count = 1024; //<! Initial default hash table bucket count.
 
 //! Global scheme symbol table:
-static SymbolTable<String::element_type> symtab(dflt_bucket_count);
+static SymbolTable<StringPtr::element_type> symtab(dflt_bucket_count);
 
 //! Top environment, initialized with internal scheme symbols:
-static Symenv topenv{
-    new Symenv::element_type{
+static SymenvPtr topenv{
+    new SymenvPtr::element_type{
         { sym("#t"), true },
         { sym("#true"), true },
         { sym("#f"), false },
@@ -169,14 +169,14 @@ Symbol sym(const char* name)
     return symtab[name];
 }
 
-Symenv senv(const Symenv& env)
+SymenvPtr senv(const SymenvPtr& env)
 {
-    return std::make_shared<Symenv::element_type>(env ? env : topenv);
+    return std::make_shared<SymenvPtr::element_type>(env ? env : topenv);
 }
 
-String str(const Char* s)
+StringPtr str(const Char* s)
 {
-    return std::make_shared<String::element_type>(s);
+    return std::make_shared<StringPtr::element_type>(s);
 }
 
 VectorPtr vec(Number size, const Cell& val)
