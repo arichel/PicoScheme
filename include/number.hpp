@@ -10,6 +10,7 @@
 #define NUMBER_HPP
 
 #include <complex>
+#include <iostream>
 #include <variant>
 
 #include "utils.hpp"
@@ -19,6 +20,9 @@ namespace pscm {
 using Int = int64_t;
 using Float = double;
 using Complex = std::complex<double>;
+
+template <typename T>
+struct Type;
 
 /**
  * @brief Number struct as union of integer, floating point and complex numbers.
@@ -40,13 +44,6 @@ struct Number : std::variant<Int, Float, Complex> {
     Number(const Number&) = default;
     Number& operator=(const Number&) = default;
     Number& operator=(Number&&) = default;
-
-    template <typename T>
-    Number& operator=(T&& x)
-    {
-        *this = Number{ x };
-        return *this;
-    }
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     constexpr Number(T x)
@@ -84,7 +81,7 @@ struct Number : std::variant<Int, Float, Complex> {
      * @brief Conversion operator to convert a Number type to the requested arithmetic or complex type.
      */
     template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> || std::is_same_v<T, Complex>>>
-    constexpr operator T() const noexcept
+    explicit constexpr operator T() const noexcept
     {
         auto fun = [](auto& num) -> T {
             using TT = std::decay_t<decltype(num)>;

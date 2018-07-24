@@ -278,7 +278,7 @@ Number& operator/=(Number& lhs, const Number& rhs)
  */
 Number sin(const Number& x)
 {
-    return is_complex(x) ? std::sin(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::sin(static_cast<Complex>(x))
                          : std::sin(static_cast<Float>(x));
 }
 
@@ -287,7 +287,7 @@ Number sin(const Number& x)
  */
 Number cos(const Number& x)
 {
-    return is_complex(x) ? std::cos(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::cos(static_cast<Complex>(x))
                          : std::cos(static_cast<Float>(x));
 }
 
@@ -296,7 +296,7 @@ Number cos(const Number& x)
  */
 Number tan(const Number& x)
 {
-    return is_complex(x) ? std::tan(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::tan(static_cast<Complex>(x))
                          : std::tan(static_cast<Float>(x));
 }
 
@@ -305,7 +305,7 @@ Number tan(const Number& x)
  */
 Number asin(const Number& x)
 {
-    return is_type<Complex>(x) ? std::asin(static_cast<const Complex&>(x))
+    return is_type<Complex>(x) ? std::asin(static_cast<Complex>(x))
                                : std::asin(static_cast<Float>(x));
 }
 
@@ -314,7 +314,7 @@ Number asin(const Number& x)
  */
 Number acos(const Number& x)
 {
-    return is_complex(x) ? std::acos(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::acos(static_cast<Complex>(x))
                          : std::acos(static_cast<Float>(x));
 }
 
@@ -323,7 +323,7 @@ Number acos(const Number& x)
  */
 Number atan(const Number& x)
 {
-    return is_complex(x) ? std::atan(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::atan(static_cast<Complex>(x))
                          : std::atan(static_cast<Float>(x));
 }
 
@@ -332,7 +332,7 @@ Number atan(const Number& x)
  */
 Number sinh(const Number& x)
 {
-    return is_complex(x) ? std::sinh(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::sinh(static_cast<Complex>(x))
                          : std::sinh(static_cast<Float>(x));
 }
 
@@ -341,7 +341,7 @@ Number sinh(const Number& x)
  */
 Number cosh(const Number& x)
 {
-    return is_complex(x) ? std::cosh(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::cosh(static_cast<Complex>(x))
                          : std::cosh(static_cast<Float>(x));
 }
 
@@ -350,7 +350,7 @@ Number cosh(const Number& x)
  */
 Number tanh(const Number& x)
 {
-    return is_complex(x) ? std::tanh(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::tanh(static_cast<Complex>(x))
                          : std::tanh(static_cast<Float>(x));
 }
 
@@ -359,7 +359,7 @@ Number tanh(const Number& x)
  */
 Number asinh(const Number& x)
 {
-    return is_complex(x) ? std::asinh(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::asinh(static_cast<Complex>(x))
                          : std::asinh(static_cast<Float>(x));
 }
 
@@ -368,7 +368,7 @@ Number asinh(const Number& x)
  */
 Number acosh(const Number& x)
 {
-    return is_complex(x) ? std::acosh(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::acosh(static_cast<Complex>(x))
                          : std::acosh(static_cast<Float>(x));
 }
 
@@ -377,7 +377,7 @@ Number acosh(const Number& x)
  */
 Number atanh(const Number& x)
 {
-    return is_complex(x) ? std::atanh(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::atanh(static_cast<Complex>(x))
                          : std::atanh(static_cast<Float>(x));
 }
 
@@ -386,7 +386,7 @@ Number atanh(const Number& x)
  */
 Number exp(const Number& x)
 {
-    return is_complex(x) ? std::exp(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::exp(static_cast<Complex>(x))
                          : std::exp(static_cast<Float>(x));
 }
 
@@ -395,7 +395,7 @@ Number exp(const Number& x)
  */
 Number log(const Number& x)
 {
-    return is_complex(x) ? std::log(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::log(static_cast<Complex>(x))
                          : std::log(static_cast<Float>(x));
 }
 
@@ -404,7 +404,7 @@ Number log(const Number& x)
  */
 Number log10(const Number& x)
 {
-    return is_complex(x) ? std::log10(static_cast<const Complex&>(x))
+    return is_complex(x) ? std::log10(static_cast<Complex>(x))
                          : std::log10(static_cast<Float>(x));
 }
 
@@ -413,7 +413,7 @@ Number log10(const Number& x)
  */
 Number sqrt(const Number& x)
 {
-    return is_complex(x) || x < Number{ 0 } ? std::sqrt(static_cast<const Complex&>(x))
+    return is_complex(x) || x < Number{ 0 } ? std::sqrt(static_cast<Complex>(x))
                                             : std::sqrt(static_cast<Float>(x));
 }
 
@@ -422,7 +422,7 @@ Number sqrt(const Number& x)
  */
 Number pow(const Number& x, const Number& y)
 {
-    return is_complex(x) || is_complex(y) ? std::pow(static_cast<const Complex&>(x), static_cast<const Complex&>(y))
+    return is_complex(x) || is_complex(y) ? std::pow(static_cast<Complex>(x), static_cast<Complex>(y))
                                           : std::pow(static_cast<Float>(x), static_cast<Float>(y));
 }
 
@@ -431,7 +431,7 @@ Number pow(const Number& x, const Number& y)
  */
 Number real(const Number& z)
 {
-    return static_cast<const Complex&>(z).real();
+    return static_cast<Complex>(z).real();
 }
 
 /**
@@ -440,7 +440,7 @@ Number real(const Number& z)
  */
 Number imag(const Number& z)
 {
-    return static_cast<const Complex&>(z).imag();
+    return static_cast<Complex>(z).imag();
 }
 
 Number rect(const Number& x, const Number& y)
@@ -458,12 +458,12 @@ Number polar(const Number& r, const Number& theta)
 
 Number arg(const Number& z)
 {
-    return std::arg(static_cast<const Complex&>(z));
+    return std::arg(static_cast<Complex>(z));
 }
 
 Number conj(const Number& z)
 {
-    return std::conj(static_cast<const Complex&>(z));
+    return std::conj(static_cast<Complex>(z));
 }
 
 Number abs(const Number& x)

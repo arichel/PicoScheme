@@ -18,8 +18,6 @@ namespace pscm {
 
 struct Cell;
 
-//std::ostream& operator<<(std::ostream& os, const Cell& cell);
-
 class Parser {
 
 public:

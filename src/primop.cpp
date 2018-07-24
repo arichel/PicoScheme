@@ -322,51 +322,19 @@ static Cell fun_make_vector(const varg& args)
 
 static Cell fun_vector_ref(const varg& args)
 {
-    const Number& pos = get<Number>(args.at(1));
+    using size_type = VectorPtr::element_type::size_type;
 
-    (is_int(pos) && !is_negative(pos))
-        || ((void)(throw std::invalid_argument("vector position must be a non-negative integer")), 0);
-
-    return std::get<VectorPtr>(args[0])->at(pos);
+    auto pos = static_cast<size_type>(get<Int>(get<Number>(args.at(1))));
+    return get<VectorPtr>(args[0])->at(pos);
 }
 
 static Cell fun_vector_setb(const varg& args)
 {
-    argn(args, 3);
-    auto pos = get<Number>(args[1]);
+    using size_type = VectorPtr::element_type::size_type;
 
-    (is_int(pos) && !is_negative(pos))
-        || ((void)(throw std::invalid_argument("vector position must be a non-negative integer")), 0);
-
-    std::get<VectorPtr>(args[0])->at(pos) = args[2];
+    auto pos = static_cast<size_type>(get<Int>(get<Number>(args.at(1))));
+    get<VectorPtr>(args[0])->at(pos) = args.at(2);
     return none;
-}
-
-static Cell fun_vec2list(const varg& args)
-{
-    argn(args, 1, 3);
-
-    const VectorPtr& vec = get<VectorPtr>(args[0]);
-
-    Number pos = args.size() > 1 ? get<Number>(args[1]) : Number{ 0 },
-           end = args.size() > 2 ? get<Number>(args[2]) : Number{ vec->size() };
-
-    (is_int(pos) && !is_negative(pos) && pos <= end)
-        || ((void)(throw std::invalid_argument("invalid first vector index")), 0);
-
-    (is_int(end) && !is_negative(end) && end <= Number{ vec->size() })
-        || ((void)(throw std::invalid_argument("invalid second vector index")), 0);
-
-    if (!vec->size())
-        return nil;
-
-    Cell list = cons(vec->at(pos), nil), tail = list;
-
-    std::for_each(vec->begin() + pos + 1, vec->begin() + end, [&tail](const Cell& cell) {
-        set_cdr(tail, cons(cell, nil));
-        tail = cdr(tail);
-    });
-    return list;
 }
 
 static Cell fun_list2vec(const varg& args)
@@ -381,45 +349,78 @@ static Cell fun_list2vec(const varg& args)
     return v;
 }
 
+static Cell fun_vec2list(const varg& args)
+{
+    using size_type = VectorPtr::element_type::difference_type;
+
+    const VectorPtr& vec = get<VectorPtr>(args.at(0));
+    size_type pos = 0, end = static_cast<size_type>(vec->size());
+
+    if (args.size() > 1)
+        pos = static_cast<size_type>(get<Int>(get<Number>(args[1])));
+    if (args.size() > 2)
+        end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[2]))), end);
+
+    if (!end)
+        return nil;
+
+    Cell list = cons(vec->at(pos), nil), tail = list;
+
+    std::for_each(vec->begin() + pos + 1, vec->begin() + end, [&tail](const Cell& cell) {
+        set_cdr(tail, cons(cell, nil));
+        tail = cdr(tail);
+    });
+    return list;
+}
+
 static Cell fun_vec_copy(const varg& args)
 {
-    argn(args, 1, 3);
+    using size_type = VectorPtr::element_type::difference_type;
 
-    const VectorPtr& v = get<VectorPtr>(args[0]);
-    Number pos = args.size() > 1 ? get<Number>(args[1]) : Number{ 0 },
-           end = args.size() > 2 ? get<Number>(args[2]) : Number{ v->size() };
+    const VectorPtr& v = get<VectorPtr>(args.at(0));
+    size_type pos = 0, end = static_cast<size_type>(v->size());
 
-    (is_int(pos) && !is_negative(pos) && pos <= end)
-        || ((void)(throw std::invalid_argument("invalid first vector index")), 0);
-
-    (is_int(end) && !is_negative(end) && end <= Number{ v->size() })
-        || ((void)(throw std::invalid_argument("invalid second vector index")), 0);
+    if (args.size() > 1)
+        pos = static_cast<size_type>(get<Int>(get<Number>(args[1])));
+    if (args.size() > 2)
+        end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[2]))), end);
 
     return std::make_shared<VectorPtr::element_type>(v->begin() + pos, v->begin() + end);
 }
 
 static Cell fun_vec_copyb(const varg& args)
 {
-    argn(args, 3, 5);
+    using size_type = VectorPtr::element_type::difference_type;
 
-    const VectorPtr& src = get<VectorPtr>(args[2]);
+    const VectorPtr& src = get<VectorPtr>(args.at(2));
     VectorPtr dst = get<VectorPtr>(args[0]);
 
-    auto idx = get<Number>(args[1]),
-         pos = args.size() > 3 ? get<Number>(args[3]) : Number{ 0 },
-         end = args.size() > 4 ? get<Number>(args[4]) : Number{ src->size() };
+    size_type idx = static_cast<size_type>(get<Int>(get<Number>(args[1]))),
+              pos = 0, end = static_cast<size_type>(src->size());
 
-    (is_int(idx) && !is_negative(idx))
-        || ((void)(throw std::invalid_argument("invalid destination vector index")), 0);
-
-    (is_int(pos) && !is_negative(pos) && pos <= end)
-        || ((void)(throw std::invalid_argument("invalid first vector index")), 0);
-
-    (is_int(end) && !is_negative(end) && end <= Number{ src->size() })
-        || ((void)(throw std::invalid_argument("invalid second vector index")), 0);
+    if (args.size() > 3)
+        pos = static_cast<size_type>(get<Int>(get<Number>(args[3])));
+    if (args.size() > 4)
+        end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[4]))), end);
 
     std::copy(src->begin() + pos, src->begin() + end, dst->begin() + idx);
     return dst;
+}
+
+static Cell fun_vec_fillb(const varg& args)
+{
+    using size_type = VectorPtr::element_type::difference_type;
+
+    VectorPtr vec = get<VectorPtr>(args.at(0));
+    size_type pos = 0, end = static_cast<size_type>(vec->size());
+
+    if (args.size() > 2)
+        pos = static_cast<size_type>(get<Int>(get<Number>(args[2])));
+    if (args.size() > 3)
+        end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[3]))), end);
+
+    std::fill(vec->begin() + pos, vec->end() + end, args.at(1));
+    return vec;
 }
 
 static Cell fun_vec_append(const varg& args)
@@ -431,27 +432,6 @@ static Cell fun_vec_append(const varg& args)
 
         std::copy(v->begin(), v->end(), std::back_inserter(*vec));
     }
-    return vec;
-}
-
-static Cell fun_vec_fillb(const varg& args)
-{
-    using size_type = VectorPtr::element_type::size_type;
-
-    argn(args, 2, 4);
-
-    VectorPtr vec = get<VectorPtr>(args[0]);
-    auto pos = args.size() > 2 ? get<Number>(args[2]) : Number{ 0 },
-         end = args.size() > 3 ? get<Number>(args[3]) : Number{ vec->size() };
-
-    (is_int(pos) && !is_negative(pos) && pos <= end)
-        || ((void)(throw std::invalid_argument("invalid first vector index")), 0);
-
-    (is_int(end) && !is_negative(end) && end <= Number{ vec->size() })
-        || ((void)(throw std::invalid_argument("invalid second vector index")), 0);
-
-    std::fill(vec->begin() + pos,
-        vec->end() + std::min(vec->size(), static_cast<size_type>(end)), args[1]);
     return vec;
 }
 

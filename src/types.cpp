@@ -181,10 +181,12 @@ String str(const Char* s)
 
 VectorPtr vec(Number size = 0, const Cell& val = none)
 {
-    (is_int(size) && std::get<Int>(size) >= 0)
+    using size_type = VectorPtr::element_type::size_type;
+
+    (is_int(size) && get<Int>(size) >= 0)
         || ((void)(throw std::invalid_argument("vector length must be a non-negative integer")), 0);
 
-    return std::make_shared<VectorPtr::element_type>(size, val);
+    return std::make_shared<VectorPtr::element_type>(static_cast<size_type>(get<Int>(size)), val);
 }
 
 } // namespace pscm

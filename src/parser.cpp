@@ -78,7 +78,7 @@ Parser::Token Parser::lex_number(const std::string& str, Number& num) const
         if (is_cpx)
             num = z;
         else if (is_flo)
-            num = std::stod(strtok);
+            num = Number{ std::stod(strtok) };
         else
             num = std::stol(strtok);
 
