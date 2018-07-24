@@ -18,625 +18,605 @@
 #include "parser.hpp"
 #include "primop.hpp"
 
-namespace pscm {
+using varg = std::vector<pscm::Cell>;
 
-using varg = std::vector<Cell>;
+namespace pscm::primop {
 
 /**
- * Check argument vector size.
- * If parameter max is zero, exact n arguments are required otherwise
- * at least n up to max.
- *
- * @param args Argument vector to check.
- * @param n    Number of arguments, or minimum number of arguments.
- * @param max  Zero or maximum number of arguments.
- */
-static void argn(const varg& args, size_t n, size_t max = 0)
-{
-    size_t argn = args.size();
-
-    if (!max && argn != n)
-        throw std::invalid_argument("invalid number of arguments");
-
-    else if (max && (argn < n || argn > max))
-        throw std::invalid_argument("invalid number of arguments");
-}
-
-namespace primop {
-
-    /**
      * Scheme @em boolean=? predicate function
      */
-    static Cell booleq(const varg& args)
-    {
-        if (!is_bool(args.at(0)))
+static Cell booleq(const varg& args)
+{
+    if (!is_bool(args.at(0)))
+        return false;
+
+    Bool prv = get<Bool>(args[0]), b;
+
+    for (auto iter = args.begin() + 1; iter != args.end(); prv = b, ++iter)
+        if (!is_bool(*iter) || prv != (b = get<Bool>(*iter)))
             return false;
 
-        Bool prv = get<Bool>(args[0]), b;
+    return true;
+}
 
-        for (auto iter = args.begin() + 1; iter != args.end(); prv = b, ++iter)
-            if (!is_bool(*iter) || prv != (b = get<Bool>(*iter)))
-                return false;
-
-        return true;
-    }
-
-    /**
+/**
      * Scheme number equality = predicate function.
      */
-    static Cell numeq(const varg& args)
-    {
-        if (args.at(0) != args.at(1))
+static Cell numeq(const varg& args)
+{
+    if (args.at(0) != args.at(1))
+        return false;
+
+    auto val = get<Number>(args[1]);
+    for (auto iter = args.begin() + 2; iter != args.end(); val = get<Number>(*iter), ++iter)
+        if (val != get<Number>(*iter))
             return false;
 
-        auto val = get<Number>(args[1]);
-        for (auto iter = args.begin() + 2; iter != args.end(); val = get<Number>(*iter), ++iter)
-            if (val != get<Number>(*iter))
-                return false;
+    return true;
+}
 
-        return true;
-    }
-
-    /**
+/**
      * Scheme number lower then < predicate function
      */
-    static Cell numlt(const varg& args)
-    {
-        auto lhs = get<Number>(args.at(0)), rhs = get<Number>(args.at(1));
+static Cell numlt(const varg& args)
+{
+    auto lhs = get<Number>(args.at(0)), rhs = get<Number>(args.at(1));
+
+    if (!(lhs < rhs))
+        return false;
+
+    for (auto iter = args.begin() + 2; iter != args.end(); ++iter) {
+        lhs = rhs;
+        rhs = std::get<Number>(static_cast<Cell>(*iter));
 
         if (!(lhs < rhs))
             return false;
-
-        for (auto iter = args.begin() + 2; iter != args.end(); ++iter) {
-            lhs = rhs;
-            rhs = std::get<Number>(static_cast<Cell>(*iter));
-
-            if (!(lhs < rhs))
-                return false;
-        }
-        return true;
     }
+    return true;
+}
 
-    /**
+/**
      * Scheme number greater then > predicate function.
      */
-    static Cell numgt(const varg& args)
-    {
-        auto lhs = get<Number>(args.at(0)), rhs = get<Number>(args.at(1));
+static Cell numgt(const varg& args)
+{
+    auto lhs = get<Number>(args.at(0)), rhs = get<Number>(args.at(1));
+
+    if (!(lhs > rhs))
+        return false;
+
+    for (auto iter = args.begin() + 2; iter != args.end(); ++iter) {
+        lhs = rhs;
+        rhs = std::get<Number>(static_cast<Cell>(*iter));
 
         if (!(lhs > rhs))
             return false;
-
-        for (auto iter = args.begin() + 2; iter != args.end(); ++iter) {
-            lhs = rhs;
-            rhs = std::get<Number>(static_cast<Cell>(*iter));
-
-            if (!(lhs > rhs))
-                return false;
-        }
-        return true;
     }
+    return true;
+}
 
-    /**
+/**
      * Scheme number lower equal <= predicate function.
      */
-    static Cell numle(const varg& args)
-    {
-        auto rhs = get<Number>(args.at(1)), lhs = get<Number>(args[0]);
+static Cell numle(const varg& args)
+{
+    auto rhs = get<Number>(args.at(1)), lhs = get<Number>(args[0]);
+
+    if (!(lhs <= rhs))
+        return false;
+
+    for (auto iter = args.begin() + 2; iter != args.end(); ++iter) {
+        lhs = rhs;
+        rhs = std::get<Number>(*iter);
 
         if (!(lhs <= rhs))
             return false;
-
-        for (auto iter = args.begin() + 2; iter != args.end(); ++iter) {
-            lhs = rhs;
-            rhs = std::get<Number>(*iter);
-
-            if (!(lhs <= rhs))
-                return false;
-        }
-        return true;
     }
+    return true;
+}
 
-    /**
+/**
      * Scheme number greater equal >= predicate function.
      */
-    static Cell numge(const varg& args)
-    {
-        auto rhs = get<Number>(args.at(1)), lhs = get<Number>(args[0]);
+static Cell numge(const varg& args)
+{
+    auto rhs = get<Number>(args.at(1)), lhs = get<Number>(args[0]);
+
+    if (!(lhs >= rhs))
+        return false;
+
+    for (auto iter = args.begin() + 2; iter != args.end(); ++iter) {
+        lhs = rhs;
+        rhs = get<Number>(*iter);
 
         if (!(lhs >= rhs))
             return false;
-
-        for (auto iter = args.begin() + 2; iter != args.end(); ++iter) {
-            lhs = rhs;
-            rhs = get<Number>(*iter);
-
-            if (!(lhs >= rhs))
-                return false;
-        }
-        return true;
     }
+    return true;
+}
 
-    /**
+/**
      * Scheme number addition + operator function.
      */
-    static Cell add(const varg& args)
-    {
-        Number res = 0;
+static Cell add(const varg& args)
+{
+    Number res = 0;
 
-        for (auto& val : args)
-            res += get<Number>(val);
+    for (auto& val : args)
+        res += get<Number>(val);
 
-        return res;
-    }
+    return res;
+}
 
-    /**
+/**
      * Scheme number substraction - operator function.
      */
-    static Cell sub(const varg& args)
-    {
-        auto res = args.size() > 1 ? get<Number>(args.at(0)) : -get<Number>(args.at(0));
+static Cell sub(const varg& args)
+{
+    auto res = args.size() > 1 ? get<Number>(args.at(0)) : -get<Number>(args.at(0));
 
-        for (auto iter = ++args.begin(); iter != args.end(); ++iter)
-            res -= get<Number>(*iter);
+    for (auto iter = ++args.begin(); iter != args.end(); ++iter)
+        res -= get<Number>(*iter);
 
-        return res;
-    }
-    /**
+    return res;
+}
+/**
      * Scheme number multiplication * operator function.
      */
-    static Cell mul(const varg& args)
-    {
-        Number res = 1;
+static Cell mul(const varg& args)
+{
+    Number res = 1;
 
-        for (const Cell& val : args)
-            res *= get<Number>(val);
+    for (const Cell& val : args)
+        res *= get<Number>(val);
 
-        return res;
-    }
+    return res;
+}
 
-    /**
+/**
      * Scheme number division / operator function.
      */
-    static Cell div(const varg& args)
-    {
-        auto res = args.size() > 1 ? get<Number>(args[0]) : inv(get<Number>(args.at(0)));
+static Cell div(const varg& args)
+{
+    auto res = args.size() > 1 ? get<Number>(args[0]) : inv(get<Number>(args.at(0)));
 
-        for (auto iter = ++args.begin(); iter != args.end(); ++iter)
-            res /= get<Number>(*iter);
+    for (auto iter = ++args.begin(); iter != args.end(); ++iter)
+        res /= get<Number>(*iter);
 
-        return res;
-    }
+    return res;
+}
 
-    /**
+/**
      * Scheme logarithm @em log function.
      */
-    static Cell log(const varg& args)
-    {
-        if (args.size() < 2)
-            return pscm::log(get<Number>(args.at(0)));
-        else {
-            const Number &y = get<Number>(args.at(1)), &x = get<Number>(args[0]);
+static Cell log(const varg& args)
+{
+    if (args.size() < 2)
+        return pscm::log(get<Number>(args.at(0)));
+    else {
+        const Number &y = get<Number>(args.at(1)), &x = get<Number>(args[0]);
 
-            return y != Number{ 10 } ? pscm::log(x) / pscm::log(y)
-                                     : pscm::log10(x);
-        }
+        return y != Number{ 10 } ? pscm::log(x) / pscm::log(y)
+                                 : pscm::log10(x);
     }
+}
 
-    /**
+/**
      * Scheme output @em write function.
      */
-    static Cell write(const varg& args)
-    {
-        if (args.size() > 1) {
-            Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
+static Cell write(const varg& args)
+{
+    if (args.size() > 1) {
+        Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
 
-            port.stream() << args[0];
-        } else
-            std::cout << args.at(0);
+        port.stream() << args[0];
+    } else
+        std::cout << args.at(0);
 
-        return none;
-    }
+    return none;
+}
 
-    /**
+/**
      * Scheme @em list function.
      * @verbatim (list [arg_0 ... arg_n]) => nil | (arg_0 ... arg_n) @endverbatim
      */
-    static Cell list(const varg& args)
-    {
-        Cell list = nil;
+static Cell list(const varg& args)
+{
+    Cell list = nil;
 
-        if (args.size()) {
-            list = cons(args.front(), nil);
+    if (args.size()) {
+        list = cons(args.front(), nil);
 
-            Cell tail = list;
+        Cell tail = list;
 
-            for (auto iter = ++args.begin(); iter != args.end(); ++iter, tail = cdr(tail))
-                set_cdr(tail, cons(*iter, nil));
-        }
-        return list;
+        for (auto iter = ++args.begin(); iter != args.end(); ++iter, tail = cdr(tail))
+            set_cdr(tail, cons(*iter, nil));
     }
+    return list;
+}
 
-    /**
+/**
      * Scheme list @em append function.
      * @verbatim (append [list_0 list_1 ... expr]) => nil | expr | (list_0 . list_1 ... . expr) @endverbatim
      */
-    static Cell append(const varg& args)
-    {
-        if (!args.size())
-            return nil;
+static Cell append(const varg& args)
+{
+    if (!args.size())
+        return nil;
 
-        if (args.size() == 1)
-            return args.front();
+    if (args.size() == 1)
+        return args.front();
 
-        Cell head = args.back(), tail = nil;
+    Cell head = args.back(), tail = nil;
 
-        // Append each list:
-        for (size_t i = 0; i < args.size() - 1; ++i) {
-            for (Cell list = args[i]; is_pair(list); list = cdr(list)) {
-                if (is_nil(tail)) {
-                    head = cons(car(list), nil);
-                    tail = head;
-                } else {
-                    set_cdr(tail, cons(car(list), nil));
-                    tail = cdr(tail);
-                }
+    // Append each list:
+    for (size_t i = 0; i < args.size() - 1; ++i) {
+        for (Cell list = args[i]; is_pair(list); list = cdr(list)) {
+            if (is_nil(tail)) {
+                head = cons(car(list), nil);
+                tail = head;
+            } else {
+                set_cdr(tail, cons(car(list), nil));
+                tail = cdr(tail);
             }
         }
-        // Append last expression
-        if (is_pair(tail))
-            set_cdr(tail, args.back());
-
-        return head;
     }
+    // Append last expression
+    if (is_pair(tail))
+        set_cdr(tail, args.back());
 
-    /**
+    return head;
+}
+
+/**
      * @brief Scheme @em make-list function.
      * @verbatim (make-list len [fill = none]) => (fill ... fill) @endverbatim
      */
-    static Cell makelist(const varg& args)
-    {
-        Int size = get<Int>(get<Number>(args.at(0)));
-        if (size < 1)
-            return nil;
+static Cell makelist(const varg& args)
+{
+    Int size = get<Int>(get<Number>(args.at(0)));
+    if (size < 1)
+        return nil;
 
-        Cell val = none;
-        if (args.size() > 1)
-            val = args[1];
+    Cell val = none;
+    if (args.size() > 1)
+        val = args[1];
 
-        Cell head = cons(val, nil);
+    Cell head = cons(val, nil);
 
-        for (Cell tail = head; size > 1; --size, tail = cdr(tail))
-            set_cdr(tail, cons(val, nil));
+    for (Cell tail = head; size > 1; --size, tail = cdr(tail))
+        set_cdr(tail, cons(val, nil));
 
-        return head;
-    }
+    return head;
+}
 
-    /**
+/**
      * Scheme @em reverse list function.
      * @verbatim (reverse (list 1 2 ... n)) => (n n-1 ... 2 1) @endverbatim
      */
-    static Cell reverse(const varg& args)
-    {
-        Cell list = args.at(0), head = nil;
+static Cell reverse(const varg& args)
+{
+    Cell list = args.at(0), head = nil;
 
-        for (/* */; is_pair(list); head = cons(car(list), head), list = cdr(list))
-            ;
+    for (/* */; is_pair(list); head = cons(car(list), head), list = cdr(list))
+        ;
 
-        return head;
-    }
+    return head;
+}
 
-    /**
+/**
      * Scheme inplace @em reverse! list function.
      */
-    static Cell reverseb(const varg& args)
-    {
-        Cell list = args.at(0), head = nil;
+static Cell reverseb(const varg& args)
+{
+    Cell list = args.at(0), head = nil;
 
-        for (Cell tail = list; is_pair(list); head = list, list = tail) {
-            tail = cdr(tail);
-            set_cdr(list, head);
-        }
-        return head;
+    for (Cell tail = list; is_pair(list); head = list, list = tail) {
+        tail = cdr(tail);
+        set_cdr(list, head);
     }
+    return head;
+}
 
-    /**
+/**
      * Scheme @em list-ref function.
      * @verbatim (list-ref '(x0 x1 x2 ... xn) 2) => x2 @endverbatim
      */
-    static Cell listref(const varg& args)
-    {
-        Int k = get<Int>(get<Number>(args.at(1)));
+static Cell listref(const varg& args)
+{
+    Int k = get<Int>(get<Number>(args.at(1)));
 
-        Cell list = args[0];
-        for (/* */; k > 0 && is_pair(list); list = cdr(list), --k)
-            ;
+    Cell list = args[0];
+    for (/* */; k > 0 && is_pair(list); list = cdr(list), --k)
+        ;
 
-        (is_pair(list) && !k) || ((void)(throw std::invalid_argument("invalid list index")), 0);
-        return car(list);
-    }
+    (is_pair(list) && !k) || ((void)(throw std::invalid_argument("invalid list index")), 0);
+    return car(list);
+}
 
-    /**
+/**
      * @brief Scheme @em list-set! function.
      * @verbatim (list-set! '(x0 x1 x2 ... xn) 2 'z2) => (x0 x1 z2 ... xn) @endverbatim
      */
-    static Cell listsetb(const varg& args)
-    {
-        Int k = get<Int>(get<Number>(args.at(1)));
+static Cell listsetb(const varg& args)
+{
+    Int k = get<Int>(get<Number>(args.at(1)));
 
-        Cell list = args[0];
-        for (/* */; k > 0 && is_pair(list); list = cdr(list), --k)
-            ;
+    Cell list = args[0];
+    for (/* */; k > 0 && is_pair(list); list = cdr(list), --k)
+        ;
 
-        (is_pair(list) && !k) || ((void)(throw std::invalid_argument("invalid list index")), 0);
-        set_car(list, args.at(2));
-        return none;
-    }
+    (is_pair(list) && !k) || ((void)(throw std::invalid_argument("invalid list index")), 0);
+    set_car(list, args.at(2));
+    return none;
+}
 
-    /**
+/**
      * @brief Scheme @em vector-ref function.
      * @verbatim (vector-ref #(x0 x1 x2 ... xn) 2) => x2) @endverbatim
      */
-    static Cell vector_ref(const varg& args)
-    {
-        using size_type = VectorPtr::element_type::size_type;
-        auto pos = static_cast<size_type>(get<Int>(get<Number>(args.at(1))));
-        return get<VectorPtr>(args[0])->at(pos);
-    }
+static Cell vector_ref(const varg& args)
+{
+    using size_type = VectorPtr::element_type::size_type;
+    auto pos = static_cast<size_type>(get<Int>(get<Number>(args.at(1))));
+    return get<VectorPtr>(args[0])->at(pos);
+}
 
-    /**
+/**
      * @brief Scheme @em vector-set! function.
      * @verbatim (vector-set! #(x0 x1 x2 ... xn) 2 'z2) => #(x0 x1 z2 ... xn) @endverbatim
      */
-    static Cell vector_setb(const varg& args)
-    {
-        using size_type = VectorPtr::element_type::size_type;
-        auto pos = static_cast<size_type>(get<Int>(get<Number>(args.at(1))));
-        get<VectorPtr>(args[0])->at(pos) = args.at(2);
-        return none;
-    }
+static Cell vector_setb(const varg& args)
+{
+    using size_type = VectorPtr::element_type::size_type;
+    auto pos = static_cast<size_type>(get<Int>(get<Number>(args.at(1))));
+    get<VectorPtr>(args[0])->at(pos) = args.at(2);
+    return none;
+}
 
-    /**
+/**
      * Scheme @em list->vector function.
      * @verbatim (list->vector '(x0 x1 x2 ... xn)) => #(x0 x1 x2 ... xn) @endverbatim
      */
-    static Cell list2vec(const varg& args)
-    {
-        Cell list = args.at(0);
-        VectorPtr v = std::make_shared<VectorPtr::element_type>();
+static Cell list2vec(const varg& args)
+{
+    Cell list = args.at(0);
+    VectorPtr v = std::make_shared<VectorPtr::element_type>();
 
-        for (/* */; is_pair(list); list = cdr(list))
-            v->push_back(car(list));
+    for (/* */; is_pair(list); list = cdr(list))
+        v->push_back(car(list));
 
-        is_nil(list) || ((void)(throw std::invalid_argument("not a proper list")), 0);
-        return v;
-    }
+    is_nil(list) || ((void)(throw std::invalid_argument("not a proper list")), 0);
+    return v;
+}
 
-    /**
+/**
      * Scheme @em vector->list function.
      * @verbatim (vector->list  #(x0 x1 x2 ... xn) [pos [end]]) => '(x0 x1 x2 ... xn)  @endverbatim
      */
-    static Cell vec2list(const varg& args)
-    {
-        using size_type = VectorPtr::element_type::difference_type;
+static Cell vec2list(const varg& args)
+{
+    using size_type = VectorPtr::element_type::difference_type;
 
-        const VectorPtr& vec = get<VectorPtr>(args.at(0));
-        size_type pos = 0, end = static_cast<size_type>(vec->size());
+    const VectorPtr& vec = get<VectorPtr>(args.at(0));
+    size_type pos = 0, end = static_cast<size_type>(vec->size());
 
-        if (args.size() > 1)
-            pos = static_cast<size_type>(get<Int>(get<Number>(args[1])));
-        if (args.size() > 2)
-            end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[2]))), end);
+    if (args.size() > 1)
+        pos = static_cast<size_type>(get<Int>(get<Number>(args[1])));
+    if (args.size() > 2)
+        end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[2]))), end);
 
-        if (!end)
-            return nil;
+    if (!end)
+        return nil;
 
-        Cell list = cons(vec->at(pos), nil), tail = list;
+    Cell list = cons(vec->at(pos), nil), tail = list;
 
-        std::for_each(vec->begin() + pos + 1, vec->begin() + end, [&tail](const Cell& cell) {
-            set_cdr(tail, cons(cell, nil));
-            tail = cdr(tail);
-        });
-        return list;
-    }
+    std::for_each(vec->begin() + pos + 1, vec->begin() + end, [&tail](const Cell& cell) {
+        set_cdr(tail, cons(cell, nil));
+        tail = cdr(tail);
+    });
+    return list;
+}
 
-    /**
+/**
      * Scheme @em vector-copy function.
      * @verbatim (vector-copy #(x0 x1 x2 ... xn) [pos [end]]) => #(x0 x1 x2 ... xn) @endverbatim
      */
-    static Cell vec_copy(const varg& args)
-    {
-        using size_type = VectorPtr::element_type::difference_type;
+static Cell vec_copy(const varg& args)
+{
+    using size_type = VectorPtr::element_type::difference_type;
 
-        const VectorPtr& v = get<VectorPtr>(args.at(0));
-        size_type pos = 0, end = static_cast<size_type>(v->size());
+    const VectorPtr& v = get<VectorPtr>(args.at(0));
+    size_type pos = 0, end = static_cast<size_type>(v->size());
 
-        if (args.size() > 1)
-            pos = static_cast<size_type>(get<Int>(get<Number>(args[1])));
-        if (args.size() > 2)
-            end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[2]))), end);
+    if (args.size() > 1)
+        pos = static_cast<size_type>(get<Int>(get<Number>(args[1])));
+    if (args.size() > 2)
+        end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[2]))), end);
 
-        return std::make_shared<VectorPtr::element_type>(v->begin() + pos, v->begin() + end);
-    }
+    return std::make_shared<VectorPtr::element_type>(v->begin() + pos, v->begin() + end);
+}
 
-    /**
+/**
      * Scheme inplace @em vector-copy! function.
      * @verbatim (vector-copy! vec-dest idx vec-source [pos [end]]) => vec-dest @endverbatim
      */
-    static Cell vec_copyb(const varg& args)
-    {
-        using size_type = VectorPtr::element_type::difference_type;
+static Cell vec_copyb(const varg& args)
+{
+    using size_type = VectorPtr::element_type::difference_type;
 
-        const VectorPtr& src = get<VectorPtr>(args.at(2));
-        VectorPtr dst = get<VectorPtr>(args[0]);
+    const VectorPtr& src = get<VectorPtr>(args.at(2));
+    VectorPtr dst = get<VectorPtr>(args[0]);
 
-        size_type idx = static_cast<size_type>(get<Int>(get<Number>(args[1]))),
-                  pos = 0, end = static_cast<size_type>(src->size());
+    size_type idx = static_cast<size_type>(get<Int>(get<Number>(args[1]))),
+              pos = 0, end = static_cast<size_type>(src->size());
 
-        if (args.size() > 3)
-            pos = static_cast<size_type>(get<Int>(get<Number>(args[3])));
-        if (args.size() > 4)
-            end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[4]))), end);
+    if (args.size() > 3)
+        pos = static_cast<size_type>(get<Int>(get<Number>(args[3])));
+    if (args.size() > 4)
+        end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[4]))), end);
 
-        std::copy(src->begin() + pos, src->begin() + end, dst->begin() + idx);
-        return dst;
-    }
+    std::copy(src->begin() + pos, src->begin() + end, dst->begin() + idx);
+    return dst;
+}
 
-    /**
+/**
      * Scheme inplace @em vector-fill! function.
      * @verbatim (vector-fill! vec value [pos [end]]) => vec @endverbatim
      */
-    static Cell vec_fillb(const varg& args)
-    {
-        using size_type = VectorPtr::element_type::difference_type;
+static Cell vec_fillb(const varg& args)
+{
+    using size_type = VectorPtr::element_type::difference_type;
 
-        VectorPtr vec = get<VectorPtr>(args.at(0));
-        size_type pos = 0, end = static_cast<size_type>(vec->size());
+    VectorPtr vec = get<VectorPtr>(args.at(0));
+    size_type pos = 0, end = static_cast<size_type>(vec->size());
 
-        if (args.size() > 2)
-            pos = static_cast<size_type>(get<Int>(get<Number>(args[2])));
-        if (args.size() > 3)
-            end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[3]))), end);
+    if (args.size() > 2)
+        pos = static_cast<size_type>(get<Int>(get<Number>(args[2])));
+    if (args.size() > 3)
+        end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[3]))), end);
 
-        std::fill(vec->begin() + pos, vec->end() + end, args.at(1));
-        return vec;
-    }
+    std::fill(vec->begin() + pos, vec->end() + end, args.at(1));
+    return vec;
+}
 
-    /**
+/**
      * Scheme inplace @em vector-append function.
      * @verbatim (vector-append vec_0 vec_1 ... vec_n) => vec := {vec_0, vec_1, ..., vec_n} @endverbatim
      */
-    static Cell vec_append(const varg& args)
-    {
-        VectorPtr vec = get<VectorPtr>(args.at(0));
+static Cell vec_append(const varg& args)
+{
+    VectorPtr vec = get<VectorPtr>(args.at(0));
 
-        for (const Cell& cell : args) {
-            const VectorPtr& v = get<VectorPtr>(cell);
+    for (const Cell& cell : args) {
+        const VectorPtr& v = get<VectorPtr>(cell);
 
-            std::copy(v->begin(), v->end(), std::back_inserter(*vec));
-        }
-        return vec;
+        std::copy(v->begin(), v->end(), std::back_inserter(*vec));
     }
+    return vec;
+}
 
-    static Cell callw_infile(const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
-    {
-        Port port;
-        port.open(*filnam, std::ios_base::in)
-            || ((void)(throw std::invalid_argument("could not open port")), 0);
+static Cell callw_infile(const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
+{
+    Port port;
+    port.open(*filnam, std::ios_base::in)
+        || ((void)(throw std::invalid_argument("could not open port")), 0);
 
-        Cons cons[4];
-        return eval(senv, alist(cons, Intern::_apply, proc, port, nil));
+    Cons cons[4];
+    return eval(senv, alist(cons, Intern::_apply, proc, port, nil));
+}
+
+static Cell open_infile(const StringPtr& filnam)
+{
+    Port port;
+    port.open(*filnam, std::ios_base::in)
+        || ((void)(throw std::invalid_argument("could not open port")), 0);
+
+    return port;
+}
+
+static Cell open_outfile(const StringPtr& filnam)
+{
+    Port port;
+
+    port.open(*filnam, std::ios_base::out)
+        || ((void)(throw std::invalid_argument("could not open port")), 0);
+
+    return port;
+}
+
+static Cell readline(const varg& args)
+{
+    StringPtr line = str("");
+
+    if (args.size() > 0) {
+        Port port = get<Port>(args[0]);
+        (port.is_open() && port.is_input())
+            || ((void)(throw std::invalid_argument("port is closed")), 0);
+
+        std::getline(port.stream(), *line);
+    } else {
+        std::string str;
+        std::getline(std::cin, str);
     }
+    return line;
+}
 
-    static Cell open_infile(const StringPtr& filnam)
-    {
-        Port port;
-        port.open(*filnam, std::ios_base::in)
-            || ((void)(throw std::invalid_argument("could not open port")), 0);
+static Cell read(const varg& args)
+{
+    Port port;
 
-        return port;
+    if (args.size() > 0) {
+        port = get<Port>(args[0]);
+        (port.is_open() && port.is_input())
+            || ((void)(throw std::invalid_argument("port is closed")), 0);
     }
+    Parser parser;
+    return parser.parse(port.stream());
+}
 
-    static Cell open_outfile(const StringPtr& filnam)
-    {
-        Port port;
+static Cell readchar(const varg& args)
+{
+    Port port;
 
-        port.open(*filnam, std::ios_base::out)
-            || ((void)(throw std::invalid_argument("could not open port")), 0);
-
-        return port;
+    if (args.size() > 0) {
+        port = get<Port>(args[0]);
+        (port.is_open() && port.is_input())
+            || ((void)(throw std::invalid_argument("port is closed")), 0);
     }
+    return static_cast<Char>(port.stream().get());
+}
 
-    static Cell readline(const varg& args)
-    {
-        StringPtr line = str("");
+static Cell peekchar(const varg& args)
+{
+    Port port;
 
-        if (args.size() > 0) {
-            Port port = get<Port>(args[0]);
-            (port.is_open() && port.is_input())
-                || ((void)(throw std::invalid_argument("port is closed")), 0);
-
-            std::getline(port.stream(), *line);
-        } else {
-            std::string str;
-            std::getline(std::cin, str);
-        }
-        return line;
+    if (args.size() > 0) {
+        port = get<Port>(args[0]);
+        (port.is_open() && port.is_input())
+            || ((void)(throw std::invalid_argument("port is closed")), 0);
     }
+    return static_cast<Char>(port.stream().peek());
+}
 
-    static Cell read(const varg& args)
-    {
-        Port port;
-
-        if (args.size() > 0) {
-            port = get<Port>(args[0]);
-            (port.is_open() && port.is_input())
-                || ((void)(throw std::invalid_argument("port is closed")), 0);
-        }
-        Parser parser;
-        return parser.parse(port.stream());
-    }
-
-    static Cell readchar(const varg& args)
-    {
-        Port port;
-
-        if (args.size() > 0) {
-            port = get<Port>(args[0]);
-            (port.is_open() && port.is_input())
-                || ((void)(throw std::invalid_argument("port is closed")), 0);
-        }
-        return static_cast<Char>(port.stream().get());
-    }
-
-    static Cell peekchar(const varg& args)
-    {
-        Port port;
-
-        if (args.size() > 0) {
-            port = get<Port>(args[0]);
-            (port.is_open() && port.is_input())
-                || ((void)(throw std::invalid_argument("port is closed")), 0);
-        }
-        return static_cast<Char>(port.stream().peek());
-    }
-
-    /**
+/**
      * Scheme @em read-string function.
      * @todo This is a dummy implementation.
      */
-    static Cell readstr(const varg& args)
-    {
-        Port port;
+static Cell readstr(const varg& args)
+{
+    Port port;
 
-        Number num = get<Number>(args.at(0));
-        if (is_int(num) || is_negative(num))
-            throw std::invalid_argument("must be a nonnegative number");
+    Number num = get<Number>(args.at(0));
+    if (is_int(num) || is_negative(num))
+        throw std::invalid_argument("must be a nonnegative number");
 
-        if (args.size() > 1) {
-            port = get<Port>(args[0]);
-            (port.is_open() && port.is_input())
-                || ((void)(throw std::invalid_argument("port is closed")), 0);
-        }
-        Parser parser;
-        return parser.parse(port.stream());
+    if (args.size() > 1) {
+        port = get<Port>(args[0]);
+        (port.is_open() && port.is_input())
+            || ((void)(throw std::invalid_argument("port is closed")), 0);
     }
+    Parser parser;
+    return parser.parse(port.stream());
+}
 
-    static Cell macroexp(const SymenvPtr& senv, const varg& args)
-    {
-        Cell expr = args.at(0);
+static Cell macroexp(const SymenvPtr& senv, const varg& args)
+{
+    Cell expr = args.at(0);
 
-        if (!is_pair(expr))
-            return expr;
+    if (!is_pair(expr))
+        return expr;
 
-        Cell proc = eval(senv, car(expr));
-        if (!is_macro(proc))
-            return expr;
+    Cell proc = eval(senv, car(expr));
+    if (!is_macro(proc))
+        return expr;
 
-        return get<Proc>(proc).expand(expr);
-    }
+    return get<Proc>(proc).expand(expr);
+}
 
 } // namespace primop
+
+namespace pscm {
 
 Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
 {
