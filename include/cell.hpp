@@ -143,7 +143,7 @@ Cons* list(T&& t, Args&&... args)
  * The cons array size must be equal or greater the number of
  * remaining arguments. An insufficient array size is an compile
  * time error.
-  */
+ */
 template <size_t size, typename T, typename... Args>
 Cons* alist(Cons (&cons)[size], T&& t, Args&&... args)
 {

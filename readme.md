@@ -3,22 +3,21 @@ PicoScheme
 
 A small embeddable scheme interpreter implementation in c++17. This project was
 started because I wanted to learn recent c++ features, especially to evaluate the
-new [std::variant] template class as plain c-union replacement and shared pointers
-for basic memory management. Considering that there are already very feature
-complete, small and efficient scheme implementations, and to keep
-the implementation effort reasonable, at least most scheme functions from the
-old [R4RS scheme] specification are implemented. Postponed for now is the
-implementation of a complete numeric tower, including rational numbers and
-arbitrary precision arithmetic, and more advanced features like [call/cc] and
-*define-syntax* macros, which I haven't fully understood so far. However integer,
-floating point and complex numbers and old school lisp-style macros are
-implemented.
+new [std::variant] class template as plain c-union replacement and shared,
+reference counting pointers for basic memory management. Considering that there
+are already very feature complete, small and efficient scheme implementations,
+and to keep the implementation effort reasonable, at least most scheme functions
+from the old [R4RS scheme] specification are implemented. Postponed for now is
+a complete numeric tower, including rational numbers and arbitrary precision
+arithmetic, and more advanced features like [call/cc] and *define-syntax* macros,
+which I haven't fully understood so far. However integer, floating point and
+complex numbers and old school lisp-style macros are implemented.
 
 ### Credits ###
 While a more formal approach, on how to implement a dynamically typed,
-functional language would definitely be advisable, I followed the ad hoc
-learning by doing approach and read the sources of the following, publicly
-available scheme implementations first. So I would like to thank the
+functional language interpreter would definitely be advisable, I followed
+here the ad hoc learning by doing approach and read the sources of the following,
+publicly available scheme implementations first. So I would like to thank the
 following authors and maintainers for releasing their work:
 - [minischeme] really miniature scheme by Atsushi Moriwaki and Cat's Eye Technologies.
 - [TinyScheme] by Dimitrios Souflis, Kevin Cozens, Jonathan S. Shapiro and many others.
