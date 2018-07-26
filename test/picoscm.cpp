@@ -6,19 +6,19 @@
 #include <iostream>
 #include <memory>
 
-#include "cell.hpp"
-#include "eval.hpp"
-#include "parser.hpp"
-#include "symbol.hpp"
-#include "types.hpp"
+#include <picoscm/cell.hpp>
+#include <picoscm/eval.hpp>
+#include <picoscm/parser.hpp>
+#include <picoscm/symbol.hpp>
+#include <picoscm/types.hpp>
 
 using namespace std;
 using namespace pscm;
 
 int main()
 {
-    //    repl();
-    //    return 0;
+    repl();
+    return 0;
 
     try {
 

@@ -31,7 +31,7 @@ Cell eval(SymenvPtr senv, Cell expr);
  * @param is_list true:   procedure call argument list.
  *                false:  apply expression argument list, where the last list item
  *                        must be nil or an argument list itself.
- * @return List of evaluated arguments.
+ * @return List of evaluated argument expressions.
  */
 Cell eval_list(const SymenvPtr& senv, Cell list, bool is_list = true);
 

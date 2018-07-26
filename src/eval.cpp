@@ -142,16 +142,7 @@ static Cell _or(const SymenvPtr& senv, Cell args)
 } // namespace pscm::syntax
 
 namespace pscm {
-/**
- * @brief Evaluate argument list into an argument vector.
- *
- * @param senv Symbol environment, where to evaluate the argument list.
- * @param args Argument list to evaluate.
- * @param is_list true:   procedure call argument list.
- *                false:  apply expression argument list, where the last list item
- *                        must be nil or an argument list itself.
- * @return Vector of evaluated arguments.
- */
+
 Cell eval_list(const SymenvPtr& senv, Cell list, bool is_list)
 {
     if (!is_pair(list))
@@ -323,6 +314,7 @@ void repl(const SymenvPtr& symenv, std::istream& in, std::ostream& out)
     for (;;)
         try {
             for (;;) {
+                out << "> ";
                 expr = eval(env, reader.parse(in));
 
                 if (is_intern(expr) && get<Intern>(expr) == Intern::op_exit)

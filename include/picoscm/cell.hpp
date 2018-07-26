@@ -27,7 +27,7 @@ struct Cell : Variant {
 
     /**
      * Type conversion operator to return the value hold by this Cell.
-     * @throw std::bad_variant_access
+     * @throws std::bad_variant_access
      */
     template <typename T>
     operator T&() const { return std::get<T>(static_cast<Variant>(*this)); }

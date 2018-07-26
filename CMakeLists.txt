@@ -1,6 +1,8 @@
+####################################################################################################
 cmake_minimum_required(VERSION 3.2)
 
 project(PicoScheme VERSION 0.1 LANGUAGES CXX)
+set(LIB_NAME picoscheme)
 
 # Enable c++17 for MS-compiler
 if(MSVC)
@@ -10,12 +12,35 @@ endif(MSVC)
 # Add source directory
 file(GLOB SOURCES "src/*.cpp")
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+set(INCLUDE_PATH "${PROJECT_SOURCE_DIR}/include/picoscm")
 
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wno-padded) # -Wno-sign-conversion)
+####################################################################################################
+add_library(${LIB_NAME} STATIC ${SOURCES})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
+target_include_directories(${LIB_NAME} PRIVATE ${INCLUDE_PATH})
+target_compile_options(${LIB_NAME} PRIVATE -Wall -Wno-padded) # -Wno-sign-conversion)
+set_target_properties(${LIB_NAME} PROPERTIES
     CXX_STANDARD 17
     CXX_EXTENSIONS OFF)
 
-target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/include")
+install (TARGETS ${LIB_NAME} DESTINATION lib)
+install (DIRECTORY ${INCLUDE_PATH} DESTINATION include
+    FILES_MATCHING PATTERN "*.hpp")
+
+####################################################################################################
+option (GENERATE_TESTMAIN "Generate a test main program with a basic scheme repl" ON)
+
+if (GENERATE_TESTMAIN)
+    set(EXEC_NAME picoscm)
+
+    add_executable(${EXEC_NAME} "test/${EXEC_NAME}.cpp")
+    target_include_directories(${EXEC_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/include")
+    target_link_libraries(${EXEC_NAME} ${LIB_NAME})
+    target_compile_options(${EXEC_NAME} PRIVATE -Wall -Wno-padded)
+
+    set_target_properties(${EXEC_NAME} PROPERTIES
+         CXX_STANDARD 17
+         CXX_EXTENSIONS OFF)
+
+    install (TARGETS ${EXEC_NAME} DESTINATION bin)
+endif (GENERATE_TESTMAIN)
