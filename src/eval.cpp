@@ -226,7 +226,6 @@ Cell eval(SymenvPtr senv, Cell expr)
             return expr;
 
         if (is_proc(proc = eval(senv, car(expr)))) {
-
             if (is_macro(proc))
                 expr = get<Proc>(proc).expand(expr);
             else {
@@ -309,7 +308,7 @@ void repl(const SymenvPtr& symenv, std::istream& in, std::ostream& out)
 {
     SymenvPtr env = senv(symenv);
     Parser reader;
-    Cell expr;
+    Cell expr = none;
 
     for (;;)
         try {
@@ -321,15 +320,25 @@ void repl(const SymenvPtr& symenv, std::istream& in, std::ostream& out)
                     return;
 
                 out << expr << std::endl;
+                expr = none;
             }
         } catch (std::bad_variant_access& e) {
-            std::cerr << e.what() << ": " << expr << std::endl;
+            if (is_none(expr))
+                std::cerr << e.what() << std::endl;
+            else
+                std::cerr << e.what() << ": " << expr << std::endl;
 
         } catch (std::out_of_range& e) {
-            std::cerr << e.what() << ": " << expr << std::endl;
+            if (is_none(expr))
+                std::cerr << e.what() << std::endl;
+            else
+                std::cerr << e.what() << ": " << expr << std::endl;
 
         } catch (std::invalid_argument& e) {
-            std::cerr << e.what() << ": " << expr << std::endl;
+            if (is_none(expr))
+                std::cerr << e.what() << std::endl;
+            else
+                std::cerr << e.what() << ": " << expr << std::endl;
         }
 }
 

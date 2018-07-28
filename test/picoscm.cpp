@@ -21,21 +21,12 @@ int main()
     return 0;
 
     try {
-
-        Cell s0 = str("hallo");
-
-        Cell s1 = s0;
-
-        return 0;
-
         SymenvPtr e = senv();
-        //        Cell list = cons(Intern::_quote, cons(pscm::list(num(1), num(2), num(3)), nil));
-        //        Cell expr = pscm::list(Intern::op_listref, list, num(1.));
+        Cell expr = pscm::list(num(1));
 
-        std::istringstream stream("(list-ref '(0 1 2) 1.)");
-
-        Parser parser;
-        Cell expr = parser.parse(stream);
+        //        Parser parser;
+        //        std::istringstream stream("',@3");
+        //        Cell expr = parser.parse(stream);
 
         cout << expr << " ---> ";
         Cell proc = eval(e, expr);

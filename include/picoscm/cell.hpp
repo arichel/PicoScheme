@@ -36,17 +36,100 @@ struct Cell : Variant {
     operator T&() { return std::get<T>(*this); }
 };
 
-//template <typename T>
-//T& get(Cell& cell) { return std::get<T>(static_cast<Variant&>(cell)); }
+template <typename T>
+struct bad_cell_access : public std::bad_variant_access {
+    bad_cell_access() noexcept
+        : _reason("invalid type ")
+    {
+        _reason.append(type2cstr());
+    }
+    bad_cell_access(const Cell& cell)
+    {
+        std::ostringstream os;
+        os << "argument " << cell << " must be of type " << type2cstr();
+        _reason = os.str();
+    }
+    const char* what() const noexcept override
+    {
+        return _reason.c_str();
+    }
 
-//template <typename T>
-//T&& get(Cell&& cell) { return std::get<T>(static_cast<Variant&&>(std::move(cell))); }
+private:
+    std::string _reason;
 
-//template <typename T>
-//const T& get(const Cell& cell) { return std::get<T>(static_cast<Variant&>(const_cast<Cell&>(cell))); }
+    constexpr const char* type2cstr()
+    {
+        if
+            constexpr(std::is_same_v<T, None>) return "<none>";
+        else if
+            constexpr(std::is_same_v<T, Nil>) return "()";
+        else if
+            constexpr(std::is_same_v<T, Intern>) return "<procedure>";
+        else if
+            constexpr(std::is_same_v<T, Bool>) return "<boolean>";
+        else if
+            constexpr(std::is_same_v<T, Char>) return "<character>";
+        else if
+            constexpr(std::is_same_v<T, Number>) return "<number>";
+        else if
+            constexpr(std::is_same_v<T, Cons*>) return "<cons>";
+        else if
+            constexpr(std::is_same_v<T, StringPtr>) return "<string>";
+        else if
+            constexpr(std::is_same_v<T, VectorPtr>) return "<vector>";
+        else if
+            constexpr(std::is_same_v<T, Port>) return "<port>";
+        else if
+            constexpr(std::is_same_v<T, Symbol>) return "<symbol>";
+        else if
+            constexpr(std::is_same_v<T, SymenvPtr>) return "<environment>";
+        else if
+            constexpr(std::is_same_v<T, Proc>) return "<procedure>";
+        else
+            return "<unknown>";
+    }
+};
 
-//template <typename T>
-//const T&& get(const Cell&& cell) { return std::get<T>(static_cast<const Variant&&>(std::move(cell))); }
+template <typename T>
+T& get(Cell& cell)
+{
+    try {
+        return std::get<T>(static_cast<Variant&>(cell));
+
+    } catch (std::bad_variant_access& e) {
+        throw bad_cell_access<T>(cell);
+    }
+}
+
+template <typename T>
+T&& get(Cell&& cell)
+{
+    try {
+        return std::get<T>(static_cast<Variant&&>(std::move(cell)));
+    } catch (std::bad_variant_access& e) {
+        throw bad_cell_access<T>(cell);
+    }
+}
+
+template <typename T>
+const T& get(const Cell& cell)
+{
+    try {
+        return std::get<T>(static_cast<Variant&>(const_cast<Cell&>(cell)));
+    } catch (std::bad_variant_access& e) {
+        throw bad_cell_access<T>(cell);
+    }
+}
+
+template <typename T>
+const T&& get(const Cell&& cell)
+{
+    try {
+        return std::get<T>(static_cast<const Variant&&>(std::move(cell)));
+    } catch (std::bad_variant_access& e) {
+        throw bad_cell_access<T>(cell);
+    }
+}
 
 static const None none{}; //!< void return symbol
 static const Nil nil{}; //!< empty list symbol

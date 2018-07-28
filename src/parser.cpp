@@ -127,7 +127,7 @@ Parser::Token Parser::lex_symbol(const std::string& str) const
     return Token::Symbol;
 }
 
-Parser::Token Parser::lex_char(const std::string& str, Char& c) const
+Parser::Token Parser::lex_char(const std::string& str, Char& c, std::istream& in) const
 {
     constexpr struct {
         const char* name;
@@ -146,6 +146,10 @@ Parser::Token Parser::lex_char(const std::string& str, Char& c) const
     };
     constexpr size_t ntab = sizeof(stab) / sizeof(*stab);
 
+    if (str.size() == 2 && std::isspace(in.peek())) {
+        c = in.get();
+        return Token::Char;
+    }
     if (str.size() == 3) {
         c = str[2];
         return Token::Char;
@@ -168,7 +172,7 @@ Parser::Token Parser::lex_char(const std::string& str, Char& c) const
 /**
  * @brief Lexical analyse a special scheme symbol.
  */
-Parser::Token Parser::lex_special(const std::string& str)
+Parser::Token Parser::lex_special(const std::string& str, std::istream& in)
 {
     if (str == "#")
         return Token::Vector;
@@ -183,22 +187,23 @@ Parser::Token Parser::lex_special(const std::string& str)
             return Token::False;
 
     case '\\':
-        return lex_char(str, chrtok);
+        return lex_char(str, chrtok, in);
 
     default:
         return Token::Error;
     }
 }
 
-Parser::Token Parser::lex_unquote(const std::string& str) const
+Parser::Token Parser::lex_unquote(const std::string& str, std::istream& in) const
 {
-    if (str.size() == 1)
-        return Token::Unquote;
+    if (str.size() != 1)
+        return Token::Error;
 
-    if (str.size() == 2 && str[1] == '@')
+    if (in.peek() == '@') {
+        in.get();
         return Token::UnquoteSplice;
-
-    return Token::Error;
+    }
+    return Token::Unquote;
 }
 
 /**
@@ -216,7 +221,7 @@ Parser::Token Parser::skip_comment(std::istream& in) const
  */
 bool Parser::is_special(int c) const
 {
-    return strchr("()\"'`,@;", c);
+    return strchr("()\"'`,;", c);
 }
 
 /**
@@ -293,13 +298,13 @@ Parser::Token Parser::get_token(std::istream& in)
         return Token::QuasiQuote;
 
     case ',':
-        return lex_unquote(strtok);
+        return lex_unquote(strtok, in);
 
     case ';':
         return skip_comment(in);
 
     case '#':
-        return lex_special(strtok);
+        return lex_special(strtok, in);
 
     case '"':
         return lex_string(strtok, in);
@@ -329,13 +334,13 @@ Cell Parser::parse(std::istream& in)
         return list(Intern::_quote, parse(in));
 
     case Token::QuasiQuote:
-        return list(Intern::_quasiquote, parse(in));
+        return list(sym("quasiquote"), parse(in));
 
     case Token::Unquote:
-        return list(Intern::_unquote, parse(in));
+        return list(sym("unquote"), parse(in));
 
     case Token::UnquoteSplice:
-        return list(Intern::_unquotesplice, parse(in));
+        return list(sym("unquote-splicing"), parse(in));
 
     case Token::Number:
         return numtok;

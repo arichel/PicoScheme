@@ -204,7 +204,7 @@ static Cell log(const varg& args)
 /**
  * Scheme output @em write function.
  */
-static Cell write(const varg& args)
+static Cell display(const varg& args)
 {
     if (args.size() > 1) {
         Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
@@ -214,25 +214,6 @@ static Cell write(const varg& args)
         std::cout << args.at(0);
 
     return none;
-}
-
-/**
- * Scheme @em list function.
- * @verbatim (list [arg_0 ... arg_n]) => nil | (arg_0 ... arg_n) @endverbatim
- */
-static Cell list(const varg& args)
-{
-    Cell list = nil;
-
-    if (args.size()) {
-        list = cons(args.front(), nil);
-
-        Cell tail = list;
-
-        for (auto iter = ++args.begin(); iter != args.end(); ++iter, tail = cdr(tail))
-            set_cdr(tail, cons(*iter, nil));
-    }
-    return list;
 }
 
 /**
@@ -525,6 +506,109 @@ static Cell open_outfile(const StringPtr& filnam)
     return port;
 }
 
+/**
+ * Scheme output @em write function.
+ *
+ * @todo stream modifier for string quotations
+ */
+static Cell write(const varg& args)
+{
+    if (args.size() > 1) {
+        Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
+
+        port.stream() << args[0];
+    } else
+        std::cout << args.at(0);
+
+    return none;
+}
+
+/**
+ * Scheme output @em newline function.
+ */
+static Cell newline(const varg& args)
+{
+    if (args.size() > 0) {
+        Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
+        port.stream() << '\n';
+    } else
+        std::cout << '\n';
+
+    return none;
+}
+
+/**
+ * Scheme output @em write-char function.
+ */
+static Cell flush(const varg& args)
+{
+    if (args.size() > 0) {
+        Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
+
+        port.stream().flush();
+    } else
+        std::cout.flush();
+
+    return none;
+}
+
+/**
+ * Scheme output @em write-char function.
+ */
+static Cell write_char(const varg& args)
+{
+    if (args.size() > 1) {
+        Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
+
+        port.stream() << std::get<Char>(args[0]);
+    } else
+        std::cout << std::get<Char>(args.at(0));
+
+    return none;
+}
+
+/**
+ * Scheme output @em write-char function.
+ */
+static Cell write_str(const varg& args)
+{
+    using size_type = StringPtr::element_type::size_type;
+
+    const StringPtr& pstr = get<StringPtr>(args.at(0));
+
+    Port port;
+    if (args.size() > 1)
+        port = std::get<Port>(args[1]);
+
+    size_type ip = args.size() > 2 ? get<Int>(get<Number>(const_cast<Cell&>(args[2]))) : 0;
+    size_type ie = args.size() > 3 ? get<Int>(get<Number>(const_cast<Cell&>(args[3]))) : pstr->size();
+
+    if (ip || ie != pstr->size())
+        port.stream() << pstr->substr(ip, ie);
+    else
+        port.stream() << *pstr;
+    return none;
+}
+
+/**
+ * Scheme @em list function.
+ * @verbatim (list [arg_0 ... arg_n]) => nil | (arg_0 ... arg_n) @endverbatim
+ */
+static Cell list(const varg& args)
+{
+    Cell list = nil;
+
+    if (args.size()) {
+        list = cons(args.front(), nil);
+
+        Cell tail = list;
+
+        for (auto iter = ++args.begin(); iter != args.end(); ++iter, tail = cdr(tail))
+            set_cdr(tail, cons(*iter, nil));
+    }
+    return list;
+}
+
 static Cell readline(const varg& args)
 {
     StringPtr line = str("");
@@ -555,7 +639,7 @@ static Cell read(const varg& args)
     return parser.parse(port.stream());
 }
 
-static Cell readchar(const varg& args)
+static Cell read_char(const varg& args)
 {
     Port port;
 
@@ -567,7 +651,7 @@ static Cell readchar(const varg& args)
     return static_cast<Char>(port.stream().get());
 }
 
-static Cell peekchar(const varg& args)
+static Cell peek_char(const varg& args)
 {
     Port port;
 
@@ -580,10 +664,10 @@ static Cell peekchar(const varg& args)
 }
 
 /**
-     * Scheme @em read-string function.
-     * @todo This is a dummy implementation.
-     */
-static Cell readstr(const varg& args)
+ * Scheme @em read-string function.
+ * @todo This is a dummy implementation.
+ */
+static Cell read_str(const varg& args)
 {
     Port port;
 
@@ -731,6 +815,8 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return primop::list(args);
     case Intern::op_mklist:
         return primop::makelist(args);
+    case Intern::op_isnil:
+        return is_nil(args.at(0));
     case Intern::op_ispair:
         return is_pair(args.at(0));
     case Intern::op_islist:
@@ -835,17 +921,28 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return primop::readline(args);
     case Intern::op_read:
         return primop::read(args);
-    case Intern::op_readchar:
-        return primop::readchar(args);
-    case Intern::op_peekchar:
-        return primop::peekchar(args);
-    case Intern::op_readstr:
-        return primop::readstr(args);
+    case Intern::op_read_char:
+        return primop::read_char(args);
+    case Intern::op_peek_char:
+        return primop::peek_char(args);
+    case Intern::op_read_str:
+        return primop::read_str(args);
     case Intern::op_eof:
         return Char{ EOF };
     case Intern::op_iseof:
         return is_type<Char>(args.at(0)) && get<Char>(args[0]) == EOF;
-
+    case Intern::op_flush:
+        return primop::flush(args);
+    case Intern::op_write:
+        return primop::write(args);
+    case Intern::op_display:
+        return primop::display(args);
+    case Intern::op_newline:
+        return primop::newline(args);
+    case Intern::op_write_char:
+        return primop::write_char(args);
+    case Intern::op_write_str:
+        return primop::write_str(args);
     default:
         throw std::invalid_argument("invalid primary operation");
     }

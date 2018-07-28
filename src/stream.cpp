@@ -106,10 +106,10 @@ static std::ostream& operator<<(std::ostream& os, Proc proc)
 std::ostream& operator<<(std::ostream& os, const Cell& cell)
 {
     overloads fun{
+        [&os](None) {},
         [&os](Nil) { os << "()"; },
-        [&os](None) { os << "#none"; },
         [&os](Bool arg) { os << (arg ? "#t" : "#f"); },
-        [&os](Char arg) { os << "#\\" << arg; },
+        [&os](Char arg) { os << /*"#\\" <<*/ arg; },
         [&os](Number arg) { os << arg; },
         [&os](Intern arg) { os << arg; },
         [&os](StringPtr arg) { os << '"' << *arg << '"'; },

@@ -102,6 +102,7 @@ static SymenvPtr topenv{
         { sym("set-car!"), Intern::op_setcar },
         { sym("set-cdr!"), Intern::op_setcdr },
         { sym("list"), Intern::op_list },
+        { sym("null?"), Intern::op_isnil },
         { sym("pair?"), Intern::op_ispair },
         { sym("list?"), Intern::op_islist },
         { sym("make-list"), Intern::op_mklist },
@@ -160,7 +161,18 @@ static SymenvPtr topenv{
         { sym("call-with-input-file"), Intern::op_callw_infile },
         { sym("open-input-file"), Intern::op_open_infile },
         { sym("open-output-file"), Intern::op_open_outfile },
+        { sym("eof-object?"), Intern::op_iseof },
+        { sym("eof-object"), Intern::op_eof },
+        { sym("flush-output-port"), Intern::op_flush },
         { sym("read-line"), Intern::op_readline },
+        { sym("read-char"), Intern::op_read_char },
+        { sym("peek-char"), Intern::op_peek_char },
+        { sym("read-string"), Intern::op_read_str },
+        { sym("write"), Intern::op_write },
+        { sym("display"), Intern::op_display },
+        { sym("newline"), Intern::op_newline },
+        { sym("write-char"), Intern::op_write_char },
+        { sym("write-str"), Intern::op_write_str },
     }
 };
 

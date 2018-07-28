@@ -53,9 +53,9 @@ private:
     Token get_token(std::istream& in);
 
     Token lex_symbol(const std::string& str) const;
-    Token lex_unquote(const std::string& str) const;
-    Token lex_char(const std::string& str, Char& c) const;
-    Token lex_special(const std::string& str);
+    Token lex_unquote(const std::string& str, std::istream& in) const;
+    Token lex_char(const std::string& str, Char& c, std::istream& in) const;
+    Token lex_special(const std::string& str, std::istream& in);
     Token lex_number(const std::string& str, Number& num) const;
     Token lex_string(std::string& str, std::istream& in) const;
     Token skip_comment(std::istream& in) const;

@@ -15,6 +15,8 @@
 
 namespace pscm {
 
+using namespace std::string_literals;
+
 /**
  * @brief Symbol table of to provide unique symbols.
  *
@@ -170,7 +172,8 @@ public:
 
         } while ((senv = senv->next.get()));
 
-        throw std::invalid_argument("unknown symbol");
+        throw std::invalid_argument("unknown symbol "s
+            + static_cast<std::string>(sym.value()));
     }
 
     /**
@@ -191,7 +194,8 @@ public:
 
         } while ((senv = senv->next.get()));
 
-        throw std::invalid_argument("unknown symbol");
+        throw std::invalid_argument("unknown symbol "s
+            + static_cast<std::string>(sym.value()));
     }
 
 private:
