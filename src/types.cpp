@@ -6,9 +6,10 @@
  * @author    Paul Pudewills
  * @copyright MIT License
  *************************************************************************************/
+#include <functional>
 
-#include "types.hpp"
 #include "cell.hpp"
+#include "types.hpp"
 
 namespace pscm {
 
@@ -99,6 +100,7 @@ static SymenvPtr topenv{
         { sym("cddr"), Intern::op_cddr },
         { sym("cadr"), Intern::op_cadr },
         { sym("cdar"), Intern::op_cdar },
+        { sym("caddr"), Intern::op_caddr },
         { sym("set-car!"), Intern::op_setcar },
         { sym("set-cdr!"), Intern::op_setcdr },
         { sym("list"), Intern::op_list },
@@ -112,11 +114,13 @@ static SymenvPtr topenv{
         { sym("list-set!"), Intern::op_listsetb },
         { sym("reverse"), Intern::op_reverse },
         { sym("reverse!"), Intern::op_reverseb },
+        { sym("member"), Intern::op_member },
 
         /* Section 6.5: Symbols */
         { sym("symbol?"), Intern::op_issym },
         { sym("symbol->string"), Intern::op_symstr },
         { sym("string->symbol"), Intern::op_strsym },
+        { sym("gensym"), Intern::op_gensym },
 
         /* Section 6.6: Characters */
         { sym("char?"), Intern::op_ischar },
@@ -144,12 +148,16 @@ static SymenvPtr topenv{
 
         /* Section 6.10: Control features */
         { sym("procedure?"), Intern::op_isproc },
+        { sym("map"), Intern::op_map },
 
         /* Section 6.11: Exceptions */
-        /* Section 6.12: Environments and evaluation */
+        { sym("error"), Intern::op_error },
         { sym("exit"), Intern::op_exit },
+
+        /* Section 6.12: Environments and evaluation */
         { sym("interaction-environment"), Intern::op_replenv },
         { sym("eval"), Intern::op_eval },
+        { sym("repl"), Intern::op_repl },
         { sym("macro-expand"), Intern::op_macroexp },
 
         /* Section 6.13: Input and output */
@@ -179,6 +187,13 @@ static SymenvPtr topenv{
 Symbol sym(const char* name)
 {
     return symtab[name];
+}
+
+Symbol gensym()
+{
+    std::ostringstream os;
+    os << "|symbol " << symtab.size() << '|';
+    return symtab[os.str().c_str()];
 }
 
 SymenvPtr senv(const SymenvPtr& env)

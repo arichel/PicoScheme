@@ -68,6 +68,9 @@ private:
     std::string strtok;
     Number numtok;
     Char chrtok;
+
+    const Symbol s_quote = sym("quote"), s_quasiquote = sym("quasiquote"),
+                 s_unquote = sym("unquote"), s_unquotesplice = sym("unquote-splicing");
 };
 
 } // namespace pscm

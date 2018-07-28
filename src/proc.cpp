@@ -135,6 +135,7 @@ std::pair<SymenvPtr, Cell> Proc::apply(const SymenvPtr& senv, Cell args, bool is
 
                 if (iter != args) // dottet formal parmeter list:
                     newenv->add(get<Symbol>(iter), args);
+                break;
             }
 
     return { newenv, impl->code };
@@ -142,6 +143,8 @@ std::pair<SymenvPtr, Cell> Proc::apply(const SymenvPtr& senv, Cell args, bool is
 
 /**
  * @brief Expand a macro
+ *
+ *
  */
 Cell Proc::expand(Cell& expr) const
 {
@@ -159,7 +162,8 @@ Cell Proc::expand(Cell& expr) const
 
     // Expand and replace argument expression with evaluated macro:
     set_car(expr, Intern::_begin);
-    set_cdr(expr, args = eval(newenv, syntax::_begin(newenv, impl->code)));
+    set_car(cdr(expr), args = eval(newenv, syntax::_begin(newenv, impl->code)));
+    set_cdr(cdr(expr), nil);
     return args;
 }
 

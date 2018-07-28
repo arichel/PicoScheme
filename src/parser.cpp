@@ -331,16 +331,16 @@ Cell Parser::parse(std::istream& in)
         return chrtok;
 
     case Token::Quote:
-        return list(Intern::_quote, parse(in));
+        return list(s_quote, parse(in));
 
     case Token::QuasiQuote:
-        return list(sym("quasiquote"), parse(in));
+        return list(s_quasiquote, parse(in));
 
     case Token::Unquote:
-        return list(sym("unquote"), parse(in));
+        return list(s_unquote, parse(in));
 
     case Token::UnquoteSplice:
-        return list(sym("unquote-splicing"), parse(in));
+        return list(s_unquotesplice, parse(in));
 
     case Token::Number:
         return numtok;

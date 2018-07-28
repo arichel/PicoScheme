@@ -100,6 +100,7 @@ enum class Intern {
     op_cddr,
     op_cadr,
     op_cdar,
+    op_caddr,
     op_setcdr,
     op_setcar,
     op_list,
@@ -126,6 +127,7 @@ enum class Intern {
     op_symstr,
     op_strsym,
     op_symeql,
+    op_gensym,
 
     /* Section 6.6: Characters */
     op_ischar,
@@ -210,9 +212,12 @@ enum class Intern {
     op_dynwind,
 
     /* Section 6.11: Exceptions */
+    op_error,
+
     /* Section 6.12: Environments and evaluation */
     op_exit,
     op_replenv,
+    op_repl,
     op_eval,
     op_macroexp,
 
@@ -281,10 +286,11 @@ enum class Intern {
     op_features,
 };
 
-Symbol sym(const char* name);
 SymenvPtr senv(const SymenvPtr& env = nullptr);
 VectorPtr vec(Number size, const Cell& val);
 StringPtr str(const Char* s);
+Symbol sym(const char* name);
+Symbol gensym();
 
 } // namespace pscm
 

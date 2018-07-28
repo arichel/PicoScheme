@@ -104,6 +104,11 @@ struct SymbolTable {
         return *table.emplace(std::forward<Val>(val)).first;
     }
 
+    size_t size()
+    {
+        return table.size();
+    }
+
 private:
     std::unordered_set<T, Hash, Equal> table;
 };

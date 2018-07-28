@@ -333,6 +333,38 @@ static Cell listsetb(const varg& args)
 }
 
 /**
+ * Scheme list @em member function.
+ */
+static Cell member(const SymenvPtr& senv, const varg& args)
+{
+    Cell list = args.at(1);
+    const Cell& obj = args[0];
+
+    if (args.size() > 2) {
+        std::deque<Cons> vec;
+
+        for (; is_pair(list); list = cdr(list)) {
+
+            Cell expr = vlist(vec, Intern::_apply, args[2],
+                vlist(vec, Intern::_quote, vlist(vec, obj, car(list))));
+
+            if (is_true(eval(senv, expr)))
+                return list;
+
+            vec.clear();
+        }
+
+    } else
+        for (; is_pair(list); list = cdr(list))
+            if (is_equal(obj, car(list)))
+                return list;
+    is_nil(list)
+        || ((void)(throw std::invalid_argument("member - invalid argument list")), 0);
+
+    return false;
+}
+
+/**
  * @brief Scheme @em vector-ref function.
  * @verbatim (vector-ref #(x0 x1 x2 ... xn) 2) => x2) @endverbatim
  */
@@ -698,6 +730,51 @@ static Cell macroexp(const SymenvPtr& senv, const varg& args)
     return get<Proc>(proc).expand(expr);
 }
 
+static Cell error(const varg& args)
+{
+    std::string msg{ "error: " };
+    msg.append(*get<StringPtr>(args.at(0)));
+
+    throw std::invalid_argument(msg.c_str());
+    return none;
+}
+
+static Cell map(const SymenvPtr& senv, const varg& args)
+{
+    args.size() > 1
+        || ((void)(throw std::invalid_argument("map - not enough arguments")), 0);
+
+    std::vector<Cell> lists{ args.begin() + 1, args.end() };
+    std::deque<Cons> vec(lists.size());
+
+    Cell head = nil, tail = nil;
+
+    for (;;) {
+        size_t i = 0;
+
+        for (auto& l : lists)
+            if (is_pair(l)) {
+                vec[i] = Cons{ car(l), nil };
+                if (i)
+                    vec[i - 1].second = static_cast<Cons*>(&vec[i]);
+
+                i++;
+                l = cdr(l);
+            } else
+                return head;
+
+        Cell expr = vlist(vec, Intern::_apply, args[0],
+            vlist(vec, Intern::_quote, &vec.front()));
+
+        if (is_nil(head))
+            head = tail = cons(eval(senv, expr), nil);
+        else {
+            set_cdr(tail, cons(eval(senv, expr), nil));
+            tail = cdr(tail);
+        }
+        vec.resize(lists.size());
+    }
+}
 } // namespace primop
 
 namespace pscm {
@@ -779,7 +856,7 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return pscm::arg(get<Number>(args.at(0)));
     case Intern::op_conj:
         return pscm::conj(get<Number>(args.at(0)));
-    case Intern::op_rect:
+    case Intern::op_rect:;
         return pscm::rect(get<Number>(args.at(0)), get<Number>(args.at(1)));
     case Intern::op_polar:
         return pscm::polar(get<Number>(args.at(0)), get<Number>(args.at(1)));
@@ -807,6 +884,8 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return cadr(args.at(0));
     case Intern::op_cdar:
         return cdar(args.at(0));
+    case Intern::op_caddr:
+        return caddr(args.at(0));
     case Intern::op_setcar:
         return (void)(set_car(args.at(0), args.at(1))), none;
     case Intern::op_setcdr:
@@ -833,7 +912,8 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return primop::reverse(args);
     case Intern::op_reverseb:
         return primop::reverseb(args);
-
+    case Intern::op_member:
+        return primop::member(senv, args);
     /* Section 6.5: Symbols */
     case Intern::op_issym:
         return is_symbol(args.at(0));
@@ -841,6 +921,8 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return std::make_shared<StringPtr::element_type>(get<Symbol>(args.at(0)).value());
     case Intern::op_strsym:
         return sym(get<StringPtr>(args.at(0))->c_str());
+    case Intern::op_gensym:
+        return gensym();
 
     /* Section 6.6: Characters */
     case Intern::op_ischar:
@@ -884,13 +966,21 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     /* Section 6.10: Control features */
     case Intern::op_isproc:
         return is_proc(args.at(0)) || (is_intern(args[0]) && std::get<Intern>(args[0]) >= Intern::op_eq);
+    case Intern::op_map:
+        return primop::map(senv, args);
 
     /* Section 6.11: Exceptions */
-    /* Section 6.12: Environments and evaluation */
+    case Intern::op_error:
+        return primop::error(args);
     case Intern::op_exit:
         return Intern::op_exit;
+
+    /* Section 6.12: Environments and evaluation */
     case Intern::op_replenv:
         return senv;
+    case Intern::op_repl:
+        repl(senv);
+        return none;
     case Intern::op_eval:
         return eval(args.size() > 1 ? get<SymenvPtr>(args[1]) : senv, args[0]);
     case Intern::op_macroexp:

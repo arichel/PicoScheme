@@ -9,6 +9,8 @@
 #ifndef CELL_HPP
 #define CELL_HPP
 
+#include <deque>
+
 #include "types.hpp"
 #include "utils.hpp"
 
@@ -36,6 +38,9 @@ struct Cell : Variant {
     operator T&() { return std::get<T>(*this); }
 };
 
+/**
+ * Exception class to throw an invalid cell variant access error.
+ */
 template <typename T>
 struct bad_cell_access : public std::bad_variant_access {
     bad_cell_access() noexcept
@@ -106,6 +111,7 @@ T&& get(Cell&& cell)
 {
     try {
         return std::get<T>(static_cast<Variant&&>(std::move(cell)));
+
     } catch (std::bad_variant_access& e) {
         throw bad_cell_access<T>(cell);
     }
@@ -116,6 +122,7 @@ const T& get(const Cell& cell)
 {
     try {
         return std::get<T>(static_cast<Variant&>(const_cast<Cell&>(cell)));
+
     } catch (std::bad_variant_access& e) {
         throw bad_cell_access<T>(cell);
     }
@@ -126,6 +133,7 @@ const T&& get(const Cell&& cell)
 {
     try {
         return std::get<T>(static_cast<const Variant&&>(std::move(cell)));
+
     } catch (std::bad_variant_access& e) {
         throw bad_cell_access<T>(cell);
     }
@@ -254,6 +262,31 @@ Nil alist(Cons (&)[1], T1&&, T2&&, Args&&...)
     throw std::invalid_argument("invalid cons array size");
     return nil;
 }
+
+/**
+ * Build a cons list from all arguments directly in
+ * in argument cons cell array.
+ *
+ * This array embedded cons-list is used for short temporary
+ * argument lists to circumvent to unecessarly fill the
+ * global cell store.
+ *
+ * The cons array size must be equal or greater the number of
+ * remaining arguments. An insufficient array size is an compile
+ * time error.
+ */
+template <typename T, typename... Args>
+Cons* vlist(std::deque<Cons>& cons, T&& t, Args&&... args)
+{
+    size_t pos = cons.size();
+    cons.push_back(Cons{ std::forward<T>(t), nil });
+
+    cons[pos].second = vlist(cons, std::forward<Args>(args)...);
+    return &cons[pos];
+}
+
+//! Recursion base case, if list is shorter then the array size.
+inline Nil vlist(std::deque<Cons>& cons) { return nil; }
 
 } // namespace pscm
 #endif // CELL_HPP

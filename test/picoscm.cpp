@@ -22,7 +22,14 @@ int main()
 
     try {
         SymenvPtr e = senv();
-        Cell expr = pscm::list(num(1));
+
+        Cell expr = pscm::list(Intern::op_map,
+            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
+            pscm::list(Intern::_quote, pscm::list(num(1), num(2), num(3))));
+
+        //        Cell expr = pscm::list(Intern::_apply,
+        //            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
+        //            pscm::list(Intern::_quote, pscm::list(num(1))));
 
         //        Parser parser;
         //        std::istringstream stream("',@3");
