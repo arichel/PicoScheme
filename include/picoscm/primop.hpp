@@ -9,6 +9,7 @@
 #ifndef PRIMOP_HPP
 #define PRIMOP_HPP
 
+#include <functional>
 #include <vector>
 
 #include "types.hpp"

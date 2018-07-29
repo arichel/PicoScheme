@@ -201,6 +201,22 @@ SymenvPtr senv(const SymenvPtr& env)
     return std::make_shared<SymenvPtr::element_type>(env ? env : topenv);
 }
 
+void addenv(const Symbol& sym, const Cell& cell, const SymenvPtr& env)
+{
+    if (env)
+        env->add(sym, cell);
+    else
+        topenv->add(sym, cell);
+}
+
+Func fun(const Symbol& sym, Func::function_type&& fn, const SymenvPtr& env)
+{
+    Func func{ sym, std::move(fn) };
+
+    addenv(sym, func, env);
+    return func;
+}
+
 StringPtr str(const Char* s)
 {
     return std::make_shared<StringPtr::element_type>(s);

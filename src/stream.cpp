@@ -50,7 +50,7 @@ static std::ostream& operator<<(std::ostream& os, const VectorPtr& vec)
     return os << ')';
 }
 
-static std::ostream& operator<<(std::ostream& os, Intern opcode)
+std::ostream& operator<<(std::ostream& os, Intern opcode)
 {
     switch (opcode) {
     case Intern::_or:
@@ -89,7 +89,6 @@ static std::ostream& operator<<(std::ostream& os, Intern opcode)
         return os << "unquote";
     case Intern::_unquotesplice:
         return os << "unquote-splicing";
-
     default:
         return os << "#<primop " << static_cast<int>(opcode) << '>';
     }
@@ -116,6 +115,7 @@ std::ostream& operator<<(std::ostream& os, const Cell& cell)
         [&os](VectorPtr arg) { os << arg; },
         [&os](Symbol arg) { os << arg.value(); },
         [&os](SymenvPtr arg) { os << "#<symenv " << arg.get() << '>'; },
+        [&os](Func arg) { os << "#<function " << arg.name() << '>'; },
         [&os](Proc arg) { os << arg; },
         [&os](Port) { os << "#<port>"; },
         [&os](Cons* arg) { os << arg; },

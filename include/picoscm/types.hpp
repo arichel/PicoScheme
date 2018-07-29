@@ -22,7 +22,7 @@ using StringPtr = std::shared_ptr<std::basic_string<Char>>;
 using VectorPtr = std::shared_ptr<std::vector<Cell>>;
 
 using Variant = std::variant<None, Nil, Intern, Bool, Char, Number, Cons*,
-    StringPtr, VectorPtr, Port, Symbol, SymenvPtr, Proc>;
+    StringPtr, VectorPtr, Port, Symbol, SymenvPtr, Func, Proc>;
 
 enum class Intern {
     /* Scheme syntax opcodes: */
@@ -287,6 +287,8 @@ enum class Intern {
 };
 
 SymenvPtr senv(const SymenvPtr& env = nullptr);
+void addenv(const Symbol& sym, const Cell& cell, const SymenvPtr& env = nullptr);
+Func fun(const Symbol& sym, Func::function_type&& fn, const SymenvPtr& env = nullptr);
 VectorPtr vec(Number size, const Cell& val);
 StringPtr str(const Char* s);
 Symbol sym(const char* name);

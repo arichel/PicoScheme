@@ -225,7 +225,10 @@ Cell eval(SymenvPtr senv, Cell expr)
         if (!is_pair(expr))
             return expr;
 
-        if (is_proc(proc = eval(senv, car(expr)))) {
+        if (is_func(proc = eval(senv, car(expr))))
+            return get<Func>(proc)(senv, eval_args(senv, cdr(expr)));
+
+        if (is_proc(proc)) {
             if (is_macro(proc))
                 expr = get<Proc>(proc).expand(expr);
             else {
@@ -234,6 +237,7 @@ Cell eval(SymenvPtr senv, Cell expr)
             }
             continue;
         }
+
         args = cdr(expr);
         switch (auto opcode = get<Intern>(proc)) {
 
@@ -335,6 +339,11 @@ void repl(const SymenvPtr& symenv, std::istream& in, std::ostream& out)
                 std::cerr << e.what() << ": " << expr << std::endl;
 
         } catch (std::invalid_argument& e) {
+            if (is_none(expr))
+                std::cerr << e.what() << std::endl;
+            else
+                std::cerr << e.what() << ": " << expr << std::endl;
+        } catch (std::bad_function_call& e) {
             if (is_none(expr))
                 std::cerr << e.what() << std::endl;
             else

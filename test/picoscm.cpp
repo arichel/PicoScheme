@@ -9,19 +9,34 @@
 #include <picoscm/cell.hpp>
 #include <picoscm/eval.hpp>
 #include <picoscm/parser.hpp>
+#include <picoscm/primop.hpp>
 #include <picoscm/symbol.hpp>
 #include <picoscm/types.hpp>
 
 using namespace std;
-using namespace pscm;
+
+enum Opcode { op_hallo };
 
 int main()
 {
-    repl();
+    using pscm::Intern, pscm::Cell, pscm::sym, pscm::num, pscm::str, pscm::fun;
+
+    size_t cntr = 0;
+
+    pscm::fun(sym("hallo"), [cntr](auto& senv, auto& args) mutable -> Cell {
+
+        std::string msg = "hello world "s + std::to_string(++cntr)
+            + " nargs: " + std::to_string(args.size());
+
+        return str(msg.c_str());
+    });
+
+    pscm::repl();
     return 0;
 
     try {
-        SymenvPtr e = senv();
+
+        pscm::SymenvPtr e = pscm::senv();
 
         Cell expr = pscm::list(Intern::op_map,
             pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
@@ -36,7 +51,7 @@ int main()
         //        Cell expr = parser.parse(stream);
 
         cout << expr << " ---> ";
-        Cell proc = eval(e, expr);
+        Cell proc = pscm::eval(e, expr);
         cout << proc << endl;
 
     } catch (std::bad_variant_access& e) {

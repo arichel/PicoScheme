@@ -18,7 +18,9 @@
 namespace pscm {
 
 struct Cell;
+enum class Intern;
 
+std::ostream& operator<<(std::ostream& os, Intern opcode);
 std::ostream& operator<<(std::ostream& os, const Cell& cell);
 
 class Port {

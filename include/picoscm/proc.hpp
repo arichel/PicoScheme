@@ -1,6 +1,7 @@
 #ifndef PROC_HPP
 #define PROC_HPP
 
+#include <functional>
 #include <memory>
 #include <utility>
 
@@ -79,6 +80,23 @@ private:
  * @brief Conveniance function to call the Proc::apply member function.
  */
 std::pair<SymenvPtr, Cell> apply(const SymenvPtr& senv, const Proc& proc, const Cell& args, bool is_list = true);
+
+class Func {
+public:
+    using function_type = std::function<Cell(const SymenvPtr&, const std::vector<Cell>&)>;
+
+    Func(const Symbol& sym, function_type&& fun);
+
+    bool operator!=(const Func& func) const;
+    bool operator==(const Func& func) const;
+    Cell operator()(const SymenvPtr& senv, const std::vector<Cell>& args) const;
+
+    const std::string& name() const;
+
+private:
+    const Symbol::value_type* valptr;
+    std::shared_ptr<function_type> funptr;
+};
 
 }; // namespace pscm
 

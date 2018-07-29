@@ -143,8 +143,6 @@ std::pair<SymenvPtr, Cell> Proc::apply(const SymenvPtr& senv, Cell args, bool is
 
 /**
  * @brief Expand a macro
- *
- *
  */
 Cell Proc::expand(Cell& expr) const
 {
@@ -170,6 +168,32 @@ Cell Proc::expand(Cell& expr) const
 std::pair<SymenvPtr, Cell> apply(const SymenvPtr& senv, const Proc& proc, const Cell& args, bool is_list)
 {
     return proc.apply(senv, args, is_list);
+}
+
+Func::Func(const Symbol& sym, function_type&& fun)
+    : valptr{ &sym.value() }
+    , funptr{ std::make_shared<function_type>(std::move(fun)) }
+{
+}
+
+bool Func::operator!=(const Func& func) const
+{
+    return funptr != func.funptr;
+}
+
+bool Func::operator==(const Func& func) const
+{
+    return funptr == func.funptr;
+}
+
+Cell Func::operator()(const SymenvPtr& senv, const std::vector<Cell>& args) const
+{
+    return (*funptr)(senv, args);
+}
+
+const std::string& Func::name() const
+{
+    return static_cast<const std::string&>(*valptr);
 }
 
 } // namespace pscm

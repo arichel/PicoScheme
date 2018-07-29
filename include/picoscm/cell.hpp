@@ -152,6 +152,7 @@ inline bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
 inline bool is_port(const Cell& cell) { return is_type<Port>(cell); }
 inline bool is_symbol(const Cell& cell) { return is_type<Symbol>(cell); }
 inline bool is_symenv(const Cell& cell) { return is_type<SymenvPtr>(cell); }
+inline bool is_func(const Cell& cell) { return is_type<Func>(cell); }
 inline bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
 inline bool is_macro(const Cell& cell) { return is_proc(cell) && get<Proc>(cell).is_macro(); }
 

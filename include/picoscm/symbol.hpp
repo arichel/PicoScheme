@@ -150,7 +150,7 @@ public:
     }
 
     /**
-     * @brief Insert a new symbol and value or reassign value for an existing symbol
+     * @brief Insert a new symbol and value or reassign value of an existing symbol
      *        in this environment only.
      */
     void add(const Sym& sym, const T& val)
@@ -206,6 +206,24 @@ public:
 private:
     const std::shared_ptr<SymbolEnv> next = nullptr;
     std::unordered_map<key_type, T> table;
+};
+
+template <typename Sym, typename Code>
+struct Opcode {
+    using value_type = typename Sym::value_type;
+
+    Opcode(const Sym& sym, Code code)
+        : _value(&sym.value())
+        , _code{ code }
+    {
+    }
+    template <typename T>
+    operator T() const { return static_cast<T>(_code); }
+    const value_type& value() const { return *_value; }
+
+private:
+    const value_type* _value;
+    Code _code;
 };
 
 } // namespace pscm

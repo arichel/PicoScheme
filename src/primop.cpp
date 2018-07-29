@@ -1034,7 +1034,7 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_write_str:
         return primop::write_str(args);
     default:
-        throw std::invalid_argument("invalid primary operation");
+        throw std::invalid_argument("invalid primary opcode");
     }
 }
 } // namespace pscm
