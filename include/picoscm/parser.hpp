@@ -21,7 +21,7 @@ struct Cell;
 class Parser {
 
 public:
-    Cell parse(std::istream& in);
+    Cell read(std::istream& in);
 
 private:
     enum class Token : int {

@@ -130,15 +130,3 @@
 
     `(let ((,item ,expr))
        (cond . ,(map do-case cases)))))
-
-;;
-;; return a function which cycles between arguments at each call:
-;;   ex.: (define flip-flop (make-cycle 1 2)) => 1, 2, 1, 2, ....
-(define (make-cycle . args)
-  (if (null? args)
-      (lambda () args)
-      (let ((nxt args)(arg ()))
-        (lambda ()
-          (set! arg (car nxt))
-          (set! nxt (if (null? (cdr nxt)) args (cdr nxt)))
-          arg))))

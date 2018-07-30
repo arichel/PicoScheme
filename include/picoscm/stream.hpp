@@ -44,6 +44,7 @@ public:
 
     void close();
 
+    //! Return the underlying string of a string stream.
     std::string str() const;
 
     template <typename T>

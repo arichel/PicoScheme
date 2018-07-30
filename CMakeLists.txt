@@ -17,7 +17,6 @@ if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb  -Wno-padded")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
-
 # Add source directory
 file(GLOB SOURCES "src/*.cpp")
 

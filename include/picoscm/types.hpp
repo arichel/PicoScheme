@@ -56,6 +56,10 @@ enum class Intern {
     op_numgt,
     op_numle,
     op_numge,
+    op_min,
+    op_max,
+    op_ispos,
+    op_isneg,
     op_zero,
     op_add,
     op_sub,
@@ -293,6 +297,9 @@ VectorPtr vec(Number size, const Cell& val);
 StringPtr str(const Char* s);
 Symbol sym(const char* name);
 Symbol gensym();
+
+//!
+void load(const std::string& filnam, const SymenvPtr& env = nullptr);
 
 } // namespace pscm
 

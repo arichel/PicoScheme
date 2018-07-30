@@ -263,21 +263,26 @@ Parser::Token Parser::get_token(std::istream& in)
     }
 
     // Ignore all leading whitespaces:
-    int c = '\0';
-    while (in && isspace(c = in.get()))
+    char c;
+    while (in.get(c) && isspace(c))
         ;
+
+    if (!in.good())
+        return in.eof() ? Token::Eof : Token::Error;
 
     strtok.clear();
     strtok.push_back(static_cast<Char>(c));
 
     // Read chars until a trailing whitespace, a special scheme character or EOF is reached:
     if (!is_special(c)) {
-        while (in && !isspace(c = in.get()) && !is_special(c) && c != EOF)
+        while (in.get(c) && !isspace(c) && !is_special(c))
             strtok.push_back(static_cast<Char>(c));
+
         in.unget();
+
+        if (!in.good())
+            return in.eof() ? Token::Eof : Token::Error;
     }
-    if (in.bad())
-        return Token::Error;
 
     // Lexical analyse token string according to the first character:
     switch (c = strtok.front()) {
@@ -317,49 +322,57 @@ Parser::Token Parser::get_token(std::istream& in)
     }
 }
 
-Cell Parser::parse(std::istream& in)
+Cell Parser::read(std::istream& in)
 {
-    switch (get_token(in)) {
+    for (;;)
+        switch (get_token(in)) {
 
-    case Token::True:
-        return true;
+        case Token::Comment:
+            break;
 
-    case Token::False:
-        return false;
+        case Token::True:
+            return true;
 
-    case Token::Char:
-        return chrtok;
+        case Token::False:
+            return false;
 
-    case Token::Quote:
-        return list(s_quote, parse(in));
+        case Token::Char:
+            return chrtok;
 
-    case Token::QuasiQuote:
-        return list(s_quasiquote, parse(in));
+        case Token::Quote:
+            return list(s_quote, read(in));
 
-    case Token::Unquote:
-        return list(s_unquote, parse(in));
+        case Token::QuasiQuote:
+            return list(s_quasiquote, read(in));
 
-    case Token::UnquoteSplice:
-        return list(s_unquotesplice, parse(in));
+        case Token::Unquote:
+            return list(s_unquote, read(in));
 
-    case Token::Number:
-        return numtok;
+        case Token::UnquoteSplice:
+            return list(s_unquotesplice, read(in));
 
-    case Token::String:
-        return str(strtok.c_str());
+        case Token::Number:
+            return numtok;
 
-    case Token::Symbol:
-        return sym(strtok.c_str());
+        case Token::String:
+            return str(strtok.c_str());
 
-    case Token::Vector:
-        return parse_vector(in);
+        case Token::Symbol:
+            return sym(strtok.c_str());
 
-    case Token::OBrace:
-        return parse_list(in);
+        case Token::Vector:
+            return parse_vector(in);
 
-    default:
-        throw std::invalid_argument("parse error");
-    }
+        case Token::OBrace:
+            return parse_list(in);
+
+        case Token::Eof:
+            return none;
+
+        case Token::Error:
+        default:
+            throw std::invalid_argument("parse error");
+        }
 }
 
 Cell Parser::parse_vector(std::istream& in)
@@ -375,7 +388,7 @@ Cell Parser::parse_vector(std::istream& in)
                 return vec;
 
             put_back = tok;
-            v->push_back(parse(in));
+            v->push_back(read(in));
         }
     throw std::invalid_argument("error parsing vector");
 }
@@ -393,7 +406,7 @@ Cell Parser::parse_list(std::istream& in)
             return list;
 
         case Token::Dot:
-            cell = parse(in);
+            cell = read(in);
             tok = get_token(in);
 
             if (tok == Token::CBrace) {
@@ -408,7 +421,7 @@ Cell Parser::parse_list(std::istream& in)
 
         default:
             put_back = tok;
-            cell = parse(in);
+            cell = read(in);
 
             if (is_pair(tail)) {
                 set_cdr(tail, cons(cell, nil));

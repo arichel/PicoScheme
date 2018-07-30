@@ -15,40 +15,32 @@
 
 using namespace std;
 
-enum Opcode { op_hallo };
-
-int main()
+int main(int argn, char* argv[])
 {
-    using pscm::Intern, pscm::Cell, pscm::sym, pscm::num, pscm::str, pscm::fun;
+    using pscm::Intern, pscm::Cell, pscm::list, pscm::sym, pscm::num, pscm::str, pscm::fun;
 
-    size_t cntr = 0;
-
-    pscm::fun(sym("hallo"), [cntr](auto& senv, auto& args) mutable -> Cell {
-
-        std::string msg = "hello world "s + std::to_string(++cntr)
-            + " nargs: " + std::to_string(args.size());
-
-        return str(msg.c_str());
+    fun(sym("greet"), [cntr = 0](auto senv, auto args) mutable->Cell {
+        return list(str("hello world"), num(cntr++));
     });
 
+    pscm::load("picoscmrc.scm");
     pscm::repl();
     return 0;
 
     try {
-
         pscm::SymenvPtr e = pscm::senv();
 
-        Cell expr = pscm::list(Intern::op_map,
-            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
-            pscm::list(Intern::_quote, pscm::list(num(1), num(2), num(3))));
+        //        Cell expr = pscm::list(Intern::op_map,
+        //            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
+        //            pscm::list(Intern::_quote, pscm::list(num(1), num(2), num(3))));
 
         //        Cell expr = pscm::list(Intern::_apply,
         //            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
         //            pscm::list(Intern::_quote, pscm::list(num(1))));
 
-        //        Parser parser;
-        //        std::istringstream stream("',@3");
-        //        Cell expr = parser.parse(stream);
+        pscm::Parser parser;
+        std::istringstream stream("");
+        Cell expr = parser.read(stream);
 
         cout << expr << " ---> ";
         Cell proc = pscm::eval(e, expr);

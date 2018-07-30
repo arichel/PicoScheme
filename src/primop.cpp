@@ -668,7 +668,7 @@ static Cell read(const varg& args)
             || ((void)(throw std::invalid_argument("port is closed")), 0);
     }
     Parser parser;
-    return parser.parse(port.stream());
+    return parser.read(port.stream());
 }
 
 static Cell read_char(const varg& args)
@@ -713,7 +713,7 @@ static Cell read_str(const varg& args)
             || ((void)(throw std::invalid_argument("port is closed")), 0);
     }
     Parser parser;
-    return parser.parse(port.stream());
+    return parser.read(port.stream());
 }
 
 static Cell macroexp(const SymenvPtr& senv, const varg& args)
@@ -808,6 +808,14 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return primop::mul(args);
     case Intern::op_div:
         return primop::div(args);
+    case Intern::op_min:
+        return get<Number>(args.at(1)) < get<Number>(args[0]) ? args[1] : args[0];
+    case Intern::op_max:
+        return get<Number>(args.at(1)) > get<Number>(args[0]) ? args[1] : args[0];
+    case Intern::op_ispos:
+        return get<Number>(args.at(0)) > Number{ 0 };
+    case Intern::op_isneg:
+        return get<Number>(args.at(0)) < Number{ 0 };
     case Intern::op_zero:
         return is_zero(get<Number>(args.at(0)));
     case Intern::op_sin:
@@ -1033,6 +1041,12 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return primop::write_char(args);
     case Intern::op_write_str:
         return primop::write_str(args);
+
+    /* Section 6.14: System interface */
+    case Intern::op_load:
+        load(*get<StringPtr>(args.at(0)), senv);
+        return none;
+
     default:
         throw std::invalid_argument("invalid primary opcode");
     }

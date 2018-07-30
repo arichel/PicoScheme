@@ -215,5 +215,4 @@ bool Port::operator==(const Port& stream) const noexcept
 {
     return !(*this != stream);
 }
-
 } // namespace pscm

@@ -9,6 +9,8 @@
 #include <functional>
 
 #include "cell.hpp"
+#include "eval.hpp"
+#include "parser.hpp"
 #include "types.hpp"
 
 namespace pscm {
@@ -59,6 +61,10 @@ static SymenvPtr topenv{
         { sym("-"), Intern::op_sub },
         { sym("*"), Intern::op_mul },
         { sym("/"), Intern::op_div },
+        { sym("min"), Intern::op_min },
+        { sym("max"), Intern::op_max },
+        { sym("positive?"), Intern::op_ispos },
+        { sym("negative?"), Intern::op_isneg },
         { sym("zero?"), Intern::op_zero },
         { sym("sin"), Intern::op_sin },
         { sym("cos"), Intern::op_cos },
@@ -181,6 +187,9 @@ static SymenvPtr topenv{
         { sym("newline"), Intern::op_newline },
         { sym("write-char"), Intern::op_write_char },
         { sym("write-str"), Intern::op_write_str },
+
+        /* Section 6.14: System interface */
+        { sym("load"), Intern::op_load },
     }
 };
 
@@ -230,6 +239,35 @@ VectorPtr vec(Number size, const Cell& val)
         || ((void)(throw std::invalid_argument("vector length must be a non-negative integer")), 0);
 
     return std::make_shared<VectorPtr::element_type>(static_cast<size_type>(get<Int>(size)), val);
+}
+
+void load(const std::string& filnam, const SymenvPtr& symenv)
+{
+    const SymenvPtr& env = symenv ? symenv : topenv;
+
+    std::ifstream in;
+    Parser parser;
+    Cell expr = none;
+
+    in.exceptions(std::ifstream::badbit);
+
+    try {
+        in.open(filnam);
+        if (!in.is_open())
+            throw std::ios_base::failure("couldn't open input file: '"s + filnam + "'"s);
+
+        do {
+            expr = parser.read(in);
+            expr = eval(env, expr);
+            expr = none;
+        } while (!in.eof());
+
+    } catch (const std::exception& e) {
+        if (is_none(expr))
+            std::cerr << e.what() << '\n';
+        else
+            std::cerr << e.what() << ": " << expr << '\n';
+    }
 }
 
 } // namespace pscm

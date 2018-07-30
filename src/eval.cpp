@@ -311,39 +311,25 @@ Cell eval(SymenvPtr senv, Cell expr)
 void repl(const SymenvPtr& symenv, std::istream& in, std::ostream& out)
 {
     SymenvPtr env = senv(symenv);
-    Parser reader;
+    Parser parser;
     Cell expr = none;
 
     for (;;)
         try {
             for (;;) {
                 out << "> ";
-                expr = eval(env, reader.parse(in));
+                expr = parser.read(in);
+                expr = eval(env, expr);
 
                 if (is_intern(expr) && get<Intern>(expr) == Intern::op_exit)
                     return;
 
-                out << expr << std::endl;
-                expr = none;
+                if (!is_none(expr)) {
+                    out << expr << std::endl;
+                    expr = none;
+                }
             }
-        } catch (std::bad_variant_access& e) {
-            if (is_none(expr))
-                std::cerr << e.what() << std::endl;
-            else
-                std::cerr << e.what() << ": " << expr << std::endl;
-
-        } catch (std::out_of_range& e) {
-            if (is_none(expr))
-                std::cerr << e.what() << std::endl;
-            else
-                std::cerr << e.what() << ": " << expr << std::endl;
-
-        } catch (std::invalid_argument& e) {
-            if (is_none(expr))
-                std::cerr << e.what() << std::endl;
-            else
-                std::cerr << e.what() << ": " << expr << std::endl;
-        } catch (std::bad_function_call& e) {
+        } catch (std::exception& e) {
             if (is_none(expr))
                 std::cerr << e.what() << std::endl;
             else
