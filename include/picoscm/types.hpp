@@ -20,9 +20,10 @@ using Char = char;
 using Cons = std::pair<Cell, Cell>;
 using StringPtr = std::shared_ptr<std::basic_string<Char>>;
 using VectorPtr = std::shared_ptr<std::vector<Cell>>;
+using FunctionPtr = std::shared_ptr<Func>;
 
 using Variant = std::variant<None, Nil, Intern, Bool, Char, Number, Cons*,
-    StringPtr, VectorPtr, Port, Symbol, SymenvPtr, Func, Proc>;
+    StringPtr, VectorPtr, Port, Symbol, SymenvPtr, FunctionPtr, Proc>;
 
 enum class Intern {
     /* Scheme syntax opcodes: */
@@ -65,6 +66,10 @@ enum class Intern {
     op_sub,
     op_mul,
     op_div,
+    op_floor,
+    op_ceil,
+    op_trunc,
+    op_round,
     op_sin,
     op_cos,
     op_tan,
@@ -78,6 +83,7 @@ enum class Intern {
     op_acosh,
     op_atanh,
     op_sqrt,
+    op_cbrt,
     op_exp,
     op_pow,
     op_square,
@@ -90,6 +96,7 @@ enum class Intern {
     op_conj,
     op_rect,
     op_polar,
+    op_hypot,
 
     /* Section 6.3: Booleans */
     op_not,
@@ -291,11 +298,18 @@ enum class Intern {
 };
 
 SymenvPtr senv(const SymenvPtr& env = nullptr);
+
 void addenv(const Symbol& sym, const Cell& cell, const SymenvPtr& env = nullptr);
-Func fun(const Symbol& sym, Func::function_type&& fn, const SymenvPtr& env = nullptr);
+
+FunctionPtr fun(const Symbol& sym, std::function<Cell(const SymenvPtr&, const std::vector<Cell>&)>&& fn,
+    const SymenvPtr& env = nullptr);
+
 VectorPtr vec(Number size, const Cell& val);
+
 StringPtr str(const Char* s);
+
 Symbol sym(const char* name);
+
 Symbol gensym();
 
 //!

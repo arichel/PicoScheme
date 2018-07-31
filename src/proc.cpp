@@ -172,23 +172,23 @@ std::pair<SymenvPtr, Cell> apply(const SymenvPtr& senv, const Proc& proc, const 
 
 Func::Func(const Symbol& sym, function_type&& fun)
     : valptr{ &sym.value() }
-    , funptr{ std::make_shared<function_type>(std::move(fun)) }
+    , func{ std::move(fun) }
 {
 }
 
-bool Func::operator!=(const Func& func) const
-{
-    return funptr != func.funptr;
-}
+//bool Func::operator!=(const Func& func) const
+//{
+//    return funptr != func.funptr;
+//}
 
-bool Func::operator==(const Func& func) const
-{
-    return funptr == func.funptr;
-}
+//bool Func::operator==(const Func& func) const
+//{
+//    return funptr == func.funptr;
+//}
 
 Cell Func::operator()(const SymenvPtr& senv, const std::vector<Cell>& args) const
 {
-    return (*funptr)(senv, args);
+    return func(senv, args);
 }
 
 const std::string& Func::name() const

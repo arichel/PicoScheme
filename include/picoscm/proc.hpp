@@ -10,15 +10,15 @@
 namespace pscm {
 
 struct Cell;
-using Symbol = SymbolTable<std::string>::Symbol;
+using Symtab = SymbolTable<std::string>;
+using Symbol = Symtab::Symbol;
 using SymenvPtr = std::shared_ptr<SymbolEnv<Symbol, Cell>>;
 
 /**
  * @brief Procedure type to represent a scheme closure.
  *
  * @verbatim
- * (lambda args body)  => closure: [symenv, args, body]
- *
+ * (lambda args body)  => closure: [symenv, args, body](define *world* '())
  *  with:
  *  args        := [symbol | nil | list | dotted-list]
  *  list        := nil | (expr . list)
@@ -87,15 +87,15 @@ public:
 
     Func(const Symbol& sym, function_type&& fun);
 
-    bool operator!=(const Func& func) const;
-    bool operator==(const Func& func) const;
+    //    bool operator!=(const Func& func) const;
+    //    bool operator==(const Func& func) const;
     Cell operator()(const SymenvPtr& senv, const std::vector<Cell>& args) const;
 
     const std::string& name() const;
 
 private:
     const Symbol::value_type* valptr;
-    std::shared_ptr<function_type> funptr;
+    function_type func;
 };
 
 }; // namespace pscm

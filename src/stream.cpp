@@ -42,6 +42,52 @@ static std::ostream& operator<<(std::ostream& os, Cons* cons)
     return os;
 }
 
+static std::ostream& operator<<(std::ostream& os, const Symbol& sym)
+{
+    using string_type = Symbol::value_type;
+    const string_type& name = sym.value();
+
+    if (name.find_first_of(' ') != string_type::npos)
+        return os << '|' << name << '|';
+    else
+        return os << name;
+}
+
+static std::ostream& operator<<(std::ostream& os, const StringPtr& sptr)
+{
+    return os << '"' << *sptr << '"';
+}
+
+static std::ostream& operator<<(std::ostream& os, const DisplayManip<StringPtr>& manip)
+{
+    const StringPtr::element_type& str = *manip.value;
+
+    for (auto cp = str.begin(), end = str.end(); cp != end; ++cp)
+        if (*cp == '\\' && cp + 1 < end)
+            switch (*(++cp)) {
+            case 'a':
+                os << '\a';
+                break;
+            case 'b':
+                os << '\b';
+                break;
+            case 'n':
+                os << '\n';
+                break;
+            case 'r':
+                os << '\r';
+                break;
+            case 't':
+                os << '\t';
+                break;
+            default:
+                os << *cp;
+            }
+        else
+            os << *cp;
+    return os;
+}
+
 static std::ostream& operator<<(std::ostream& os, const VectorPtr& vec)
 {
     os << "#(";
@@ -90,13 +136,13 @@ std::ostream& operator<<(std::ostream& os, Intern opcode)
     case Intern::_unquotesplice:
         return os << "unquote-splicing";
     default:
-        return os << "#<primop " << static_cast<int>(opcode) << '>';
+        return os << "#<primop>";
     }
 }
 
 static std::ostream& operator<<(std::ostream& os, Proc proc)
 {
-    return proc.is_macro() ? os << "#<macro>" : os << "#<closure>";
+    return proc.is_macro() ? os << "#<macro>" : os << "#<clojure>";
 }
 
 /**
@@ -105,26 +151,33 @@ static std::ostream& operator<<(std::ostream& os, Proc proc)
 std::ostream& operator<<(std::ostream& os, const Cell& cell)
 {
     overloads fun{
-        [&os](None) {},
+        [&os](None) { os << "#<none>"; },
         [&os](Nil) { os << "()"; },
         [&os](Bool arg) { os << (arg ? "#t" : "#f"); },
-        [&os](Char arg) { os << /*"#\\" <<*/ arg; },
-        [&os](Number arg) { os << arg; },
-        [&os](Intern arg) { os << arg; },
-        [&os](StringPtr arg) { os << '"' << *arg << '"'; },
-        [&os](VectorPtr arg) { os << arg; },
-        [&os](Symbol arg) { os << arg.value(); },
-        [&os](SymenvPtr arg) { os << "#<symenv " << arg.get() << '>'; },
-        [&os](Func arg) { os << "#<function " << arg.name() << '>'; },
-        [&os](Proc arg) { os << arg; },
-        [&os](Port) { os << "#<port>"; },
-        [&os](Cons* arg) { os << arg; },
-
-        /* catch missing overloads and emit compile time error message */
-        [](auto arg) { static_assert(always_false<decltype(arg)>::value, "callable overload is missing"); }
+        [&os](Char arg) { os << "#\\" << arg; },
+        [&os](const SymenvPtr& arg) { os << "#<symenv " << arg.get() << '>'; },
+        [&os](const FunctionPtr& arg) { os << "#<function " << arg->name() << '>'; },
+        [&os](const Port&) { os << "#<port>"; },
+        [&os](auto& arg) { os << arg; }
     };
     std::visit(std::move(fun), static_cast<const Cell::base_type&>(cell));
     return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const DisplayManip<Cell>& manip)
+{
+    return std::visit([&os, &manip](auto& val) -> std::ostream& {
+        using T = std::decay_t<decltype(val)>;
+        if
+            constexpr(std::is_same_v<T, None>) return os;
+        else if
+            constexpr(std::is_same_v<T, Char>) return os << val;
+        else if
+            constexpr(std::is_same_v<T, StringPtr>) return os << display(val);
+        else
+            return os << manip.value;
+    },
+        static_cast<const Cell::base_type&>(manip.value));
 }
 
 Port::Port()
@@ -164,7 +217,6 @@ void Port::close()
         using S = std::decay_t<decltype(os)>;
         os.flush();
         os.clear();
-
         if
             constexpr(std::is_same_v<S, std::fstream>)
             {

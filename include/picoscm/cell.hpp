@@ -69,7 +69,7 @@ private:
         else if
             constexpr(std::is_same_v<T, Nil>) return "()";
         else if
-            constexpr(std::is_same_v<T, Intern>) return "<procedure>";
+            constexpr(std::is_same_v<T, Intern>) return "<primop>";
         else if
             constexpr(std::is_same_v<T, Bool>) return "<boolean>";
         else if
@@ -82,6 +82,8 @@ private:
             constexpr(std::is_same_v<T, StringPtr>) return "<string>";
         else if
             constexpr(std::is_same_v<T, VectorPtr>) return "<vector>";
+        else if
+            constexpr(std::is_same_v<T, FunctionPtr>) return "<function>";
         else if
             constexpr(std::is_same_v<T, Port>) return "<port>";
         else if
@@ -152,7 +154,7 @@ inline bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
 inline bool is_port(const Cell& cell) { return is_type<Port>(cell); }
 inline bool is_symbol(const Cell& cell) { return is_type<Symbol>(cell); }
 inline bool is_symenv(const Cell& cell) { return is_type<SymenvPtr>(cell); }
-inline bool is_func(const Cell& cell) { return is_type<Func>(cell); }
+inline bool is_func(const Cell& cell) { return is_type<FunctionPtr>(cell); }
 inline bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
 inline bool is_macro(const Cell& cell) { return is_proc(cell) && get<Proc>(cell).is_macro(); }
 
@@ -160,7 +162,7 @@ inline bool is_false(const Cell& cell) { return is_type<Bool>(cell) && !get<Bool
 inline bool is_true(const Cell& cell) { return !is_type<Bool>(cell) || get<Bool>(cell); }
 inline bool is_else(const Cell& cell) { return is_intern(cell) && get<Intern>(cell) == Intern::_else; }
 inline bool is_arrow(const Cell& cell) { return is_intern(cell) && get<Intern>(cell) == Intern::_arrow; }
-
+inline bool is_exit(const Cell& cell) { return is_intern(cell) && get<Intern>(cell) == Intern::op_exit; }
 /**
  * Scheme equal? predicate to test two cells for same content.
  *

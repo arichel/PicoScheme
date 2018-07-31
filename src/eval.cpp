@@ -226,7 +226,7 @@ Cell eval(SymenvPtr senv, Cell expr)
             return expr;
 
         if (is_func(proc = eval(senv, car(expr))))
-            return get<Func>(proc)(senv, eval_args(senv, cdr(expr)));
+            return (*get<FunctionPtr>(proc))(senv, eval_args(senv, cdr(expr)));
 
         if (is_proc(proc)) {
             if (is_macro(proc))
@@ -237,7 +237,6 @@ Cell eval(SymenvPtr senv, Cell expr)
             }
             continue;
         }
-
         args = cdr(expr);
         switch (auto opcode = get<Intern>(proc)) {
 
@@ -321,13 +320,14 @@ void repl(const SymenvPtr& symenv, std::istream& in, std::ostream& out)
                 expr = parser.read(in);
                 expr = eval(env, expr);
 
-                if (is_intern(expr) && get<Intern>(expr) == Intern::op_exit)
+                if (is_none(expr))
+                    continue;
+
+                if (is_exit(expr))
                     return;
 
-                if (!is_none(expr)) {
-                    out << expr << std::endl;
-                    expr = none;
-                }
+                out << expr << std::endl;
+                expr = none;
             }
         } catch (std::exception& e) {
             if (is_none(expr))

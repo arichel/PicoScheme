@@ -18,7 +18,7 @@ namespace pscm {
 static constexpr size_t dflt_bucket_count = 1024; //<! Initial default hash table bucket count.
 
 //! Global scheme symbol table:
-static SymbolTable<StringPtr::element_type> symtab(dflt_bucket_count);
+static Symtab symtab(dflt_bucket_count);
 
 //! Top environment, initialized with internal scheme symbols:
 static SymenvPtr topenv{
@@ -66,6 +66,10 @@ static SymenvPtr topenv{
         { sym("positive?"), Intern::op_ispos },
         { sym("negative?"), Intern::op_isneg },
         { sym("zero?"), Intern::op_zero },
+        { sym("floor"), Intern::op_floor },
+        { sym("ceil"), Intern::op_ceil },
+        { sym("trunc"), Intern::op_trunc },
+        { sym("round"), Intern::op_round },
         { sym("sin"), Intern::op_sin },
         { sym("cos"), Intern::op_cos },
         { sym("tan"), Intern::op_tan },
@@ -79,6 +83,7 @@ static SymenvPtr topenv{
         { sym("acosh"), Intern::op_acosh },
         { sym("atanh"), Intern::op_atanh },
         { sym("sqrt"), Intern::op_sqrt },
+        { sym("cbrt"), Intern::op_cbrt },
         { sym("exp"), Intern::op_exp },
         { sym("expt"), Intern::op_pow },
         { sym("log"), Intern::op_log },
@@ -92,6 +97,7 @@ static SymenvPtr topenv{
         { sym("make-rectangular"), Intern::op_rect },
         { sym("make-polar"), Intern::op_polar },
         { sym("conjugate"), Intern::op_conj },
+        { sym("hypot"), Intern::op_hypot },
 
         /* Section 6.3: Booleans */
         { sym("not"), Intern::op_not },
@@ -135,6 +141,7 @@ static SymenvPtr topenv{
         /* Section 6.7: Strings */
         { sym("string?"), Intern::op_isstr },
         { sym("make-string"), Intern::op_mkstr },
+        { sym("string-append"), Intern::op_strappend },
 
         /* Section 6.8: Vectors */
         { sym("vector?"), Intern::op_isvec },
@@ -173,6 +180,7 @@ static SymenvPtr topenv{
         { sym("textual-port?"), Intern::op_istxtport },
         { sym("binary-port?"), Intern::op_isbinport },
         { sym("call-with-input-file"), Intern::op_callw_infile },
+        { sym("call-with-output-file"), Intern::op_callw_outfile },
         { sym("open-input-file"), Intern::op_open_infile },
         { sym("open-output-file"), Intern::op_open_outfile },
         { sym("eof-object?"), Intern::op_iseof },
@@ -200,9 +208,9 @@ Symbol sym(const char* name)
 
 Symbol gensym()
 {
-    std::ostringstream os;
-    os << "|symbol " << symtab.size() << '|';
-    return symtab[os.str().c_str()];
+    Symbol::value_type str("symbol ");
+    str.append(std::to_string(symtab.size()));
+    return symtab[str.c_str()];
 }
 
 SymenvPtr senv(const SymenvPtr& env)
@@ -218,12 +226,13 @@ void addenv(const Symbol& sym, const Cell& cell, const SymenvPtr& env)
         topenv->add(sym, cell);
 }
 
-Func fun(const Symbol& sym, Func::function_type&& fn, const SymenvPtr& env)
+FunctionPtr fun(const Symbol& sym, FunctionPtr::element_type::function_type&& fn,
+    const SymenvPtr& env)
 {
-    Func func{ sym, std::move(fn) };
+    auto fptr = std::make_shared<FunctionPtr::element_type>(sym, std::move(fn));
 
-    addenv(sym, func, env);
-    return func;
+    addenv(sym, fptr, env);
+    return fptr;
 }
 
 StringPtr str(const Char* s)

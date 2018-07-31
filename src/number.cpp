@@ -274,6 +274,50 @@ Number& operator/=(Number& lhs, const Number& rhs)
 }
 
 /**
+ * @brief Round a number to the nearest integer.
+ */
+Number round(const Number& x)
+{
+    if (is_complex(x)) {
+        const auto& z = static_cast<Complex>(x);
+        return { std::round(z.real()), std::round(z.imag()) };
+    } else
+        return std::round(static_cast<Float>(x));
+}
+
+/**
+ * @brief Largest integer not greator then x.
+ */
+Number floor(const Number& x)
+{
+    if (is_complex(x)) {
+        const auto& z = static_cast<Complex>(x);
+        return { std::floor(z.real()), std::floor(z.imag()) };
+    } else
+        return std::floor(static_cast<Float>(x));
+}
+
+/**
+ * @brief Largest integer not greator then x.
+ */
+Number ceil(const Number& x)
+{
+    if (is_complex(x)) {
+        const auto& z = static_cast<Complex>(x);
+        return { std::ceil(z.real()), std::ceil(z.imag()) };
+    } else
+        return std::ceil(static_cast<Float>(x));
+}
+
+/**
+ * @brief Largest integer not greator then x.
+ */
+Number trunc(const Number& x)
+{
+    return is_negative(x) ? ceil(x) : floor(x);
+}
+
+/**
  * @brief Computes the sine of a ::Number.
  */
 Number sin(const Number& x)
@@ -415,6 +459,42 @@ Number sqrt(const Number& x)
 {
     return is_complex(x) || x < Number{ 0 } ? std::sqrt(static_cast<Complex>(x))
                                             : std::sqrt(static_cast<Float>(x));
+}
+
+/**
+ * @brief Computes the cubic root of ::Number.
+ */
+Number cbrt(const Number& x)
+{
+    return is_complex(x) || x < Number{ 0 } ? std::pow(static_cast<Complex>(x), static_cast<Complex>(-3))
+                                            : std::cbrt(static_cast<Float>(x));
+}
+
+/**
+ * @brief Computes x raised by y.
+ */
+Number hypot(const Number& x, const Number& y)
+{
+    return is_complex(x) || is_complex(y) ? sqrt(static_cast<Complex>(x)
+                                                    * static_cast<Complex>(x)
+                                                + static_cast<Complex>(y)
+                                                    * static_cast<Complex>(y))
+                                          : std::hypot(static_cast<Float>(x),
+                                                static_cast<Float>(y));
+}
+
+Number hypot(const Number& x, const Number& y, const Number& z)
+{
+    return is_complex(x) || is_complex(y) ? sqrt(static_cast<Complex>(x)
+                                                    * static_cast<Complex>(x)
+                                                + static_cast<Complex>(y)
+                                                    * static_cast<Complex>(y)
+                                                + static_cast<Complex>(z)
+                                                    * static_cast<Complex>(z))
+
+                                          : std::hypot(static_cast<Float>(x),
+                                                static_cast<Float>(y),
+                                                static_cast<Float>(z));
 }
 
 /**

@@ -1,5 +1,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;; PicoScheme initialization file to be loaded on each start-up
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;; Quasiquote macro copied from Peter Norvig's JScheme, see http://www.norvig.com
 ;;
 (define-macro  (quasiquote x)
@@ -65,7 +69,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define-macro (let bindings . body)
-
   (define (varval v)
     (string->symbol (string-append (symbol->string v) "=")))
 

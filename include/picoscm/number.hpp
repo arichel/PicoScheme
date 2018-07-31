@@ -55,7 +55,7 @@ struct Number : std::variant<Int, Float, Complex> {
      */
     constexpr Number(Float x)
     {
-        if (x > floor(x) || x < ceil(x))
+        if (x > floor(x) || x < ceil(x) || std::abs(x) > static_cast<Float>(std::numeric_limits<Int>::max()))
             *this = base_type{ x };
         else
             *this = static_cast<Int>(x);
@@ -188,6 +188,11 @@ Number& operator-=(Number& lhs, const Number& rhs);
 Number& operator*=(Number& lhs, const Number& rhs);
 Number& operator/=(Number& lhs, const Number& rhs);
 
+Number round(const Number& x);
+Number floor(const Number& x);
+Number ceil(const Number& x);
+Number trunc(const Number& x);
+
 Number sin(const Number& x);
 Number cos(const Number& x);
 Number tan(const Number& x);
@@ -205,6 +210,7 @@ Number exp(const Number& x);
 Number log(const Number& x);
 Number log10(const Number& x);
 Number sqrt(const Number& x);
+Number cbrt(const Number& x);
 Number pow(const Number& x, const Number& y);
 
 Number abs(const Number& x);
@@ -214,6 +220,8 @@ Number arg(const Number& z);
 Number conj(const Number& z);
 Number rect(const Number& x, const Number& y);
 Number polar(const Number& r, const Number& theta);
+Number hypot(const Number& x, const Number& y);
+Number hypot(const Number& x, const Number& y, const Number& z);
 
 } // namspace pscm
 #endif // NUMBER_HPP

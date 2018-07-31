@@ -20,8 +20,20 @@ namespace pscm {
 struct Cell;
 enum class Intern;
 
+template <typename T>
+struct DisplayManip {
+    const T& value;
+};
+
+template <typename T>
+inline auto display(const T& val)
+{
+    return DisplayManip<T>{ val };
+}
+
 std::ostream& operator<<(std::ostream& os, Intern opcode);
 std::ostream& operator<<(std::ostream& os, const Cell& cell);
+std::ostream& operator<<(std::ostream& os, const DisplayManip<Cell>& cell);
 
 class Port {
 public:

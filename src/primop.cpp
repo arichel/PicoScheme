@@ -202,16 +202,16 @@ static Cell log(const varg& args)
 }
 
 /**
- * Scheme output @em write function.
+ * Scheme output @em display function.
  */
 static Cell display(const varg& args)
 {
     if (args.size() > 1) {
         Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
 
-        port.stream() << args[0];
+        port.stream() << pscm::display(args[0]);
     } else
-        std::cout << args.at(0);
+        std::cout << pscm::display(args.at(0));
 
     return none;
 }
@@ -364,6 +364,31 @@ static Cell member(const SymenvPtr& senv, const varg& args)
     return false;
 }
 
+static Cell mkstring(const varg& args)
+{
+    Int size = get<Int>(get<Number>(args.at(0)));
+    size >= 0 || ((void)(throw std::invalid_argument("invalid negative number")), 0);
+
+    Char c = ' ';
+    if (args.size() > 1)
+        c = get<Char>(args[1]);
+
+    return std::make_shared<StringPtr::element_type>(size, c);
+}
+
+/**
+ * Scheme inplace @em string-append function.
+ */
+static Cell str_append(const varg& args)
+{
+    auto strptr = std::make_shared<StringPtr::element_type>(*get<StringPtr>(args.at(0)));
+
+    std::for_each(args.begin() + 1, args.end(), [&strptr](auto& cell) {
+        strptr->append(*get<StringPtr>(cell));
+    });
+    return strptr;
+}
+
 /**
  * @brief Scheme @em vector-ref function.
  * @verbatim (vector-ref #(x0 x1 x2 ... xn) 2) => x2) @endverbatim
@@ -509,11 +534,29 @@ static Cell vec_append(const varg& args)
     return vec;
 }
 
+static Cell callw_port(const SymenvPtr& senv, Port port, const Cell& proc)
+{
+    Cons cons[4];
+    Cell cell = eval(senv, alist(cons, Intern::_apply, proc, port, nil));
+    port.close();
+    return cell;
+}
+
 static Cell callw_infile(const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
 {
     Port port;
-    port.open(*filnam, std::ios_base::in)
-        || ((void)(throw std::invalid_argument("could not open port")), 0);
+    if (!port.open(*filnam, std::ios_base::in))
+        throw std::ios_base::failure("couldn't open input file: '"s + *filnam + "'"s);
+
+    Cons cons[4];
+    return eval(senv, alist(cons, Intern::_apply, proc, port, nil));
+}
+
+static Cell callw_outfile(const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
+{
+    Port port;
+    if (!port.open(*filnam, std::ios_base::out))
+        throw std::ios_base::failure("couldn't open output file: '"s + *filnam + "'"s);
 
     Cons cons[4];
     return eval(senv, alist(cons, Intern::_apply, proc, port, nil));
@@ -522,8 +565,8 @@ static Cell callw_infile(const SymenvPtr& senv, const StringPtr& filnam, const C
 static Cell open_infile(const StringPtr& filnam)
 {
     Port port;
-    port.open(*filnam, std::ios_base::in)
-        || ((void)(throw std::invalid_argument("could not open port")), 0);
+    if (!port.open(*filnam, std::ios_base::in))
+        throw std::ios_base::failure("couldn't open input file: '"s + *filnam + "'"s);
 
     return port;
 }
@@ -531,23 +574,19 @@ static Cell open_infile(const StringPtr& filnam)
 static Cell open_outfile(const StringPtr& filnam)
 {
     Port port;
-
-    port.open(*filnam, std::ios_base::out)
-        || ((void)(throw std::invalid_argument("could not open port")), 0);
+    if (!port.open(*filnam, std::ios_base::out))
+        throw std::ios_base::failure("couldn't open output file: '"s + *filnam + "'"s);
 
     return port;
 }
 
 /**
  * Scheme output @em write function.
- *
- * @todo stream modifier for string quotations
  */
 static Cell write(const varg& args)
 {
     if (args.size() > 1) {
-        Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
-
+        Port& port = std::get<Port>(const_cast<Cell&>(args[1]));
         port.stream() << args[0];
     } else
         std::cout << args.at(0);
@@ -561,7 +600,7 @@ static Cell write(const varg& args)
 static Cell newline(const varg& args)
 {
     if (args.size() > 0) {
-        Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
+        Port& port = std::get<Port>(const_cast<Cell&>(args[0]));
         port.stream() << '\n';
     } else
         std::cout << '\n';
@@ -575,8 +614,7 @@ static Cell newline(const varg& args)
 static Cell flush(const varg& args)
 {
     if (args.size() > 0) {
-        Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
-
+        Port& port = std::get<Port>(const_cast<Cell&>(args[0]));
         port.stream().flush();
     } else
         std::cout.flush();
@@ -590,8 +628,7 @@ static Cell flush(const varg& args)
 static Cell write_char(const varg& args)
 {
     if (args.size() > 1) {
-        Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
-
+        Port& port = std::get<Port>(const_cast<Cell&>(args[1]));
         port.stream() << std::get<Char>(args[0]);
     } else
         std::cout << std::get<Char>(args.at(0));
@@ -605,7 +642,6 @@ static Cell write_char(const varg& args)
 static Cell write_str(const varg& args)
 {
     using size_type = StringPtr::element_type::size_type;
-
     const StringPtr& pstr = get<StringPtr>(args.at(0));
 
     Port port;
@@ -629,12 +665,10 @@ static Cell write_str(const varg& args)
 static Cell list(const varg& args)
 {
     Cell list = nil;
-
     if (args.size()) {
         list = cons(args.front(), nil);
 
         Cell tail = list;
-
         for (auto iter = ++args.begin(); iter != args.end(); ++iter, tail = cdr(tail))
             set_cdr(tail, cons(*iter, nil));
     }
@@ -661,7 +695,6 @@ static Cell readline(const varg& args)
 static Cell read(const varg& args)
 {
     Port port;
-
     if (args.size() > 0) {
         port = get<Port>(args[0]);
         (port.is_open() && port.is_input())
@@ -674,7 +707,6 @@ static Cell read(const varg& args)
 static Cell read_char(const varg& args)
 {
     Port port;
-
     if (args.size() > 0) {
         port = get<Port>(args[0]);
         (port.is_open() && port.is_input())
@@ -686,7 +718,6 @@ static Cell read_char(const varg& args)
 static Cell peek_char(const varg& args)
 {
     Port port;
-
     if (args.size() > 0) {
         port = get<Port>(args[0]);
         (port.is_open() && port.is_input())
@@ -702,7 +733,6 @@ static Cell peek_char(const varg& args)
 static Cell read_str(const varg& args)
 {
     Port port;
-
     Number num = get<Number>(args.at(0));
     if (is_int(num) || is_negative(num))
         throw std::invalid_argument("must be a nonnegative number");
@@ -818,6 +848,14 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return get<Number>(args.at(0)) < Number{ 0 };
     case Intern::op_zero:
         return is_zero(get<Number>(args.at(0)));
+    case Intern::op_floor:
+        return pscm::floor(get<Number>(args.at(0)));
+    case Intern::op_ceil:
+        return pscm::ceil(get<Number>(args.at(0)));
+    case Intern::op_trunc:
+        return pscm::trunc(get<Number>(args.at(0)));
+    case Intern::op_round:
+        return pscm::round(get<Number>(args.at(0)));
     case Intern::op_sin:
         return pscm::sin(get<Number>(args.at(0)));
     case Intern::op_cos:
@@ -854,6 +892,8 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return pscm::log10(get<Number>(args.at(0)));
     case Intern::op_sqrt:
         return pscm::sqrt(get<Number>(args.at(0)));
+    case Intern::op_cbrt:
+        return pscm::cbrt(get<Number>(args.at(0)));
     case Intern::op_abs:
         return pscm::abs(get<Number>(args.at(0)));
     case Intern::op_real:
@@ -868,7 +908,12 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return pscm::rect(get<Number>(args.at(0)), get<Number>(args.at(1)));
     case Intern::op_polar:
         return pscm::polar(get<Number>(args.at(0)), get<Number>(args.at(1)));
-
+    case Intern::op_hypot:
+        return args.size() > 2 ? pscm::hypot(get<Number>(args[0]),
+                                     get<Number>(args[1]),
+                                     get<Number>(args[2]))
+                               : pscm::hypot(get<Number>(args.at(0)),
+                                     get<Number>(args.at(1)));
     /* Section 6.3: Booleans */
     case Intern::op_not:
         return !is_true(args.at(0));
@@ -941,6 +986,10 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     /* Section 6.7: Strings */
     case Intern::op_isstr:
         return is_type<StringPtr>(args.at(0));
+    case Intern::op_mkstr:
+        return primop::mkstring(args);
+    case Intern::op_strappend:
+        return primop::str_append(args);
 
     /* Section 6.8: Vectors */
     case Intern::op_isvec:
@@ -973,7 +1022,8 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
 
     /* Section 6.10: Control features */
     case Intern::op_isproc:
-        return is_proc(args.at(0)) || (is_intern(args[0]) && std::get<Intern>(args[0]) >= Intern::op_eq);
+        return is_proc(args.at(0)) || is_func(args[0])
+            || (is_intern(args[0]) && std::get<Intern>(args[0]) >= Intern::op_eq);
     case Intern::op_map:
         return primop::map(senv, args);
 
@@ -1009,8 +1059,12 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return is_type<Port>(args.at(0)) && get<Port>(args[0]).is_input() && get<Port>(args[0]).is_open();
     case Intern::op_isoutport_open:
         return is_type<Port>(args.at(0)) && get<Port>(args[0]).is_output() && get<Port>(args[0]).is_open();
+    case Intern::op_callw_port:
+        return primop::callw_port(senv, get<Port>(args.at(0)), args.at(1));
     case Intern::op_callw_infile:
         return primop::callw_infile(senv, get<StringPtr>(args.at(0)), args.at(1));
+    case Intern::op_callw_outfile:
+        return primop::callw_outfile(senv, get<StringPtr>(args.at(0)), args.at(1));
     case Intern::op_open_infile:
         return primop::open_infile(get<StringPtr>(args.at(0)));
     case Intern::op_open_outfile:

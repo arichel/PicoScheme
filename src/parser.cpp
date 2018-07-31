@@ -98,8 +98,14 @@ Parser::Token Parser::lex_string(std::string& str, std::istream& in) const
         int c = in.get();
 
         switch (c) {
+
         case '"':
             return Token::String;
+
+        case '\\':
+            str.push_back('\\');
+            c = in.get();
+            [[fallthrough]];
 
         default:
             if (isprint(c))

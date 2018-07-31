@@ -37,6 +37,7 @@ Thumbs.db
 
 # qtcreator generated files
 /bin
+/test/*.pgm
 *.pro.user*
 *.txt.user*
 
