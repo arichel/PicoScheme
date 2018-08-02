@@ -383,9 +383,9 @@ static Cell str_append(const varg& args)
 {
     auto strptr = std::make_shared<StringPtr::element_type>(*get<StringPtr>(args.at(0)));
 
-    std::for_each(args.begin() + 1, args.end(), [&strptr](auto& cell) {
-        strptr->append(*get<StringPtr>(cell));
-    });
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip)
+        strptr->append(*get<StringPtr>(*ip));
+
     return strptr;
 }
 
@@ -439,20 +439,19 @@ static Cell vec2list(const varg& args)
     const VectorPtr& vec = get<VectorPtr>(args.at(0));
     size_type pos = 0, end = static_cast<size_type>(vec->size());
 
-    if (args.size() > 1)
-        pos = static_cast<size_type>(get<Int>(get<Number>(args[1])));
     if (args.size() > 2)
         end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[2]))), end);
+    if (args.size() > 1)
+        pos = std::min(static_cast<size_type>(get<Int>(get<Number>(args[1]))), end);
 
-    if (!end)
+    if (pos == end)
         return nil;
 
     Cell list = cons(vec->at(pos), nil), tail = list;
 
-    std::for_each(vec->begin() + pos + 1, vec->begin() + end, [&tail](const Cell& cell) {
-        set_cdr(tail, cons(cell, nil));
-        tail = cdr(tail);
-    });
+    for (auto ip = vec->begin() + pos + 1, ie = vec->begin() + end; ip != ie; ++ip, tail = cdr(tail))
+        set_cdr(tail, cons(*ip, nil));
+
     return list;
 }
 
@@ -467,12 +466,13 @@ static Cell vec_copy(const varg& args)
     const VectorPtr& v = get<VectorPtr>(args.at(0));
     size_type pos = 0, end = static_cast<size_type>(v->size());
 
-    if (args.size() > 1)
-        pos = static_cast<size_type>(get<Int>(get<Number>(args[1])));
     if (args.size() > 2)
         end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[2]))), end);
+    if (args.size() > 1)
+        pos = std::min(static_cast<size_type>(get<Int>(get<Number>(args[1]))), end);
 
-    return std::make_shared<VectorPtr::element_type>(v->begin() + pos, v->begin() + end);
+    return pos != end ? std::make_shared<VectorPtr::element_type>(v->begin() + pos, v->begin() + end)
+                      : std::make_shared<VectorPtr::element_type>(0);
 }
 
 /**
@@ -489,12 +489,13 @@ static Cell vec_copyb(const varg& args)
     size_type idx = static_cast<size_type>(get<Int>(get<Number>(args[1]))),
               pos = 0, end = static_cast<size_type>(src->size());
 
-    if (args.size() > 3)
-        pos = static_cast<size_type>(get<Int>(get<Number>(args[3])));
     if (args.size() > 4)
         end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[4]))), end);
+    if (args.size() > 3)
+        pos = std::min(static_cast<size_type>(get<Int>(get<Number>(args[3]))), end);
+    if (pos != end)
+        std::copy(src->begin() + pos, src->begin() + end, dst->begin() + idx);
 
-    std::copy(src->begin() + pos, src->begin() + end, dst->begin() + idx);
     return dst;
 }
 
@@ -509,29 +510,56 @@ static Cell vec_fillb(const varg& args)
     VectorPtr vec = get<VectorPtr>(args.at(0));
     size_type pos = 0, end = static_cast<size_type>(vec->size());
 
-    if (args.size() > 2)
-        pos = static_cast<size_type>(get<Int>(get<Number>(args[2])));
     if (args.size() > 3)
         end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[3]))), end);
+    if (args.size() > 2)
+        pos = std::min(static_cast<size_type>(get<Int>(get<Number>(args[2]))), end);
+    if (pos != end)
+        std::fill(vec->begin() + pos, vec->end() + end, args.at(1));
 
-    std::fill(vec->begin() + pos, vec->end() + end, args.at(1));
     return vec;
 }
 
 /**
- * Scheme inplace @em vector-append function.
+ * Scheme @em vector-append function.
  * @verbatim (vector-append vec_0 vec_1 ... vec_n) => vec := {vec_0, vec_1, ..., vec_n} @endverbatim
  */
 static Cell vec_append(const varg& args)
 {
-    VectorPtr vec = get<VectorPtr>(args.at(0));
+    auto vptr = std::make_shared<VectorPtr::element_type>(*get<VectorPtr>(args.at(0)));
 
-    for (const Cell& cell : args) {
-        const VectorPtr& v = get<VectorPtr>(cell);
+    for (auto ip = begin(args) + 1, ie = end(args); ip != ie; ++ip)
+        if (is_vector(*ip)) {
+            const VectorPtr& v = get<VectorPtr>(*ip);
+            std::copy(v->begin(), v->end(), std::back_inserter(*vptr));
+        } else
+            vptr->push_back(*ip);
 
-        std::copy(v->begin(), v->end(), std::back_inserter(*vec));
-    }
-    return vec;
+    return vptr;
+}
+
+/**
+ * Scheme inplace @em vector-append function.
+ *
+ * Append vectors or cells to the first argument vector.
+ *
+ * @verbatim (vector-append vec_0 vec_1 ... vec_n) => vec := {vec_0, vec_1, ..., vec_n} @endverbatim
+ */
+static Cell vec_appendb(const varg& args)
+{
+    VectorPtr vptr = get<VectorPtr>(args.at(0));
+
+    for (auto ip = begin(args) + 1, ie = end(args); ip != ie; ++ip)
+        if (is_vector(*ip)) {
+            const VectorPtr& v = get<VectorPtr>(*ip);
+            if (vptr == v)
+                vptr->reserve(vptr->size() * 2);
+
+            std::copy(v->begin(), v->end(), std::back_inserter(*vptr));
+        } else
+            vptr->push_back(*ip);
+
+    return vptr;
 }
 
 static Cell callw_port(const SymenvPtr& senv, Port port, const Cell& proc)
@@ -769,19 +797,66 @@ static Cell error(const varg& args)
     return none;
 }
 
-static Cell map(const SymenvPtr& senv, const varg& args)
+/**
+ * Map version for a procedure and single list argument.
+ */
+static Cell map(const SymenvPtr& senv, const Proc& proc, Cell list)
 {
-    args.size() > 1
-        || ((void)(throw std::invalid_argument("map - not enough arguments")), 0);
+    if (is_nil(list))
+        return nil;
 
-    std::vector<Cell> lists{ args.begin() + 1, args.end() };
-    std::deque<Cons> vec(lists.size());
+    Cons cns[4], arg[2];
+    Cell argv = pscm::alist(arg, Intern::_quote, car(list));
+    Cell expr = pscm::alist(cns, Intern::_apply, proc, argv, nil);
+    Cell head = cons(eval(senv, expr), nil);
+
+    list = cdr(list);
+    for (Cell tail = head; is_pair(list); list = cdr(list), tail = cdr(tail)) {
+        set_car(cdr(argv), car(list));
+        set_cdr(tail, cons(eval(senv, expr), nil));
+    }
+    return head;
+}
+
+/**
+ * Map version for primop or functions and a single list argument.
+ */
+static Cell map(const SymenvPtr& senv, const Cell& proc, Cell list)
+{
+    if (is_proc(proc))
+        return map(senv, get<Proc>(proc), list);
+
+    if (is_nil(list))
+        return nil;
+
+    std::vector<Cell> argv{ 1, car(list) };
+    Cell head = cons(call(senv, proc, argv), nil);
+
+    list = cdr(list);
+    for (Cell tail = head; is_pair(list); list = cdr(list), tail = cdr(tail)) {
+        argv.front() = car(list);
+        set_cdr(tail, cons(call(senv, proc, argv), nil));
+    }
+    return head;
+}
+
+/**
+ * Map version for procedures and multiple list arguments.
+ */
+static Cell map(const SymenvPtr& senv, const Proc& proc, varg& lists)
+{
+    if (lists.size() <= 1)
+        return map(senv, proc, lists.at(0));
+
+    Cons cns[3], arg[2];
+    Cell argv = pscm::alist(arg, Intern::_quote, nil);
+    Cell expr = pscm::alist(cns, Intern::_apply, proc, argv);
+    std::vector<Cons> vec{ lists.size() };
 
     Cell head = nil, tail = nil;
 
     for (;;) {
         size_t i = 0;
-
         for (auto& l : lists)
             if (is_pair(l)) {
                 vec[i] = Cons{ car(l), nil };
@@ -793,17 +868,58 @@ static Cell map(const SymenvPtr& senv, const varg& args)
             } else
                 return head;
 
-        Cell expr = vlist(vec, Intern::_apply, args[0],
-            vlist(vec, Intern::_quote, &vec.front()));
-
+        set_car(cdr(argv), &vec.front());
         if (is_nil(head))
             head = tail = cons(eval(senv, expr), nil);
         else {
             set_cdr(tail, cons(eval(senv, expr), nil));
             tail = cdr(tail);
         }
-        vec.resize(lists.size());
     }
+}
+/**
+ * Map version for primop or functions and multiple list arguments.
+ */
+static Cell map(const SymenvPtr& senv, const Cell& proc, varg& lists)
+{
+    if (lists.size() <= 1)
+        return map(senv, proc, lists.at(0));
+
+    if (is_proc(proc))
+        return map(senv, get<Proc>(proc), lists);
+
+    varg args{ lists.size() };
+    Cell head = nil, tail = nil;
+
+    for (;;) {
+        size_t i = 0;
+        for (auto& l : lists)
+            if (is_pair(l)) {
+                args[i++] = car(l);
+                l = cdr(l);
+            } else
+                return head;
+
+        if (is_nil(head))
+            head = tail = cons(call(senv, proc, args), nil);
+        else {
+            set_cdr(tail, cons(call(senv, proc, args), nil));
+            tail = cdr(tail);
+        }
+    }
+}
+
+static Cell map(const SymenvPtr& senv, const varg& args)
+{
+    args.size() > 1
+        || ((void)(throw std::invalid_argument("map - not enough arguments")), 0);
+
+    if (args.size() <= 2) // single list version:
+        return map(senv, args.at(0), args.at(1));
+
+    // multiple list version:
+    std::vector<Cell> lists{ args.begin() + 1, args.end() };
+    return map(senv, args.front(), lists);
 }
 } // namespace primop
 
@@ -1015,6 +1131,8 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return primop::vec_copyb(args);
     case Intern::op_vecappend:
         return primop::vec_append(args);
+    case Intern::op_vecappendb:
+        return primop::vec_appendb(args);
     case Intern::op_vecfillb:
         return primop::vec_fillb(args);
 

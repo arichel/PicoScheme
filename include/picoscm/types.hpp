@@ -205,6 +205,7 @@ enum class Intern {
     op_veccopy,
     op_veccopyb,
     op_vecappend,
+    op_vecappendb,
     op_vecfillb,
 
     /* Section 6.9: Bytevectors */
@@ -314,6 +315,15 @@ Symbol gensym();
 
 //!
 void load(const std::string& filnam, const SymenvPtr& env = nullptr);
+
+/**
+ * Call a external funcion
+ * @param senv  The current symbol environment.
+ * @param func  Scheme function opcode as defined by enum class @ref pscm::Intern.
+ * @param args  Function argument vector.
+ * @return Function result or special symbol @ref pscm::none for a void function.
+ */
+Cell call(const SymenvPtr& senv, const Cell& proc, const std::vector<Cell>& args);
 
 } // namespace pscm
 

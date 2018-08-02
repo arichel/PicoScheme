@@ -383,7 +383,7 @@ Cell Parser::read(std::istream& in)
 
 Cell Parser::parse_vector(std::istream& in)
 {
-    VectorPtr v = vec(0, none);
+    VectorPtr vptr = vec(0, none);
     Token tok = get_token(in);
 
     if (tok == Token::OBrace)
@@ -391,12 +391,12 @@ Cell Parser::parse_vector(std::istream& in)
             tok = get_token(in);
 
             if (tok == Token::CBrace)
-                return vec;
+                return vptr;
 
             put_back = tok;
-            v->push_back(read(in));
+            vptr->push_back(read(in));
         }
-    throw std::invalid_argument("error parsing vector");
+    throw std::invalid_argument("error while reading vector");
 }
 
 Cell Parser::parse_list(std::istream& in)

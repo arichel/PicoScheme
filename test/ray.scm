@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Sphere tracer to test
+;; Sphere tracer with basic diffuse reflection model.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define *world* '())
@@ -66,7 +66,7 @@
                  (- (square (sphere-radius s)))))))
 
     (if n (make-point (+ (point-x pt) (* n xr))
-                      (+ (point-y pt) (* n yr))
+                       (+ (point-y pt) (* n yr))
                       (+ (point-z pt) (* n zr))) #f)))
 
 (define (intersect s pt ray)
@@ -134,6 +134,63 @@
                     (+ -50.0 (/ y res))) p)
             (newline p) ))))))
 
+
+(define (tracer pathname res)
+      (let ((extent (* res 100))
+            (graymap (make-vector (square extend) 0)))
+
+        (do ((y 0 (+ y 1)))
+            ((= y extent))
+
+          (do ((x 0 (+ x 1)))
+              ((= x extent))
+
+            (vector-set! graymap (+ (* y extent) x)
+                         (color-at (+ -50.0 (/ x res))
+                                   (+ -50.0 (/ y res))))))
+
+          (call-with-output-file pathname
+    (lambda (p)
+      (let ((extent (* res 100)))
+
+        (display "P2 " p)
+        (write extent p)
+        (display " " p)
+        (write extent p)
+        (display " 255" p)
+        (newline p)
+
+
+
+
+            (write (color-at
+                    (+ -50.0 (/ x res))
+                    (+ -50.0 (/ y res))) p)
+
+
+
+  (call-with-output-file pathname
+    (lambda (p)
+      (let ((extent (* res 100)))
+
+        (display "P2 " p)
+        (write extent p)
+        (display " " p)
+        (write extent p)
+        (display " 255" p)
+        (newline p)
+
+        (do ((y 0 (+ y 1)))
+            ((= y extent))
+
+          (do ((x 0 (+ x 1)))
+              ((= x extent))
+
+            (write (color-at
+                    (+ -50.0 (/ x res))
+                    (+ -50.0 (/ y res))) p)
+            (newline p) ))))))
+
 (define (ray-test opt)
   (set! *world* '())
   (defsphere   0.0 -300.0 -1200.0 200.0 0.8)
@@ -148,49 +205,4 @@
 
   (tracer "spheres.pgm" opt))
 
-(ray-test 5.0)
-
-(define (make-world)
-  (set! *world* '())
-  (defsphere   0.0 -300.0 -1200.0 200.0 0.8)
-  (defsphere -80.0 -150.0 -1200.0 200.0 0.7)
-  (defsphere  70.0 -100.0 -1200.0 200.0 0.9)
-  (do ((x -2 (+ x 1)))
-      ((> x 2) #t)
-    (do ((z 2 (+ z 1)))
-        ((> z 7) #t)
-      (defsphere (* x 200.0) 300.0 (* z -400.0) 40.0 0.75))))
-
-(define (trace res)
-  (let ((extent (* res 100))
-        (points '())
-        (color  '())
-        (pixel (lambda(x)(+ -50 (/ x res)))) )
-
-    (do ((y 0 (+ y 1)))
-        ((= y extent)(list->vector points))
-
-      (do ((x 0 (+ x 1)))
-          ((= x extent))
-
-        (set! color (color-at (pixel x) (pixel y)))
-
-        (unless (zero? color)
-          (set! points (cons (list (cons x y) color) points))) ))))
-
-(define cntr (make-point 20 30 -1200))
-(define sphr (make-sphere 0.8 200 cntr))
-
-(define (make-ray p1 p2)
-  (unit-vector (- (point-x p1) (point-x p2))
-               (- (point-y p1) (point-y p2))
-               (- (point-z p1) (point-z p2))))
-
-(define ray (make-ray cntr eye))
-(sphere-center sphr)
-(sphere-intersect sphr eye ray)
-(set! *world* (cons sphr '()))
-(first-hit eye ray)
-(sendray eye ray)
-
-(trace 1)
+(ray-test 1.0)

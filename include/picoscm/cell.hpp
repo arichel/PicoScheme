@@ -31,12 +31,51 @@ struct Cell : Variant {
      * Type conversion operator to return the value hold by this Cell.
      * @throws std::bad_variant_access
      */
-    template <typename T>
-    operator T&() const { return std::get<T>(static_cast<Variant>(*this)); }
+    //    template <typename T>
+    //    operator T&() const { return std::get<T>(static_cast<Variant>(*this)); }
 
-    template <typename T>
-    operator T&() { return std::get<T>(*this); }
+    //    template <typename T>
+    //    operator T&() { return std::get<T>(*this); }
 };
+
+/**
+ * Return a textual representation of template argument type.
+ */
+template <typename CellType>
+constexpr const char* type_name()
+{
+    using T = std::decay_t<CellType>;
+    if
+        constexpr(std::is_same_v<T, Nil>) return "()";
+    else if
+        constexpr(std::is_same_v<T, None>) return "#<none>";
+    else if
+        constexpr(std::is_same_v<T, Intern>) return "#<primop>";
+    else if
+        constexpr(std::is_same_v<T, Bool>) return "#<boolean>";
+    else if
+        constexpr(std::is_same_v<T, Char>) return "#<character>";
+    else if
+        constexpr(std::is_same_v<T, Number>) return "#<number>";
+    else if
+        constexpr(std::is_same_v<T, Cons*>) return "#<cons>";
+    else if
+        constexpr(std::is_same_v<T, StringPtr>) return "#<string>";
+    else if
+        constexpr(std::is_same_v<T, VectorPtr>) return "#<vector>";
+    else if
+        constexpr(std::is_same_v<T, FunctionPtr>) return "#<function>";
+    else if
+        constexpr(std::is_same_v<T, Port>) return "#<port>";
+    else if
+        constexpr(std::is_same_v<T, Symbol>) return "#<symbol>";
+    else if
+        constexpr(std::is_same_v<T, SymenvPtr>) return "#<environment>";
+    else if
+        constexpr(std::is_same_v<T, Proc>) return "#<procedure>";
+    else
+        return "#<unknown>";
+}
 
 /**
  * Exception class to throw an invalid cell variant access error.
@@ -46,12 +85,12 @@ struct bad_cell_access : public std::bad_variant_access {
     bad_cell_access() noexcept
         : _reason("invalid type ")
     {
-        _reason.append(type2cstr());
+        _reason.append(type_name<T>());
     }
     bad_cell_access(const Cell& cell)
     {
         std::ostringstream os;
-        os << "argument " << cell << " must be of type " << type2cstr();
+        os << "argument " << cell << " must be of type " << type_name<T>();
         _reason = os.str();
     }
     const char* what() const noexcept override
@@ -154,6 +193,7 @@ inline bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
 inline bool is_port(const Cell& cell) { return is_type<Port>(cell); }
 inline bool is_symbol(const Cell& cell) { return is_type<Symbol>(cell); }
 inline bool is_symenv(const Cell& cell) { return is_type<SymenvPtr>(cell); }
+inline bool is_vector(const Cell& cell) { return is_type<VectorPtr>(cell); }
 inline bool is_func(const Cell& cell) { return is_type<FunctionPtr>(cell); }
 inline bool is_proc(const Cell& cell) { return is_type<Proc>(cell); }
 inline bool is_macro(const Cell& cell) { return is_proc(cell) && get<Proc>(cell).is_macro(); }

@@ -170,7 +170,8 @@ Cell eval_list(const SymenvPtr& senv, Cell list, bool is_list)
         else
             set_cdr(tail, eval(senv, car(list)));
 
-    is_nil(tail) || is_pair(tail) || (void(throw std::invalid_argument("invalid apply argument list")), 0);
+    is_nil(tail) || is_pair(tail)
+        || (void(throw std::invalid_argument("invalid apply argument list")), 0);
     return head;
 }
 
@@ -226,7 +227,7 @@ Cell eval(SymenvPtr senv, Cell expr)
             return expr;
 
         if (is_func(proc = eval(senv, car(expr))))
-            return (*get<FunctionPtr>(proc))(senv, eval_args(senv, cdr(expr)));
+            return call(senv, proc, eval_args(senv, cdr(expr)));
 
         if (is_proc(proc)) {
             if (is_macro(proc))
@@ -262,15 +263,15 @@ Cell eval(SymenvPtr senv, Cell expr)
             return none;
 
         case Intern::_apply:
-            if (is_intern(proc = eval(senv, car(args))))
-                return call(senv, get<Intern>(proc), eval_args(senv, cdr(args), false));
-
-            if (is_macro(proc))
-                expr = get<Proc>(proc).expand(args);
-            else {
-                tie(senv, args) = get<Proc>(proc).apply(senv, cdr(args), false);
-                expr = syntax::_begin(senv, args);
-            }
+            if (is_proc(proc = eval(senv, car(args)))) {
+                if (is_macro(proc))
+                    expr = get<Proc>(proc).expand(args);
+                else {
+                    tie(senv, args) = get<Proc>(proc).apply(senv, cdr(args), false);
+                    expr = syntax::_begin(senv, args);
+                }
+            } else
+                return call(senv, proc, eval_args(senv, cdr(args), false));
             break;
 
         case Intern::_begin:

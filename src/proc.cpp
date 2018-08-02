@@ -111,17 +111,10 @@ std::pair<SymenvPtr, Cell> Proc::apply(const SymenvPtr& senv, Cell args, bool is
 
     Cell iter = impl->args; // closure formal parameter symbol list
 
-    if (is_list) { // Evaluate each list item of a (lambda args body) expression argument list:
+    if (is_list) // Evaluate each list item of a (lambda args body) expression argument list:
         for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
             newenv->add(get<Symbol>(car(iter)), eval(senv, car(args)));
-
-        // Handle the last symbol of a dotted formal parameter list or a single symbol lambda
-        // argument. This symbol is assigned to the evaluated list of remaining expressions
-        // which requires additional cons-cell storage.
-        if (iter != args)
-            newenv->add(get<Symbol>(iter), eval_list(senv, args, is_list));
-    } else
-
+    else
         // Evaluate each argument of a (apply proc x y ... args) expression and add to newenv:
         for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
             if (is_pair(cdr(args)))
@@ -135,8 +128,15 @@ std::pair<SymenvPtr, Cell> Proc::apply(const SymenvPtr& senv, Cell args, bool is
 
                 if (iter != args) // dottet formal parmeter list:
                     newenv->add(get<Symbol>(iter), args);
-                break;
+
+                return { newenv, impl->code };
             }
+
+    // Handle the last symbol of a dotted formal parameter list or a single symbol lambda
+    // argument. This symbol is assigned to the evaluated list of remaining expressions
+    // which requires additional cons-cell storage.
+    if (iter != args)
+        newenv->add(get<Symbol>(iter), eval_list(senv, args, is_list));
 
     return { newenv, impl->code };
 }
@@ -175,16 +175,6 @@ Func::Func(const Symbol& sym, function_type&& fun)
     , func{ std::move(fun) }
 {
 }
-
-//bool Func::operator!=(const Func& func) const
-//{
-//    return funptr != func.funptr;
-//}
-
-//bool Func::operator==(const Func& func) const
-//{
-//    return funptr == func.funptr;
-//}
 
 Cell Func::operator()(const SymenvPtr& senv, const std::vector<Cell>& args) const
 {

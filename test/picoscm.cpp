@@ -17,7 +17,7 @@ using namespace std;
 
 int main(int argn, char* argv[])
 {
-    using pscm::Intern, pscm::Cell, pscm::list, pscm::sym, pscm::num, pscm::str, pscm::fun;
+    using pscm::Intern, pscm::Cell, pscm::list, pscm::sym, pscm::num, pscm::str, pscm::fun, pscm::nil;
 
     fun(sym("greet"), [cntr = 0](auto senv, auto args) mutable->Cell {
         return list(str("hello world"), num(cntr++));
@@ -30,6 +30,8 @@ int main(int argn, char* argv[])
     try {
         pscm::SymenvPtr e = pscm::senv();
 
+        Cell expr = pscm::list(Intern::_apply, Intern::op_add);
+
         //        Cell expr = pscm::list(Intern::op_map,
         //            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
         //            pscm::list(Intern::_quote, pscm::list(num(1), num(2), num(3))));
@@ -38,11 +40,13 @@ int main(int argn, char* argv[])
         //            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
         //            pscm::list(Intern::_quote, pscm::list(num(1))));
 
-        pscm::Parser parser;
-        std::istringstream stream("");
-        Cell expr = parser.read(stream);
+        //        pscm::Parser parser;
+        //        std::istringstream stream("#()");
+        //        Cell expr = parser.read(stream);
 
-        cout << expr << " ---> ";
+        cout << expr;
+        cout << " ---> " << pscm::is_pair(expr) << endl;
+
         Cell proc = pscm::eval(e, expr);
         cout << proc << endl;
 

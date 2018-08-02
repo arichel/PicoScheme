@@ -88,12 +88,15 @@ static std::ostream& operator<<(std::ostream& os, const DisplayManip<StringPtr>&
     return os;
 }
 
-static std::ostream& operator<<(std::ostream& os, const VectorPtr& vec)
+static std::ostream& operator<<(std::ostream& os, const VectorPtr& vptr)
 {
-    os << "#(";
-    for (const Cell& cell : *vec)
-        os << cell << ' ';
-    return os << ')';
+    if (vptr->size()) {
+        os << "#(" << vptr->front();
+        for (auto ip = vptr->begin() + 1, ie = vptr->end(); ip != ie; ++ip)
+            os << ' ' << *ip;
+        return os << ')';
+    } else
+        return os << "#()";
 }
 
 std::ostream& operator<<(std::ostream& os, Intern opcode)

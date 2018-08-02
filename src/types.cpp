@@ -11,6 +11,7 @@
 #include "cell.hpp"
 #include "eval.hpp"
 #include "parser.hpp"
+#include "primop.hpp"
 #include "types.hpp"
 
 namespace pscm {
@@ -155,6 +156,7 @@ static SymenvPtr topenv{
         { sym("vector-copy"), Intern::op_veccopy },
         { sym("vector-copy!"), Intern::op_veccopyb },
         { sym("vector-append"), Intern::op_vecappend },
+        { sym("vector-append!"), Intern::op_vecappendb },
         { sym("vector-fill!"), Intern::op_vecfillb },
 
         /* Section 6.9: Bytevectors */
@@ -277,6 +279,14 @@ void load(const std::string& filnam, const SymenvPtr& symenv)
         else
             std::cerr << e.what() << ": " << expr << '\n';
     }
+}
+
+Cell call(const SymenvPtr& senv, const Cell& proc, const std::vector<Cell>& args)
+{
+    if (is_intern(proc))
+        return call(senv, get<Intern>(proc), args);
+    else
+        return (*get<FunctionPtr>(proc))(senv, args);
 }
 
 } // namespace pscm
