@@ -20,14 +20,6 @@ size_t store_size()
     return store.size();
 }
 
-//! Return a new cons-cell from the global cons-store
-//! A cons-cell is basically a type tagged pointer into the global cons-store.
-template <typename CAR, typename CDR, typename Store = std::deque<Cons>>
-static Cons* cons(Store& store, CAR&& car, CDR&& cdr)
-{
-    return &store.emplace_back(std::forward<CAR>(car), std::forward<CDR>(cdr));
-}
-
 Cons* cons(Cell&& car, Cell&& cdr) { return cons(store, std::move(car), std::move(cdr)); }
 Cons* cons(Cell&& car, const Cell& cdr) { return cons(store, std::move(car), cdr); }
 Cons* cons(const Cell& car, Cell&& cdr) { return cons(store, car, std::move(cdr)); }

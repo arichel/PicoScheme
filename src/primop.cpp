@@ -797,114 +797,68 @@ static Cell error(const varg& args)
     return none;
 }
 
-/**
- * Map version for a procedure and single list argument.
- */
-static Cell map(const SymenvPtr& senv, const Proc& proc, Cell list)
+static Cell apply(const SymenvPtr& senv, const Cell& proc, const varg& args)
 {
-    if (is_nil(list))
-        return nil;
+    if (is_proc(proc)) {
+        Cons arg[2], cns[4];
+        Cell argv = pscm::alist(arg, Intern::_quote, nil);
+        Cell expr = pscm::alist(cns, Intern::_apply, proc, argv, nil);
 
-    Cons cns[4], arg[2];
-    Cell argv = pscm::alist(arg, Intern::_quote, car(list));
-    Cell expr = pscm::alist(cns, Intern::_apply, proc, argv, nil);
-    Cell head = cons(eval(senv, expr), nil);
+        if (args.empty()) {
+            set_cdr(cddr(expr), nil);
+            return eval(senv, expr);
 
-    list = cdr(list);
-    for (Cell tail = head; is_pair(list); list = cdr(list), tail = cdr(tail)) {
-        set_car(cdr(argv), car(list));
-        set_cdr(tail, cons(eval(senv, expr), nil));
-    }
-    return head;
-}
+        } else if (args.size() == 1) {
+            set_car(cdr(argv), args.front());
+            return eval(senv, expr);
 
-/**
- * Map version for primop or functions and a single list argument.
- */
-static Cell map(const SymenvPtr& senv, const Cell& proc, Cell list)
-{
-    if (is_proc(proc))
-        return map(senv, get<Proc>(proc), list);
+        } else {
+            std::vector<Cons> vec;
+            vec.reserve(args.size());
+            Cell head = cons(vec, args.front(), nil), tail = head;
 
-    if (is_nil(list))
-        return nil;
+            for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip, tail = cdr(tail))
+                set_cdr(tail, cons(vec, *ip, nil));
 
-    std::vector<Cell> argv{ 1, car(list) };
-    Cell head = cons(call(senv, proc, argv), nil);
-
-    list = cdr(list);
-    for (Cell tail = head; is_pair(list); list = cdr(list), tail = cdr(tail)) {
-        argv.front() = car(list);
-        set_cdr(tail, cons(call(senv, proc, argv), nil));
-    }
-    return head;
-}
-
-/**
- * Map version for procedures and multiple list arguments.
- */
-static Cell map(const SymenvPtr& senv, const Proc& proc, varg& lists)
-{
-    if (lists.size() <= 1)
-        return map(senv, proc, lists.at(0));
-
-    Cons cns[3], arg[2];
-    Cell argv = pscm::alist(arg, Intern::_quote, nil);
-    Cell expr = pscm::alist(cns, Intern::_apply, proc, argv);
-    std::vector<Cons> vec{ lists.size() };
-
-    Cell head = nil, tail = nil;
-
-    for (;;) {
-        size_t i = 0;
-        for (auto& l : lists)
-            if (is_pair(l)) {
-                vec[i] = Cons{ car(l), nil };
-                if (i)
-                    vec[i - 1].second = static_cast<Cons*>(&vec[i]);
-
-                i++;
-                l = cdr(l);
-            } else
-                return head;
-
-        set_car(cdr(argv), &vec.front());
-        if (is_nil(head))
-            head = tail = cons(eval(senv, expr), nil);
-        else {
-            set_cdr(tail, cons(eval(senv, expr), nil));
-            tail = cdr(tail);
+            set_car(cdr(argv), head);
+            set_cdr(cddr(expr), nil);
+            return eval(senv, expr);
         }
-    }
+    } else
+        return call(senv, proc, args);
 }
-/**
- * Map version for primop or functions and multiple list arguments.
- */
-static Cell map(const SymenvPtr& senv, const Cell& proc, varg& lists)
+
+static Cell foreach (const SymenvPtr& senv, const varg& args)
 {
-    if (lists.size() <= 1)
-        return map(senv, proc, lists.at(0));
+    args.size() > 1
+        || ((void)(throw std::invalid_argument("for-each - not enough arguments")), 0);
 
-    if (is_proc(proc))
-        return map(senv, get<Proc>(proc), lists);
+    const Cell& proc = args.front();
 
-    varg args{ lists.size() };
-    Cell head = nil, tail = nil;
+    if (args.size() <= 2) // single list version:
+    {
+        varg argv{ 1 };
+        for (Cell list = args.at(1); is_pair(list); list = cdr(list)) {
+            argv[0] = car(list);
+            apply(senv, proc, argv);
+        }
+        return none;
+    } else { // multiple list version:
+        std::vector<Cell> lists{ args.begin() + 1, args.end() };
 
-    for (;;) {
-        size_t i = 0;
-        for (auto& l : lists)
-            if (is_pair(l)) {
-                args[i++] = car(l);
-                l = cdr(l);
-            } else
-                return head;
+        varg argv;
+        argv.reserve(lists.size());
 
-        if (is_nil(head))
-            head = tail = cons(call(senv, proc, args), nil);
-        else {
-            set_cdr(tail, cons(call(senv, proc, args), nil));
-            tail = cdr(tail);
+        for (;;) {
+            for (auto& l : lists)
+                if (is_pair(l)) {
+                    argv.push_back(car(l));
+                    l = cdr(l);
+                } else
+                    return none;
+
+            apply(senv, proc, argv);
+            argv.clear();
         }
     }
 }
@@ -914,102 +868,47 @@ static Cell map(const SymenvPtr& senv, const varg& args)
     args.size() > 1
         || ((void)(throw std::invalid_argument("map - not enough arguments")), 0);
 
-    if (args.size() <= 2) // single list version:
-        return map(senv, args.at(0), args.at(1));
-
-    // multiple list version:
-    std::vector<Cell> lists{ args.begin() + 1, args.end() };
-    return map(senv, args.front(), lists);
-}
-
-static Cell foreach (const SymenvPtr& senv, const Proc& proc, Cell list)
-{
-    Cons cns[4], arg[2];
-    Cell argv = pscm::alist(arg, Intern::_quote, nil);
-    Cell expr = pscm::alist(cns, Intern::_apply, proc, argv, nil);
-
-    for (/* */; is_pair(list); list = cdr(list)) {
-        set_car(cdr(argv), car(list));
-        eval(senv, expr);
-    }
-    return none;
-}
-
-static Cell foreach (const SymenvPtr& senv, const Cell& proc, Cell list)
-{
-    if (is_proc(proc))
-        return foreach (senv, get<Proc>(proc), list);
-
-    std::vector<Cell> argv{ 1, none };
-
-    for (/* */; is_pair(list); list = cdr(list)) {
-        argv.front() = car(list);
-        call(senv, proc, argv);
-    }
-    return none;
-}
-
-static Cell foreach (const SymenvPtr& senv, const Proc& proc, varg & lists)
-{
-    if (lists.size() <= 1)
-        return foreach (senv, proc, lists.at(0));
-
-    Cons cns[3], arg[2];
-    Cell argv = pscm::alist(arg, Intern::_quote, nil);
-    Cell expr = pscm::alist(cns, Intern::_apply, proc, argv);
-    std::vector<Cons> vec{ lists.size() };
-
-    for (;;) {
-        size_t i = 0;
-        for (auto& l : lists)
-            if (is_pair(l)) {
-                vec[i] = Cons{ car(l), nil };
-                if (i)
-                    vec[i - 1].second = static_cast<Cons*>(&vec[i]);
-
-                i++;
-                l = cdr(l);
-            } else
-                return none;
-
-        eval(senv, expr);
-    }
-}
-
-static Cell foreach (const SymenvPtr& senv, const Cell& proc, varg & lists)
-{
-    if (lists.size() <= 1)
-        return foreach (senv, proc, lists.at(0));
-
-    if (is_proc(proc))
-        return foreach (senv, get<Proc>(proc), lists);
-
-    varg args{ lists.size() };
-
-    for (;;) {
-        size_t i = 0;
-        for (auto& l : lists)
-            if (is_pair(l)) {
-                args[i++] = car(l);
-                l = cdr(l);
-            } else
-                return none;
-
-        call(senv, proc, args);
-    }
-}
-
-static Cell foreach (const SymenvPtr& senv, const varg& args)
-{
-    args.size() > 1
-        || ((void)(throw std::invalid_argument("map - not enough arguments")), 0);
+    const Cell& proc = args.front();
 
     if (args.size() <= 2) // single list version:
-        return foreach (senv, args.at(0), args.at(1));
+    {
+        Cell list = args.at(1);
+        if (is_nil(list))
+            return nil;
 
-    // multiple list version:
-    std::vector<Cell> lists{ args.begin() + 1, args.end() };
-    return foreach (senv, args.front(), lists);
+        varg argv{ 1, car(list) };
+        Cell head = cons(apply(senv, proc, argv), nil), tail = head;
+
+        for (list = cdr(list); is_pair(list); list = cdr(list), tail = cdr(tail)) {
+            argv[0] = car(list);
+            set_cdr(tail, cons(apply(senv, proc, argv), nil));
+        }
+        return head;
+
+    } else { // multiple list version:
+        std::vector<Cell> lists{ args.begin() + 1, args.end() };
+
+        varg argv;
+        argv.reserve(lists.size());
+
+        Cell head = nil, tail = nil;
+
+        for (;;) {
+            for (auto& l : lists)
+                if (is_pair(l)) {
+                    argv.push_back(car(l));
+                    l = cdr(l);
+                } else
+                    return head;
+
+            if (is_pair(head)) {
+                set_cdr(tail, cons(apply(senv, proc, argv), nil));
+                tail = cdr(tail);
+            } else
+                head = tail = cons(apply(senv, proc, argv), nil);
+            argv.clear();
+        }
+    }
 }
 
 } // namespace primop

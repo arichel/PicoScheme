@@ -179,6 +179,14 @@ inline bool is_exit(const Cell& cell) { return is_intern(cell) && get<Intern>(ce
  */
 bool is_equal(const Cell& lhs, const Cell& rhs);
 
+//! Return a new cons-cell from the global cons-store
+//! A cons-cell is basically a type tagged pointer into the global cons-store.
+template <typename CAR, typename CDR, typename Store = std::deque<Cons>>
+Cons* cons(Store& store, CAR&& car, CDR&& cdr)
+{
+    return &store.emplace_back(std::forward<CAR>(car), std::forward<CDR>(cdr));
+}
+
 /**
  * Construct a new cons cell-pair from the global cell store and
  * return a pointer to it.
