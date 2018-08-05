@@ -67,7 +67,7 @@ static Cell numlt(const varg& args)
 
     for (auto iter = args.begin() + 2; iter != args.end(); ++iter) {
         lhs = rhs;
-        rhs = std::get<Number>(static_cast<Cell>(*iter));
+        rhs = get<Number>(static_cast<Cell>(*iter));
 
         if (!(lhs < rhs))
             return false;
@@ -87,7 +87,7 @@ static Cell numgt(const varg& args)
 
     for (auto iter = args.begin() + 2; iter != args.end(); ++iter) {
         lhs = rhs;
-        rhs = std::get<Number>(static_cast<Cell>(*iter));
+        rhs = get<Number>(static_cast<Cell>(*iter));
 
         if (!(lhs > rhs))
             return false;
@@ -107,7 +107,7 @@ static Cell numle(const varg& args)
 
     for (auto iter = args.begin() + 2; iter != args.end(); ++iter) {
         lhs = rhs;
-        rhs = std::get<Number>(*iter);
+        rhs = get<Number>(*iter);
 
         if (!(lhs <= rhs))
             return false;
@@ -207,7 +207,7 @@ static Cell log(const varg& args)
 static Cell display(const varg& args)
 {
     if (args.size() > 1) {
-        Port& port = std::get<Port>(const_cast<Cell&>(args.at(1)));
+        Port& port = get<Port>(const_cast<Cell&>(args.at(1)));
 
         port.stream() << pscm::display(args[0]);
     } else
@@ -614,7 +614,7 @@ static Cell open_outfile(const StringPtr& filnam)
 static Cell write(const varg& args)
 {
     if (args.size() > 1) {
-        Port& port = std::get<Port>(const_cast<Cell&>(args[1]));
+        Port& port = get<Port>(const_cast<Cell&>(args[1]));
         port.stream() << args[0];
     } else
         std::cout << args.at(0);
@@ -628,7 +628,7 @@ static Cell write(const varg& args)
 static Cell newline(const varg& args)
 {
     if (args.size() > 0) {
-        Port& port = std::get<Port>(const_cast<Cell&>(args[0]));
+        Port& port = get<Port>(const_cast<Cell&>(args[0]));
         port.stream() << '\n';
     } else
         std::cout << '\n';
@@ -642,7 +642,7 @@ static Cell newline(const varg& args)
 static Cell flush(const varg& args)
 {
     if (args.size() > 0) {
-        Port& port = std::get<Port>(const_cast<Cell&>(args[0]));
+        Port& port = get<Port>(const_cast<Cell&>(args[0]));
         port.stream().flush();
     } else
         std::cout.flush();
@@ -656,10 +656,10 @@ static Cell flush(const varg& args)
 static Cell write_char(const varg& args)
 {
     if (args.size() > 1) {
-        Port& port = std::get<Port>(const_cast<Cell&>(args[1]));
-        port.stream() << std::get<Char>(args[0]);
+        Port& port = get<Port>(const_cast<Cell&>(args[1]));
+        port.stream() << get<Char>(args[0]);
     } else
-        std::cout << std::get<Char>(args.at(0));
+        std::cout << get<Char>(args.at(0));
 
     return none;
 }
@@ -674,7 +674,7 @@ static Cell write_str(const varg& args)
 
     Port port;
     if (args.size() > 1)
-        port = std::get<Port>(args[1]);
+        port = get<Port>(args[1]);
 
     size_type ip = args.size() > 2 ? get<Int>(get<Number>(const_cast<Cell&>(args[2]))) : 0;
     size_type ie = args.size() > 3 ? get<Int>(get<Number>(const_cast<Cell&>(args[3]))) : pstr->size();
@@ -712,10 +712,10 @@ static Cell readline(const varg& args)
         (port.is_open() && port.is_input())
             || ((void)(throw std::invalid_argument("port is closed")), 0);
 
-        std::getline(port.stream(), *line);
+        getline(port.stream(), *line);
     } else {
         std::string str;
-        std::getline(std::cin, str);
+        getline(std::cin, str);
     }
     return line;
 }
@@ -921,6 +921,97 @@ static Cell map(const SymenvPtr& senv, const varg& args)
     std::vector<Cell> lists{ args.begin() + 1, args.end() };
     return map(senv, args.front(), lists);
 }
+
+static Cell foreach (const SymenvPtr& senv, const Proc& proc, Cell list)
+{
+    Cons cns[4], arg[2];
+    Cell argv = pscm::alist(arg, Intern::_quote, nil);
+    Cell expr = pscm::alist(cns, Intern::_apply, proc, argv, nil);
+
+    for (/* */; is_pair(list); list = cdr(list)) {
+        set_car(cdr(argv), car(list));
+        eval(senv, expr);
+    }
+    return none;
+}
+
+static Cell foreach (const SymenvPtr& senv, const Cell& proc, Cell list)
+{
+    if (is_proc(proc))
+        return foreach (senv, get<Proc>(proc), list);
+
+    std::vector<Cell> argv{ 1, none };
+
+    for (/* */; is_pair(list); list = cdr(list)) {
+        argv.front() = car(list);
+        call(senv, proc, argv);
+    }
+    return none;
+}
+
+static Cell foreach (const SymenvPtr& senv, const Proc& proc, varg & lists)
+{
+    if (lists.size() <= 1)
+        return foreach (senv, proc, lists.at(0));
+
+    Cons cns[3], arg[2];
+    Cell argv = pscm::alist(arg, Intern::_quote, nil);
+    Cell expr = pscm::alist(cns, Intern::_apply, proc, argv);
+    std::vector<Cons> vec{ lists.size() };
+
+    for (;;) {
+        size_t i = 0;
+        for (auto& l : lists)
+            if (is_pair(l)) {
+                vec[i] = Cons{ car(l), nil };
+                if (i)
+                    vec[i - 1].second = static_cast<Cons*>(&vec[i]);
+
+                i++;
+                l = cdr(l);
+            } else
+                return none;
+
+        eval(senv, expr);
+    }
+}
+
+static Cell foreach (const SymenvPtr& senv, const Cell& proc, varg & lists)
+{
+    if (lists.size() <= 1)
+        return foreach (senv, proc, lists.at(0));
+
+    if (is_proc(proc))
+        return foreach (senv, get<Proc>(proc), lists);
+
+    varg args{ lists.size() };
+
+    for (;;) {
+        size_t i = 0;
+        for (auto& l : lists)
+            if (is_pair(l)) {
+                args[i++] = car(l);
+                l = cdr(l);
+            } else
+                return none;
+
+        call(senv, proc, args);
+    }
+}
+
+static Cell foreach (const SymenvPtr& senv, const varg& args)
+{
+    args.size() > 1
+        || ((void)(throw std::invalid_argument("map - not enough arguments")), 0);
+
+    if (args.size() <= 2) // single list version:
+        return foreach (senv, args.at(0), args.at(1));
+
+    // multiple list version:
+    std::vector<Cell> lists{ args.begin() + 1, args.end() };
+    return foreach (senv, args.front(), lists);
+}
+
 } // namespace primop
 
 namespace pscm {
@@ -936,6 +1027,8 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return is_equal(args.at(0), args.at(1));
 
     /* Section 6.2: Numbers */
+    case Intern::op_isnum:
+        return is_number(args.at(0));
     case Intern::op_numeq:
         return primop::numeq(args);
     case Intern::op_numlt:
@@ -1097,7 +1190,7 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_ischar:
         return is_type<Char>(args.at(0));
     case Intern::op_charint:
-        return num(std::get<Char>(args.at(0)));
+        return num(get<Char>(args.at(0)));
 
     /* Section 6.7: Strings */
     case Intern::op_isstr:
@@ -1141,9 +1234,11 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     /* Section 6.10: Control features */
     case Intern::op_isproc:
         return is_proc(args.at(0)) || is_func(args[0])
-            || (is_intern(args[0]) && std::get<Intern>(args[0]) >= Intern::op_eq);
+            || (is_intern(args[0]) && get<Intern>(args[0]) >= Intern::op_eq);
     case Intern::op_map:
         return primop::map(senv, args);
+    case Intern::op_foreach:
+        return primop::foreach (senv, args);
 
     /* Section 6.11: Exceptions */
     case Intern::op_error:

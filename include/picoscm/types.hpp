@@ -52,6 +52,7 @@ enum class Intern {
     op_equal,
 
     /* Section 6.2: Numbers */
+    op_isnum,
     op_numeq,
     op_numlt,
     op_numgt,

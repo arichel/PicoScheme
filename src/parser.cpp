@@ -222,15 +222,6 @@ Parser::Token Parser::skip_comment(std::istream& in) const
 }
 
 /**
- * @brief Predicate returns true if the argument character is a special
- *        scheme character, starting a new expression, string or comment.
- */
-bool Parser::is_special(int c) const
-{
-    return strchr("()\"'`,;", c);
-}
-
-/**
  * @brief Predicate returns true if the first n characters is are digits,
  *         floating point exponent characters (e,E) or imaginary characters (i,I).
  *
@@ -242,13 +233,28 @@ bool Parser::is_digit(const std::string& str, size_t n) const
 {
     n = n ? std::min(n, str.size()) : str.size();
 
-    if (str.empty() || (str.size() == 1 && !isdigit(str.front())))
+    bool has_digit = isdigit(str.front());
+
+    if (str.empty() || (str.size() == 1 && !has_digit))
         return false;
     else
-        for (auto ic = str.begin(), ie = ic + n; ic != ie; ++ic)
+        for (auto ic = str.begin(), ie = ic + n; ic != ie; ++ic) {
+            if (!has_digit)
+                has_digit = isdigit(*ic);
+
             if (!isdigit(*ic) && !strchr("+-.iIeE", *ic))
                 return false;
-    return true;
+        }
+    return has_digit;
+}
+
+/**
+ * @brief Predicate returns true if the argument character is a special
+ *        scheme character, starting a new expression, string or comment.
+ */
+bool Parser::is_special(int c) const
+{
+    return strchr("()\"'`,;", c);
 }
 
 /**
@@ -256,7 +262,7 @@ bool Parser::is_digit(const std::string& str, size_t n) const
  */
 bool Parser::is_alpha(int c) const
 {
-    return isalpha(c) || strchr("_?!+-*/<>=:@", c);
+    return isalpha(c) || strchr("._:?!+-*/<>=^@$%&~", c);
 }
 
 Parser::Token Parser::get_token(std::istream& in)
@@ -299,9 +305,6 @@ Parser::Token Parser::get_token(std::istream& in)
     case ')':
         return Token::CBrace;
 
-    case '.':
-        return is_digit(strtok, 2) ? lex_number(strtok, numtok) : Token::Dot;
-
     case '\'':
         return Token::Quote;
 
@@ -320,6 +323,10 @@ Parser::Token Parser::get_token(std::istream& in)
     case '"':
         return lex_string(strtok, in);
 
+    case '.':
+        if (strtok.size() == 1)
+            return Token::Dot;
+        [[fallthrough]];
     default:
         if (is_digit(strtok, 2))
             return lex_number(strtok, numtok);

@@ -53,6 +53,7 @@ static SymenvPtr topenv{
         { sym("equal?"), Intern::op_equal },
 
         /* Section 6.2: Numbers */
+        { sym("number?"), Intern::op_isnum },
         { sym("="), Intern::op_numeq },
         { sym("<"), Intern::op_numlt },
         { sym(">"), Intern::op_numgt },
@@ -164,6 +165,7 @@ static SymenvPtr topenv{
         /* Section 6.10: Control features */
         { sym("procedure?"), Intern::op_isproc },
         { sym("map"), Intern::op_map },
+        { sym("for-each"), Intern::op_foreach },
 
         /* Section 6.11: Exceptions */
         { sym("error"), Intern::op_error },

@@ -20,35 +20,33 @@
 ;;; (TEST-DELAY) tests DELAY and FORCE, which are not required by
 ;;; either standard.
 ;;;
-;;;
 (define cur-section '())
 (define errs '())
 
-(define SECTION
-  (lambda args
-    (display "SECTION") (write args) (newline)
-    (set! cur-section args) #t))
+(define (SECTION . args)
+  (display "SECTION") (write args) (newline)
+  (set! cur-section args) #t)
 
-(define record-error
-  (lambda (e)
-    (set! errs (cons (list cur-section e) errs))))
+(define (record-error e)
+  (set! errs (cons (list cur-section e) errs)))
 
-(define test
-  (lambda (expect fun . args)
-    (write (cons fun args))
-    (display "  ==> ")
+(define (test expect fun . args)
+  (write (cons fun args))
+  (display " ==> ")
 
-    ((lambda (res)
-       (write res)
-       (newline)
-       (cond ((not (equal? expect res))
-              (record-error (list res expect (cons fun args)))
-              (display " BUT EXPECTED ")
-              (write expect)
-              (newline)
-              #f)
-             (else #t)))
-     (if (procedure? fun) (apply fun args) (car args)))))
+  ((lambda (res)
+     (write res)
+     (newline)
+     (cond ((not (equal? expect res))
+            (record-error (list res expect (cons fun args)))
+            (display " BUT EXPECTED ")
+            (write expect)
+            (newline)
+            #f)
+           (else #t)))
+   (if (procedure? fun)
+       (apply fun args)
+       (car args))))
 
 (define (report-errs)
   (newline)
@@ -61,9 +59,11 @@
         (for-each (lambda (l) (write l) (newline)) errs)))
   (newline))
 
-(SECTION 2 1);; test that all symbol characters are supported.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(SECTION 2 1) ;; test that all symbol characters are supported.
 '(+ - ... !.. $.+ %.- &.! *.: /:. :+. <-. =. >. ?. ~. _. ^.)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (SECTION 3 4)
 (define disjoint-type-functions
   (list boolean? char? null? number? pair? procedure? string? symbol? vector?))
@@ -72,13 +72,12 @@
   (list
    #t #f #\a '() 9739 '(test) record-error "test" "" 'test '#() '#(a b c) ))
 
-(define i 1)
-
-(for-each (lambda (x) (display (make-string i #\space))
-                  (set! i (+ 3 i))
-                  (write x)
-                  (newline))
-          disjoint-type-functions)
+(let ((i 1))
+  (for-each (lambda (x)
+              (display (make-string i #\space))
+              (set! i (+ 3 i))
+              (write x)
+              (newline))  disjoint-type-functions))
 
 (define type-matrix
   (map (lambda (x)
@@ -89,24 +88,23 @@
            t))
        type-examples))
 
-(set! i 0)
-(define j 0)
+(let ((i 0) (j 0))
+  (for-each (lambda (x y)
+              (set! j (+ 1 j))
+              (set! i 0)
+              (for-each (lambda (f)
+                          (set! i (+ 1 i))
+                          (cond ((and (= i j))
+                                 (cond ((not (f x)) (test #t f x))))
+                                ((f x) (test #f f x)))
+                          (cond ((and (= i j))
+                                 (cond ((not (f y)) (test #t f y))))
+                                ((f y) (test #f f y))))
+                        disjoint-type-functions))
+            (list #t #\a '() 9739 '(test) record-error "test" 'car '#(a b c))
+            (list #f #\newline '() -3252 '(t . t) car "" 'nil '#())))
 
-(for-each (lambda (x y)
-            (set! j (+ 1 j))
-            (set! i 0)
-            (for-each (lambda (f)
-                        (set! i (+ 1 i))
-                        (cond ((and (= i j))
-                               (cond ((not (f x)) (test #t f x))))
-                              ((f x) (test #f f x)))
-                        (cond ((and (= i j))
-                               (cond ((not (f y)) (test #t f y))))
-                              ((f y) (test #f f y))))
-                      disjoint-type-functions))
-          (list #t #\a '() 9739 '(test) record-error "test" 'car '#(a b c))
-          (list #f #\newline '() -3252 '(t . t) car "" 'nil '#()))
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (SECTION 4 1 2)
 (test '(quote a) 'quote (quote 'a))
 (test '(quote a) 'quote ''a)
@@ -195,7 +193,12 @@
 (test 34 'letrec x)
 (test 10 'letrec (letrec ((x 3)) (define x 10) x))
 (test 34 'letrec x)
-(define (s x) (if x (let () (set! s x) (set! x s))))
+
+(define (s x)
+  (if x
+      (let ()
+        (set! s x)
+        (set! x s))))
 
 (SECTION 4 2 3)
 (define x 0)
@@ -247,13 +250,7 @@
       'quasiquote
       `((foo ,(- 10 3)) ,@(cdr '(c)) . ,(car '(cons))))
 
-;;; sqt is defined here because not all implementations are required to
-;;; support it.
-(define (sqt x)
-  (do ((i 0 (+ i 1)))
-      ((> (* i i) x) (- i 1))))
-
-(test '#(10 5 2 4 3 8) 'quasiquote `#(10 5 ,(sqt 4) ,@(map sqt '(16 9)) 8))
+(test '#(10 5 2 4 3 8) 'quasiquote `#(10 5 ,(sqrt 4) ,@(map sqrt '(16 9)) 8))
 
 (test 5 'quasiquote `,(+ 2 3))
 (test '(a `(b ,(+ 1 2) ,(foo 4 d) e) f)
@@ -265,6 +262,7 @@
 (test '(list 3 4) 'quasiquote (quasiquote (list (unquote (+ 1 2)) 4)))
 (test '`(list ,(+ 1 2) 4) 'quasiquote '(quasiquote (list (unquote (+ 1 2)) 4)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (SECTION 5 2 1)
 (define (tprint x) #t)
 (test #t 'tprint (tprint 56))
@@ -332,6 +330,7 @@
                             (define baz (retfoo))
                             (retfoo)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (SECTION 6 1)
 (test #f not #t)
 (test #f not 3)
@@ -477,22 +476,28 @@
 (test #f assq (list 'a) '(((a)) ((b)) ((c))))
 (test '((a)) assoc (list 'a) '(((a)) ((b)) ((c))))
 (test '(5 7) assv 5 '((2 3) (5 7) (11 13)))
+
 (SECTION 6 4)
-                                        ;(test #t symbol? 'foo)
+(test #t symbol? 'foo)
 (test #t symbol? (car '(a b)))
-                                        ;(test #f symbol? "bar")
-                                        ;(test #t symbol? 'nil)
-                                        ;(test #f symbol? '())
-                                        ;(test #f symbol? #f)
+(test #f symbol? "bar")
+(test #t symbol? 'nil)
+(test #f symbol? '())
+(test #f symbol? #f)
+
 ;;; But first, what case are symbols in?  Determine the standard case:
 (define char-standard-case char-upcase)
+
 (if (string=? (symbol->string 'A) "a")
     (set! char-standard-case char-downcase))
+
 (test #t 'standard-case
       (string=? (symbol->string 'a) (symbol->string 'A)))
+
 (test #t 'standard-case
       (or (string=? (symbol->string 'a) "A")
           (string=? (symbol->string 'A) "a")))
+
 (define (str-copy s)
   (let ((v (make-string (string-length s))))
     (do ((i (- (string-length v) 1) (- i 1)))
@@ -504,6 +509,7 @@
        (sl (string-length s)))
       ((>= i sl) s)
     (string-set! s i (char-standard-case (string-ref s i)))))
+
 (test (string-standard-case "flying-fish") symbol->string 'flying-fish)
 (test (string-standard-case "martin") symbol->string 'Martin)
 (test "Malvina" symbol->string (string->symbol "Malvina"))
@@ -511,6 +517,7 @@
 
 (define x (string #\a #\b))
 (define y (string->symbol x))
+
 (string-set! x 0 #\c)
 (test "cb" 'string-set! x)
 (test "ab" symbol->string y)
@@ -616,9 +623,11 @@
 (test -1 remainder -13 -4)
 (test 0 modulo 0 86400)
 (test 0 modulo 0 -86400)
+
 (define (divtest n1 n2)
   (= n1 (+ (* n2 (quotient n1 n2))
            (remainder n1 n2))))
+
 (test #t divtest 238 9)
 (test #t divtest -238 9)
 (test #t divtest 238 -9)
@@ -1133,6 +1142,7 @@
 (test #t string-ci>=? "9" "0")
 (test #t string-ci>=? "A" "A")
 (test #t string-ci>=? "A" "a")
+
 (SECTION 6 8)
 (test #t vector? '#(0 (2 2 2 2) "Anna"))
                                         ;(test #t vector? '#())
@@ -1148,6 +1158,7 @@
 (test '#(hi hi) make-vector 2 'hi)
 (test '#() make-vector 0)
 (test '#() make-vector 0 'a)
+
 (SECTION 6 9)
 (test #t procedure? car)
 (test #f procedure? 'car)
@@ -1159,7 +1170,10 @@
 (test 7 apply (lambda (a b) (+ a b)) (list 3 4))
 (test 17 apply + 10 (list 3 4))
 (test '() apply list '())
-(define compose (lambda (f g) (lambda args (f (apply g args)))))
+
+(define (compose f g)
+    (lambda args (f (apply g args))))
+
 (test 30 (compose sqt *) 12 75)
 
 (test '(b e h) map cadr '((a b) (d e) (g h)))
@@ -1194,9 +1208,9 @@
 
 ;;; This tests full conformance of call-with-current-continuation.  It
 ;;; is a separate test because some schemes do not support call/cc
-;;; other than escape procedures.  I am indebted to
+;;; other than escape procedures. I am indebted to
 ;;; raja@copper.ucs.indiana.edu (Raja Sooriamurthi) for fixing this
-;;; code.  The function leaf-eq? compares the leaves of 2 arbitrary
+;;; code. The function leaf-eq? compares the leaves of 2 arbitrary
 ;;; trees constructed of conses.
 (define (next-leaf-generator obj eot)
   (letrec ((return #f)
@@ -1211,8 +1225,10 @@
                          (lambda (c)
                            (set! cont c)
                            (return obj)))))))
-    (lambda () (call-with-current-continuation
-                (lambda (ret) (set! return ret) (cont #f))))))
+    (lambda ()
+      (call-with-current-continuation
+       (lambda (ret)
+         (set! return ret) (cont #f))))))
 
 (define (leaf-eq? x y)
   (let* ((eot (list 'eot))

@@ -100,40 +100,6 @@ struct bad_cell_access : public std::bad_variant_access {
 
 private:
     std::string _reason;
-
-    constexpr const char* type2cstr()
-    {
-        if
-            constexpr(std::is_same_v<T, None>) return "<none>";
-        else if
-            constexpr(std::is_same_v<T, Nil>) return "()";
-        else if
-            constexpr(std::is_same_v<T, Intern>) return "<primop>";
-        else if
-            constexpr(std::is_same_v<T, Bool>) return "<boolean>";
-        else if
-            constexpr(std::is_same_v<T, Char>) return "<character>";
-        else if
-            constexpr(std::is_same_v<T, Number>) return "<number>";
-        else if
-            constexpr(std::is_same_v<T, Cons*>) return "<cons>";
-        else if
-            constexpr(std::is_same_v<T, StringPtr>) return "<string>";
-        else if
-            constexpr(std::is_same_v<T, VectorPtr>) return "<vector>";
-        else if
-            constexpr(std::is_same_v<T, FunctionPtr>) return "<function>";
-        else if
-            constexpr(std::is_same_v<T, Port>) return "<port>";
-        else if
-            constexpr(std::is_same_v<T, Symbol>) return "<symbol>";
-        else if
-            constexpr(std::is_same_v<T, SymenvPtr>) return "<environment>";
-        else if
-            constexpr(std::is_same_v<T, Proc>) return "<procedure>";
-        else
-            return "<unknown>";
-    }
 };
 
 template <typename T>
@@ -191,6 +157,7 @@ inline bool is_string(const Cell& cell) { return is_type<StringPtr>(cell); }
 inline bool is_pair(const Cell& cell) { return is_type<Cons*>(cell); }
 inline bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
 inline bool is_port(const Cell& cell) { return is_type<Port>(cell); }
+inline bool is_number(const Cell& cell) { return is_type<Number>(cell); }
 inline bool is_symbol(const Cell& cell) { return is_type<Symbol>(cell); }
 inline bool is_symenv(const Cell& cell) { return is_type<SymenvPtr>(cell); }
 inline bool is_vector(const Cell& cell) { return is_type<VectorPtr>(cell); }

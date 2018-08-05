@@ -312,12 +312,13 @@ void repl(const SymenvPtr& symenv, std::istream& in, std::ostream& out)
 {
     SymenvPtr env = senv(symenv);
     Parser parser;
-    Cell expr = none;
+    Cell expr;
 
     for (;;)
         try {
             for (;;) {
                 out << "> ";
+                expr = none;
                 expr = parser.read(in);
                 expr = eval(env, expr);
 
@@ -328,7 +329,6 @@ void repl(const SymenvPtr& symenv, std::istream& in, std::ostream& out)
                     return;
 
                 out << expr << std::endl;
-                expr = none;
             }
         } catch (std::exception& e) {
             if (is_none(expr))
