@@ -127,6 +127,7 @@ enum class Intern {
     op_tail,
     op_listref,
     op_listsetb,
+    op_listcopy,
     op_memq,
     op_memv,
     op_member,

@@ -126,9 +126,15 @@ static SymenvPtr topenv{
         { sym("length"), Intern::op_length },
         { sym("list-ref"), Intern::op_listref },
         { sym("list-set!"), Intern::op_listsetb },
+        { sym("list-copy"), Intern::op_listcopy },
         { sym("reverse"), Intern::op_reverse },
         { sym("reverse!"), Intern::op_reverseb },
+        { sym("memq"), Intern::op_memq },
+        { sym("memv"), Intern::op_memv },
         { sym("member"), Intern::op_member },
+        { sym("assq"), Intern::op_assq },
+        { sym("assv"), Intern::op_assv },
+        { sym("assoc"), Intern::op_assoc },
 
         /* Section 6.5: Symbols */
         { sym("symbol?"), Intern::op_issym },

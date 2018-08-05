@@ -332,34 +332,156 @@ static Cell listsetb(const varg& args)
     return none;
 }
 
+static Cell listcopy(const varg& args)
+{
+    Cell list = args.at(0);
+
+    if (is_nil(list))
+        return nil;
+
+    Cell head = cons(car(list), nil), tail = head;
+
+    for (list = cdr(list); is_pair(list); list = cdr(list), tail = cdr(tail))
+        set_cdr(tail, cons(car(list), nil));
+
+    if (!is_nil(list))
+        set_cdr(tail, list);
+
+    return head;
+}
+
+static Cell apply(const SymenvPtr& senv, const Cell& proc, const varg& args)
+{
+    if (is_proc(proc)) {
+        Cons arg[2], cns[4];
+        Cell argv = pscm::alist(arg, Intern::_quote, nil);
+        Cell expr = pscm::alist(cns, Intern::_apply, proc, argv, nil);
+
+        if (args.empty()) {
+            set_cdr(cddr(expr), nil);
+            return eval(senv, expr);
+
+        } else if (args.size() == 1) {
+            set_car(cdr(argv), args.front());
+            return eval(senv, expr);
+
+        } else {
+            std::vector<Cons> vec;
+            vec.reserve(args.size());
+            Cell head = cons(vec, args.front(), nil), tail = head;
+
+            for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip, tail = cdr(tail))
+                set_cdr(tail, cons(vec, *ip, nil));
+
+            set_car(cdr(argv), head);
+            set_cdr(cddr(expr), nil);
+            return eval(senv, expr);
+        }
+    } else
+        return call(senv, proc, args);
+}
+
+/**
+ * Scheme list @em member function.
+ */
+static Cell memq(const SymenvPtr& senv, const varg& args)
+{
+    Cell list = args.at(1);
+    const Cell& obj = args.front();
+
+    for (; is_pair(list); list = cdr(list))
+        if (obj == car(list))
+            return list;
+
+    is_nil(list)
+        || ((void)(throw std::invalid_argument("invalid argument list")), 0);
+
+    return false;
+}
+
 /**
  * Scheme list @em member function.
  */
 static Cell member(const SymenvPtr& senv, const varg& args)
 {
     Cell list = args.at(1);
-    const Cell& obj = args[0];
+    const Cell& obj = args.front();
 
     if (args.size() > 2) {
-        std::deque<Cons> vec;
+        const Cell& proc = args[2];
+        varg argv = { obj, none };
 
         for (; is_pair(list); list = cdr(list)) {
-
-            Cell expr = vlist(vec, Intern::_apply, args[2],
-                vlist(vec, Intern::_quote, vlist(vec, obj, car(list))));
-
-            if (is_true(eval(senv, expr)))
+            argv.back() = car(list);
+            if (is_true(apply(senv, proc, argv)))
                 return list;
-
-            vec.clear();
         }
 
     } else
         for (; is_pair(list); list = cdr(list))
             if (is_equal(obj, car(list)))
                 return list;
+
     is_nil(list)
         || ((void)(throw std::invalid_argument("member - invalid argument list")), 0);
+
+    return false;
+}
+
+/**
+ * Scheme list @em assq function.
+ */
+static Cell assq(const SymenvPtr& senv, const varg& args)
+{
+    Cell list = args.at(1);
+    const Cell& obj = args.front();
+
+    for (; is_pair(list); list = cdr(list)) {
+        if (!is_pair(car(list)))
+            break;
+
+        if (obj == caar(list))
+            return list;
+    }
+
+    is_nil(list)
+        || ((void)(throw std::invalid_argument("not an association list")), 0);
+
+    return false;
+}
+
+/**
+ * Scheme list @em assoc function.
+ */
+static Cell assoc(const SymenvPtr& senv, const varg& args)
+{
+    Cell list = args.at(1);
+    const Cell& obj = args.front();
+
+    if (args.size() > 2) {
+        const Cell& proc = args[2];
+        varg argv = { obj, none };
+
+        for (; is_pair(list); list = cdr(list)) {
+            if (is_pair(car(list)))
+                break;
+
+            argv.back() = caar(list);
+            if (is_true(apply(senv, proc, argv)))
+                return list;
+        }
+
+    } else
+        for (; is_pair(list); list = cdr(list)) {
+            if (!is_pair(car(list)))
+                break;
+
+            if (is_equal(obj, caar(list)))
+                return list;
+        }
+
+    is_nil(list)
+        || ((void)(throw std::invalid_argument("assoc - invalid argument list")), 0);
 
     return false;
 }
@@ -797,37 +919,6 @@ static Cell error(const varg& args)
     return none;
 }
 
-static Cell apply(const SymenvPtr& senv, const Cell& proc, const varg& args)
-{
-    if (is_proc(proc)) {
-        Cons arg[2], cns[4];
-        Cell argv = pscm::alist(arg, Intern::_quote, nil);
-        Cell expr = pscm::alist(cns, Intern::_apply, proc, argv, nil);
-
-        if (args.empty()) {
-            set_cdr(cddr(expr), nil);
-            return eval(senv, expr);
-
-        } else if (args.size() == 1) {
-            set_car(cdr(argv), args.front());
-            return eval(senv, expr);
-
-        } else {
-            std::vector<Cons> vec;
-            vec.reserve(args.size());
-            Cell head = cons(vec, args.front(), nil), tail = head;
-
-            for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip, tail = cdr(tail))
-                set_cdr(tail, cons(vec, *ip, nil));
-
-            set_car(cdr(argv), head);
-            set_cdr(cddr(expr), nil);
-            return eval(senv, expr);
-        }
-    } else
-        return call(senv, proc, args);
-}
-
 static Cell foreach (const SymenvPtr& senv, const varg& args)
 {
     args.size() > 1
@@ -1069,12 +1160,25 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return primop::listref(args);
     case Intern::op_listsetb:
         return primop::listsetb(args);
+    case Intern::op_listcopy:
+        return primop::listcopy(args);
     case Intern::op_reverse:
         return primop::reverse(args);
     case Intern::op_reverseb:
         return primop::reverseb(args);
+    case Intern::op_memq:
+        return primop::memq(senv, args);
+    case Intern::op_memv:
+        return primop::memq(senv, args);
     case Intern::op_member:
         return primop::member(senv, args);
+    case Intern::op_assq:
+        return primop::assq(senv, args);
+    case Intern::op_assv:
+        return primop::assq(senv, args);
+    case Intern::op_assoc:
+        return primop::assoc(senv, args);
+
     /* Section 6.5: Symbols */
     case Intern::op_issym:
         return is_symbol(args.at(0));
