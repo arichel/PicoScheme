@@ -50,9 +50,9 @@ struct Proc::Closure {
     bool operator!=(const Closure& impl) const noexcept
     {
         return senv != impl.senv
-            && args != impl.args
-            && code != impl.code
-            && is_macro != impl.is_macro;
+            || args != impl.args
+            || code != impl.code
+            || is_macro != impl.is_macro;
     }
     SymenvPtr senv; //!< Symbol environment pointer.
     Cell args; //!< Formal parameter symbol list or single symbol.

@@ -467,7 +467,7 @@ static Cell assq(const SymenvPtr& senv, const varg& args)
             break;
 
         if (obj == caar(list))
-            return list;
+            return car(list);
     }
 
     is_nil(list)
@@ -494,7 +494,7 @@ static Cell assoc(const SymenvPtr& senv, const varg& args)
 
             argv.back() = caar(list);
             if (is_true(apply(senv, proc, argv)))
-                return list;
+                return car(list);
         }
 
     } else
@@ -503,7 +503,7 @@ static Cell assoc(const SymenvPtr& senv, const varg& args)
                 break;
 
             if (is_equal(obj, caar(list)))
-                return list;
+                return car(list);
         }
 
     is_nil(list)
@@ -512,6 +512,195 @@ static Cell assoc(const SymenvPtr& senv, const varg& args)
     return false;
 }
 
+/**
+ * Scheme char=? function.
+ */
+static Cell ischareq(const varg& args)
+{
+    Char c = get<Char>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip)
+        if (c != get<Char>(*ip))
+            return false;
+    return true;
+}
+
+/**
+ * Scheme char<? function.
+ */
+static Cell ischarlt(const varg& args)
+{
+    Char c = get<Char>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip)
+        if (c >= get<Char>(*ip))
+            return false;
+    return true;
+}
+
+/**
+ * Scheme char>? function.
+ */
+static Cell ischargt(const varg& args)
+{
+    Char c = get<Char>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip)
+        if (c <= get<Char>(*ip))
+            return false;
+    return true;
+}
+
+/**
+ * Scheme char<=? function.
+ */
+static Cell ischarle(const varg& args)
+{
+    Char c = get<Char>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip)
+        if (c > get<Char>(*ip))
+            return false;
+    return true;
+}
+
+/**
+ * Scheme char>=? function.
+ */
+static Cell ischarge(const varg& args)
+{
+    Char c = get<Char>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip)
+        if (c < get<Char>(*ip))
+            return false;
+    return true;
+}
+
+/**
+ * Scheme char-ci=? function.
+ */
+static Cell ischcieq(const varg& args)
+{
+    Char ci, c = get<Char>(args.at(0));
+
+    if (std::isalpha(c))
+        c = std::tolower(c);
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip) {
+        ci = get<Char>(*ip);
+
+        if (std::isalpha(ci))
+            ci = std::tolower(ci);
+
+        if (c != ci)
+            return false;
+    }
+    return true;
+}
+
+/**
+ * Scheme char-ci<? function.
+ */
+static Cell ischcilt(const varg& args)
+{
+    Char ci, c = get<Char>(args.at(0));
+
+    if (std::isalpha(c))
+        c = std::tolower(c);
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip) {
+        ci = get<Char>(*ip);
+
+        if (std::isalpha(ci))
+            ci = std::tolower(ci);
+
+        if (c >= ci)
+            return false;
+    }
+    return true;
+}
+
+/**
+ * Scheme char-ci>? function.
+ */
+static Cell ischcigt(const varg& args)
+{
+    Char ci, c = get<Char>(args.at(0));
+
+    if (std::isalpha(c))
+        c = std::tolower(c);
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip) {
+        ci = get<Char>(*ip);
+
+        if (std::isalpha(ci))
+            ci = std::tolower(ci);
+
+        if (c <= ci)
+            return false;
+    }
+    return true;
+}
+
+/**
+ * Scheme char-ci<=? function.
+ */
+static Cell ischcile(const varg& args)
+{
+    Char ci, c = get<Char>(args.at(0));
+
+    if (std::isalpha(c))
+        c = std::tolower(c);
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip) {
+        ci = get<Char>(*ip);
+
+        if (std::isalpha(ci))
+            ci = std::tolower(ci);
+
+        if (c > ci)
+            return false;
+    }
+    return true;
+}
+
+/**
+ * Scheme char-ci>=? function.
+ */
+static Cell ischcige(const varg& args)
+{
+    Char ci, c = get<Char>(args.at(0));
+
+    if (std::isalpha(c))
+        c = std::tolower(c);
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip) {
+        ci = get<Char>(*ip);
+
+        if (std::isalpha(ci))
+            ci = std::tolower(ci);
+
+        if (c < ci)
+            return false;
+    }
+    return true;
+}
+
+/**
+ * Scheme digit-value function.
+ */
+static Cell digitval(const varg& args)
+{
+    const Char c = get<Char>(args.at(0)), c0 = '0';
+
+    if (std::isdigit(c))
+        return Number{ static_cast<Int>(c - c0) };
+    return false;
+}
+/**
+ * Scheme make-string function.
+ */
 static Cell mkstring(const varg& args)
 {
     Int size = get<Int>(get<Number>(args.at(0)));
@@ -525,16 +714,241 @@ static Cell mkstring(const varg& args)
 }
 
 /**
- * Scheme inplace @em string-append function.
+ * Scheme string function.
  */
-static Cell str_append(const varg& args)
+static Cell string(const varg& args)
 {
-    auto strptr = std::make_shared<StringPtr::element_type>(*get<StringPtr>(args.at(0)));
+    StringPtr pstr = std::make_shared<StringPtr::element_type>();
+    pstr->reserve(args.size());
+
+    for (auto& cell : args)
+        pstr->push_back(get<Char>(cell));
+
+    return pstr;
+}
+
+/**
+ * Scheme string->list function.
+ */
+static Cell strlist(const varg& args)
+{
+    const auto& pstr = get<StringPtr>(args.at(0));
+
+    if (pstr->empty())
+        return nil;
+
+    Int pos = 0, end = pstr->length();
+
+    if (args.size() > 2)
+        end = std::min(get<Int>(get<Number>(args[2])), end);
+
+    if (args.size() > 1)
+        pos = std::min(get<Int>(get<Number>(args[1])), end);
+
+    Cell head = cons(pstr->at(pos), nil), tail = head;
+
+    for (auto ip = pstr->begin() + pos + 1, ie = pstr->begin() + end; ip != ie; ++ip, tail = cdr(tail))
+        set_cdr(tail, cons(*ip, nil));
+
+    return head;
+}
+
+/**
+ * Scheme list->string function.
+ */
+static Cell liststr(const varg& args)
+{
+    Cell list = args.at(0);
+
+    auto pstr = std::make_shared<StringPtr::element_type>();
+
+    if (is_nil(list))
+        return pstr;
+
+    for (/* */; is_pair(list); list = cdr(list))
+        pstr->push_back(get<Char>(car(list)));
+
+    is_nil(list)
+        || ((void)(throw std::invalid_argument("list->string - not a proper list")), 0);
+
+    return pstr;
+}
+
+/**
+ * Scheme @em string=? function.
+ */
+static Cell isstreq(const varg& args)
+{
+    const auto& sptr = get<StringPtr>(args.at(0));
 
     for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip)
-        strptr->append(*get<StringPtr>(*ip));
+        if (*sptr != *get<StringPtr>(*ip))
+            return false;
 
-    return strptr;
+    return true;
+}
+
+/**
+ * Scheme @em string-ci=? function.
+ */
+static Cell isstrcieq(const varg& args)
+{
+    const auto& sptr = get<StringPtr>(args.at(0));
+
+    auto len = sptr->length();
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip) {
+        const auto& sp = get<StringPtr>(*ip);
+
+        if (len != sp->length())
+            return false;
+
+        if (!equal(sptr->begin(), sptr->end(), sp->begin(),
+                [](auto c0, auto c1) -> bool { return std::tolower(c0) == std::tolower(c1); }))
+            return false;
+    }
+    return true;
+}
+
+/**
+ * Scheme @em string-upcase function.
+ */
+static Cell strupcase(const varg& args)
+{
+    auto sptr = std::make_shared<StringPtr::element_type>(*get<StringPtr>(args.at(0)));
+    std::transform(sptr->begin(), sptr->end(), sptr->begin(), ::toupper);
+    return sptr;
+}
+
+/**
+ * Scheme @em string-upcase function.
+ */
+static Cell strdowncase(const varg& args)
+{
+    auto sptr = std::make_shared<StringPtr::element_type>(*get<StringPtr>(args.at(0)));
+    std::transform(sptr->begin(), sptr->end(), sptr->begin(), ::tolower);
+    return sptr;
+}
+
+/**
+ * Scheme @em string-upcase! function.
+ */
+static Cell strupcaseb(const varg& args)
+{
+    auto sptr = get<StringPtr>(args.at(0));
+    std::transform(sptr->begin(), sptr->end(), sptr->begin(), ::toupper);
+    return sptr;
+}
+
+/**
+ * Scheme @em string-upcase! function.
+ */
+static Cell strdowncaseb(const varg& args)
+{
+    auto sptr = get<StringPtr>(args.at(0));
+    std::transform(sptr->begin(), sptr->end(), sptr->begin(), ::tolower);
+    return sptr;
+}
+
+/**
+ * Scheme @em string-append function.
+ */
+static Cell strappend(const varg& args)
+{
+    auto pstr = std::make_shared<StringPtr::element_type>(*get<StringPtr>(args.at(0)));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip)
+        pstr->append(*get<StringPtr>(*ip));
+
+    return pstr;
+}
+
+/**
+ * Scheme inplace @em string-append! function.
+ */
+static Cell strappendb(const varg& args)
+{
+    auto& sptr = get<StringPtr>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip)
+        sptr->append(*get<StringPtr>(*ip));
+
+    return sptr;
+}
+
+/**
+ * Scheme string-copy function.
+ */
+static Cell strcopy(const varg& args)
+{
+    const auto& pstr = get<StringPtr>(args.at(0));
+
+    if (pstr->empty())
+        return nil;
+
+    Int pos = 0, end = pstr->length();
+
+    if (args.size() > 2)
+        end = std::min(get<Int>(get<Number>(args[2])), end);
+
+    if (args.size() > 1)
+        pos = std::min(get<Int>(get<Number>(args[1])), end);
+
+    return std::make_shared<StringPtr::element_type>(pstr->substr(pos, end - pos));
+}
+
+/**
+ * Scheme string-copy! function.
+ */
+static Cell strcopyb(const varg& args)
+{
+    using size_type = StringPtr::element_type::size_type;
+
+    auto& pdst = get<StringPtr>(args.at(0));
+    const auto& psrc = get<StringPtr>(args.at(2));
+
+    if (psrc->empty())
+        return pdst;
+
+    auto at = std::min(static_cast<size_type>(get<Int>(get<Number>(args[2]))), pdst->length());
+
+    at < pdst->length()
+        || ((void)(throw std::invalid_argument("string-copy! - invalid string index position")), 0);
+
+    size_type pos = 0, end = psrc->length();
+
+    if (args.size() > 4)
+        end = std::min(static_cast<size_type>(get<Int>(get<Number>(args[4]))), end);
+
+    if (args.size() > 3)
+        pos = std::min(static_cast<size_type>(get<Int>(get<Number>(args[3]))), end);
+
+    if (pos || end != psrc->length())
+        pdst->replace(at, end - pos, psrc->substr(pos, end - pos));
+    else
+        pdst->replace(at, psrc->length(), *psrc);
+
+    return pdst;
+}
+
+/**
+ * Scheme string-copy function.
+ */
+static Cell strfillb(const varg& args)
+{
+    Char c = get<Char>(args.at(1));
+    const auto& pstr = get<StringPtr>(args.front());
+
+    Int pos = 0, end = pstr->length();
+
+    if (args.size() > 3)
+        end = std::min(get<Int>(get<Number>(args[3])), end);
+
+    if (args.size() > 3)
+        pos = std::min(get<Int>(get<Number>(args[2])), end);
+
+    pstr->replace(pos, end - pos, &c, 1);
+    return pstr;
 }
 
 /**
@@ -1244,14 +1658,85 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return is_type<Char>(args.at(0));
     case Intern::op_charint:
         return num(get<Char>(args.at(0)));
+    case Intern::op_ischareq:
+        return primop::ischareq(args);
+    case Intern::op_ischarlt:
+        return primop::ischarlt(args);
+    case Intern::op_ischargt:
+        return primop::ischargt(args);
+    case Intern::op_ischarle:
+        return primop::ischarle(args);
+    case Intern::op_ischarge:
+        return primop::ischarge(args);
+    case Intern::op_ischcieq:
+        return primop::ischcieq(args);
+    case Intern::op_ischcilt:
+        return primop::ischcilt(args);
+    case Intern::op_ischcigt:
+        return primop::ischcigt(args);
+    case Intern::op_ischcile:
+        return primop::ischcile(args);
+    case Intern::op_ischcige:
+        return primop::ischcige(args);
+    case Intern::op_isalpha:
+        return static_cast<bool>(std::isalpha(get<Char>(args.at(0))));
+    case Intern::op_isdigit:
+        return static_cast<bool>(std::isdigit(get<Char>(args.at(0))));
+    case Intern::op_iswspace:
+        return static_cast<bool>(std::isspace(get<Char>(args.at(0))));
+    case Intern::op_isupper:
+        return static_cast<bool>(std::isupper(get<Char>(args.at(0))));
+    case Intern::op_islower:
+        return static_cast<bool>(std::islower(get<Char>(args.at(0))));
+    case Intern::op_upcase:
+        return static_cast<Char>(std::toupper(get<Char>(args.at(0))));
+    case Intern::op_downcase:
+        return static_cast<Char>(std::tolower(get<Char>(args.at(0))));
+    case Intern::op_digitval:
+        return primop::digitval(args);
 
     /* Section 6.7: Strings */
     case Intern::op_isstr:
         return is_type<StringPtr>(args.at(0));
     case Intern::op_mkstr:
         return primop::mkstring(args);
+    case Intern::op_str:
+        return primop::string(args);
     case Intern::op_strappend:
-        return primop::str_append(args);
+        return primop::strappend(args);
+    case Intern::op_strappendb:
+        return primop::strappendb(args);
+    case Intern::op_strlen:
+        return Number{ get<StringPtr>(args.at(0))->length() };
+    case Intern::op_strref:
+        return get<StringPtr>(args.at(0))->at(get<Int>(get<Number>(args.at(1))));
+    case Intern::op_strsetb:
+        return get<StringPtr>(args.at(0))->at(get<Int>(get<Number>(args.at(1))))
+            = get<Char>(args.at(2));
+    case Intern::op_isstreq:
+        return primop::isstreq(args);
+    case Intern::op_isstrcieq:
+        return primop::isstrcieq(args);
+    case Intern::op_strupcase:
+        return primop::strupcase(args);
+    case Intern::op_strdowncase:
+        return primop::strdowncase(args);
+    case Intern::op_strupcaseb:
+        return primop::strupcaseb(args);
+    case Intern::op_strdowncaseb:
+        return primop::strdowncaseb(args);
+    case Intern::op_substr:
+        return primop::strcopy(args);
+    case Intern::op_strcopy:
+        return primop::strcopy(args);
+    case Intern::op_strcopyb:
+        return primop::strcopyb(args);
+    case Intern::op_strfillb:
+        return primop::strfillb(args);
+    case Intern::op_strlist:
+        return primop::strlist(args);
+    case Intern::op_liststr:
+        return primop::liststr(args);
 
     /* Section 6.8: Vectors */
     case Intern::op_isvec:

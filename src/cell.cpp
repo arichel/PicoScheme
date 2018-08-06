@@ -35,7 +35,8 @@ bool is_equal(const Cell& lhs, const Cell& rhs)
 
     auto test = overloads{
         [](const StringPtr& lhs, const StringPtr& rhs) -> bool { return *lhs == *rhs; },
-        [](const VectorPtr& lhs, const VectorPtr& rhs) -> bool { return lhs == rhs || *lhs == *rhs; },
+        [](const VectorPtr& lhs, const VectorPtr& rhs) -> bool { return lhs == rhs || (lhs->size() == rhs->size()
+                                                                                          && std::equal(lhs->begin(), lhs->end(), rhs->begin(), is_equal)); },
         [](Cons* lhs, Cons* rhs) -> bool { return is_list_equal(lhs, rhs); },
         [](auto&, auto&) -> bool { return false; }
     };

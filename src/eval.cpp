@@ -76,11 +76,15 @@ static Cell _cond(const SymenvPtr& senv, Cell args)
         if (is_arrow(first) || (is_symbol(first) && is_arrow(eval(senv, first)))) {
             !is_else(test) || (void(throw std::invalid_argument("invalid cond syntax")), 0);
 
-            Cons cell[4];
-            for (expr = cdr(expr); is_pair(cdr(expr)); expr = cdr(expr))
-                eval(senv, alist(cell, Intern::_apply, car(expr), test, nil));
+            Cons cell[4], argv[2];
+            Cell apply_expr = alist(cell, Intern::_apply, none,
+                alist(argv, Intern::_quote, test), nil);
 
-            return list(Intern::_apply, car(expr), test, nil);
+            for (expr = cdr(expr); is_pair(cdr(expr)); expr = cdr(expr)) {
+                set_car(cdr(apply_expr), car(expr));
+                eval(senv, apply_expr);
+            }
+            return list(Intern::_apply, car(expr), list(Intern::_quote, test), nil);
         } else
             return syntax::_begin(senv, expr);
     }
@@ -131,7 +135,7 @@ static Cell _or(const SymenvPtr& senv, Cell args)
     if (is_pair(args)) {
         for (/* */; is_pair(cdr(args)); args = cdr(args))
             if (is_true(res = eval(senv, car(args))))
-                return res;
+                return list(Intern::_quote, res);
 
         is_nil(cdr(args)) || (void(throw std::invalid_argument("not a proper list")), 0);
         return car(args);

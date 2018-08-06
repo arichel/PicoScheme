@@ -82,7 +82,7 @@
 
   (if (symbol? bindings)
       (named-let bindings (car body) (cdr body))
-      `((lambda ,(map car bindings) . ,body) . ,(map cadr bindings))) )
+      `((lambda ,(map car bindings) . ,body) . ,(map cadr bindings))))
 
 (define-macro  (let* bindings . body)
   (if (null? bindings) `((lambda () . ,body))
@@ -133,3 +133,115 @@
 
     `(let ((,item ,expr))
        (cond . ,(map do-case cases)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; define-struct - macro from 'Teach Yourself Scheme in Fixnum Days' by Dorai Sitram
+;;                 to define a structure data type and procedures for modifying
+;;                 and accessing its fields.
+;;
+;; example:   (define-struct person height weight (age 0))
+;;
+;;            => make-person, person.height, person.weight, person.age
+;;               set!person.height, ...
+;;
+(define-macro (define-struct name . prop)
+  (let ((s-s (symbol->string name))
+        (n (length prop)))
+
+    (let* ((n+1 (+ n 1))
+           (vv (make-vector n+1)))
+
+      (let loop ((i 1) (prop prop))
+        (if (<= i n)
+            (let ((f (car prop)))
+              (vector-set! vv i (if (pair? f) (cadr f) '(if #f #f)))
+              (loop (+ i 1) (cdr prop)))))
+
+      (let ((prop (map (lambda (f) (if (pair? f) (car f) f)) prop)))
+        `(begin
+           (define ,(string->symbol (string-append "make-" s-s))
+             (lambda fvfv
+               (let ((st (make-vector ,n+1)) (prop ',prop))
+                 (vector-set! st 0 ',name)
+                 ,@(let loop ((i 1) (r '()))
+                     (if (>= i n+1) r
+                         (loop (+ i 1) (cons `(vector-set! st ,i ,(vector-ref vv i)) r))))
+                 (let loop ((fvfv fvfv))
+                   (if (not (null? fvfv))
+                       (begin
+                         (vector-set! st (+ (list-position (car fvfv) prop) 1) (cadr fvfv))
+                         (loop (cddr fvfv)))))
+                   st)))
+
+           ,@(let loop ((i 1) (procs '()))
+               (if (>= i n+1) procs
+                   (loop (+ i 1)
+                         (let ((f (symbol->string (list-ref prop (- i 1)))))
+                           (cons
+                            `(define ,(string->symbol (string-append s-s "." f))
+                               (lambda (x) (vector-ref x ,i)))
+                            (cons
+                             `(define ,(string->symbol (string-append "set!" s-s "." f))
+                                (lambda (x v)
+                                  (vector-set! x ,i v)))
+                             procs))))))
+
+           (define ,(string->symbol (string-append s-s "?"))
+             (lambda (x)
+               (and (vector? x) (eqv? (vector-ref x 0) ',name)))) ',name)))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Basic format string support, author Scott G. Miller
+;;
+;; Syntax: (format format-string [obj ...]) -> string
+;;
+;; Escape sequence:
+;;  ~a - The corresponding value is inserted into the string as if printed with display.
+;;  ~s - The corresponding value is inserted into the string as if printed with write.
+;;  ~% - A newline is inserted.
+;;  ~~ - A tilde '~' is inserted.
+;;
+;; Example: (format "This is a list: ~s~%" '(one "two" 3))
+;;
+(define (format format-string . objects)
+    (let ((buffer (open-output-string)))
+      (let loop ((format-list (string->list format-string))
+                 (objects objects))
+        (cond ((null? format-list) (get-output-string buffer))
+              ((char=? (car format-list) #\~)
+               (if (null? (cdr format-list))
+                   (error 'format " - incomplete escape sequence")
+                   (case (cadr format-list)
+                     ((#\a)
+                      (if (null? objects)
+                          (error 'format " - no value for escape sequence")
+                          (begin
+                            (display (car objects) buffer)
+                            (loop (cddr format-list) (cdr objects)))))
+
+                     ((#\s)
+                      (if (null? objects)
+                          (error 'format " - no value for escape sequence")
+                          (begin
+                            (write (car objects) buffer)
+                            (loop (cddr format-list) (cdr objects)))))
+
+                     ((#\%)
+                      (newline buffer)
+                      (loop (cddr format-list) objects))
+
+                     ((#\~)
+                      (write-char #\~ buffer)
+                      (loop (cddr format-list) objects))
+
+                     (else
+                      (error 'format " - unrecognized escape sequence")))))
+
+              (else (write-char (car format-list) buffer)
+                    (loop (cdr format-list) objects))))))
+
+(define-macro (print fmt . vals)
+  `(display (format ,fmt ,@vals)))
