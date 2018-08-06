@@ -136,6 +136,32 @@ static Cell numge(const varg& args)
 }
 
 /**
+ * Scheme number max function.
+ */
+static Cell max(const varg& args)
+{
+    Number res = max(get<Number>(args.at(0)), get<Number>(args.at(1)));
+
+    for (auto ip = args.begin() + 2, ie = args.end(); ip != ie; ++ip)
+        res = max(res, get<Number>(*ip));
+
+    return res;
+}
+
+/**
+ * Scheme number min function.
+ */
+static Cell min(const varg& args)
+{
+    Number res = min(get<Number>(args.at(0)), get<Number>(args.at(1)));
+
+    for (auto ip = args.begin() + 2, ie = args.end(); ip != ie; ++ip)
+        res = min(res, get<Number>(*ip));
+
+    return res;
+}
+
+/**
  * Scheme number addition + operator function.
  */
 static Cell add(const varg& args)
@@ -155,8 +181,8 @@ static Cell sub(const varg& args)
 {
     auto res = args.size() > 1 ? get<Number>(args.at(0)) : -get<Number>(args.at(0));
 
-    for (auto iter = ++args.begin(); iter != args.end(); ++iter)
-        res -= get<Number>(*iter);
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip)
+        res -= get<Number>(*ip);
 
     return res;
 }
@@ -1019,6 +1045,26 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     /* Section 6.2: Numbers */
     case Intern::op_isnum:
         return is_number(args.at(0));
+    case Intern::op_iscpx:
+        return is_number(args.at(0));
+    case Intern::op_isreal:
+        return is_number(args.at(0))
+            && (is_int(get<Number>(args.front()))
+                   || is_float(get<Number>(args.front())));
+    case Intern::op_israt:
+        return is_number(args.at(0)) && is_integer(get<Number>(args.front()));
+    case Intern::op_isint:
+        return is_number(args.at(0)) && is_integer(get<Number>(args.front()));
+    case Intern::op_isexact:
+        return is_number(args.at(0)) && is_int(get<Number>(args.front()));
+    case Intern::op_isinexact:
+        return is_number(args.at(0)) && !is_int(get<Number>(args.front()));
+    case Intern::op_isexactint:
+        return is_number(args.at(0)) && is_int(get<Number>(args.front()));
+    case Intern::op_isodd:
+        return is_number(args.at(0)) && is_odd(get<Number>(args.front()));
+    case Intern::op_iseven:
+        return is_number(args.at(0)) && !is_odd(get<Number>(args.front()));
     case Intern::op_numeq:
         return primop::numeq(args);
     case Intern::op_numlt:
@@ -1038,13 +1084,17 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_div:
         return primop::div(args);
     case Intern::op_min:
-        return get<Number>(args.at(1)) < get<Number>(args[0]) ? args[1] : args[0];
+        return primop::min(args);
     case Intern::op_max:
-        return get<Number>(args.at(1)) > get<Number>(args[0]) ? args[1] : args[0];
+        return primop::max(args);
     case Intern::op_ispos:
         return get<Number>(args.at(0)) > Number{ 0 };
     case Intern::op_isneg:
         return get<Number>(args.at(0)) < Number{ 0 };
+    case Intern::op_mod:
+        return get<Number>(args.at(0)) % get<Number>(args.at(1));
+    case Intern::op_rem:
+        return remainder(get<Number>(args.at(0)), get<Number>(args.at(1)));
     case Intern::op_zero:
         return is_zero(get<Number>(args.at(0)));
     case Intern::op_floor:

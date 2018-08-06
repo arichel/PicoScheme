@@ -15,6 +15,32 @@
 
 namespace pscm {
 
+bool is_integer(const Number& num)
+{
+    auto fun = overloads{
+        [](Int i) -> bool { return true; },
+        [](Float x) -> bool {
+            return !(x > floor(x)
+                || x < ceil(x)
+                || std::abs(x) > static_cast<Float>(std::numeric_limits<Int>::max()));
+        },
+        [](const Complex& z) -> bool {
+            return imag(z) < 0 || imag(z) > 0 ? false : is_integer(real(z));
+        },
+    };
+    return visit(std::move(fun), static_cast<const Number::base_type&>(num));
+}
+
+bool is_odd(const Number& num)
+{
+    auto fun = overloads{
+        [](Int i) -> bool { return std::abs(i) % Int{ 2 }; },
+        [](Float x) -> bool { return fmod(x, 2.); },
+        [](const Complex& z) -> bool { return imag(z) < 0 || imag(z) > 0 ? true : fmod(real(z), 2.); },
+    };
+    return visit(std::move(fun), static_cast<const Number::base_type&>(num));
+}
+
 /**
  * @brief Check wheter an integer addition of both argument values would overflow.
  */
@@ -144,6 +170,34 @@ Number operator-(const Number& x)
 {
     return visit([](auto& x) -> Number { return -x; },
         static_cast<const Number::base_type&>(x));
+}
+
+Number operator%(const Number& lhs, const Number& rhs)
+{
+    constexpr auto fun = overloads{
+        [](const Complex& z1, const Complex& z2) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
+        [](const Complex& z, auto x) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
+        [](auto x, const Complex& z) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
+        [](Int i0, Int i1) -> Number { return i0 % i1; },
+        [](auto x, auto y) -> Number { return fmod(x, y); }
+    };
+    return visit(std::move(fun),
+        static_cast<const Number::base_type&>(lhs),
+        static_cast<const Number::base_type&>(rhs));
+}
+
+Number remainder(const Number& lhs, const Number& rhs)
+{
+    constexpr auto fun = overloads{
+        [](const Complex& z1, const Complex& z2) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
+        [](const Complex& z, auto x) -> Number { return ((void)(throw std::invalid_argument("remainder - not definied for complex numbers")), 0); },
+        [](auto x, const Complex& z) -> Number { return ((void)(throw std::invalid_argument("remainder - not definied for complex numbers")), 0); },
+        [](Int i0, Int i1) -> Number { return std::remainder(i0, i1); },
+        [](auto x, auto y) -> Number { return std::remainder(x, y); }
+    };
+    return visit(std::move(fun),
+        static_cast<const Number::base_type&>(lhs),
+        static_cast<const Number::base_type&>(rhs));
 }
 
 /**

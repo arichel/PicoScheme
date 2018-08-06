@@ -134,6 +134,9 @@ constexpr bool is_int(const Number& num) { return is_type<Int>(num); }
 constexpr bool is_float(const Number& num) { return is_type<Float>(num); }
 constexpr bool is_complex(const Number& num) { return is_type<Complex>(num); }
 
+bool is_integer(const Number& num);
+bool is_odd(const Number& num);
+
 constexpr inline Number operator""_int(unsigned long long val) { return static_cast<Int>(val); }
 constexpr inline Number operator""_flo(unsigned long long val) { return static_cast<Int>(val); }
 constexpr inline Number operator""_cpx(unsigned long long val) { return Number{ 0., static_cast<Float>(val) }; }
@@ -175,6 +178,16 @@ inline bool is_zero(const Number& x) { return !(x != Number{ 0 }); }
 inline bool is_negative(const Number& x) { return x < Number{ 0 }; }
 inline bool is_positive(const Number& x) { return x > Number{ 0 }; }
 
+inline Number min(const Number& lhs, const Number& rhs)
+{
+    return rhs < lhs ? rhs : lhs;
+}
+
+inline Number max(const Number& lhs, const Number& rhs)
+{
+    return rhs > lhs ? rhs : lhs;
+}
+
 Number inv(const Number& x);
 
 Number operator-(const Number& x);
@@ -182,11 +195,14 @@ Number operator+(const Number& lhs, const Number& rhs);
 Number operator-(const Number& lhs, const Number& rhs);
 Number operator*(const Number& lhs, const Number& rhs);
 Number operator/(const Number& lhs, const Number& rhs);
+Number operator%(const Number& lhs, const Number& rhs);
 
 Number& operator+=(Number& lhs, const Number& rhs);
 Number& operator-=(Number& lhs, const Number& rhs);
 Number& operator*=(Number& lhs, const Number& rhs);
 Number& operator/=(Number& lhs, const Number& rhs);
+
+Number remainder(const Number& lhs, const Number& rhs);
 
 Number round(const Number& x);
 Number floor(const Number& x);
