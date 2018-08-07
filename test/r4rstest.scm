@@ -544,9 +544,7 @@
 (test 1 expt 0 0)
 (test 0 expt 0 1)
 (test 0 expt 0 256)
-
-;;todo (test 0 expt 0 -255)
-
+(test 0 expt 0 -255)
 (test 1 expt -1 256)
 (test -1 expt -1 255)
 (test 1 expt -1 -256)
@@ -615,17 +613,17 @@
 (test 7 abs 7)
 (test 0 abs 0)
 
-;;todo (test 5 quotient 35 7)
-;;todo (test -5 quotient -35 7)
-;;todo (test -5 quotient 35 -7)
-;;todo (test 5 quotient -35 -7)
+(test 5 quotient 35 7)
+(test -5 quotient -35 7)
+(test -5 quotient 35 -7)
+(test 5 quotient -35 -7)
 (test 1 modulo 13 4)
 (test 1 remainder 13 4)
-;;todo (test 3 modulo -13 4)
-(test -1 remainder -13 4)
-;;todo (test -3 modulo 13 -4)
-(test 1 remainder 13 -4)
+(test 3 modulo -13 4)
+(test -3 modulo 13 -4)
 (test -1 modulo -13 -4)
+(test -1 remainder -13 4)
+(test 1 remainder 13 -4)
 (test -1 remainder -13 -4)
 (test 0 modulo 0 86400)
 (test 0 modulo 0 -86400)
@@ -949,10 +947,10 @@
                              (negative? (string->number "-80000000" 16))))
 
 (SECTION 6 6)
-;;todo (test #t eqv? '#\ #\Space)
-;;todo (test #t eqv? #\space '#\Space)
+(test #t eqv? '#\ #\Space)
+(test #t eqv? #\space '#\Space)
 (test #t char? #\a)
-;;todo (test #t char? #\()
+(test #t char? #\()
 (test #t char? #\space)
 (test #t char? '#\newline)
 
@@ -1037,7 +1035,7 @@
 (test #t char-numeric? #\0)
 (test #t char-numeric? #\9)
 (test #f char-numeric? #\space)
-;;todo (test #f char-numeric? #\;)
+(test #f char-numeric? #\;)
 
 (test #f char-whitespace? #\a)
 (test #f char-whitespace? #\A)
@@ -1046,7 +1044,7 @@
 (test #f char-whitespace? #\0)
 (test #f char-whitespace? #\9)
 (test #t char-whitespace? #\space)
-;;todo (test #f char-whitespace? #\;)
+(test #f char-whitespace? #\;)
 
 (test #f char-upper-case? #\0)
 (test #f char-upper-case? #\9)
@@ -1058,7 +1056,7 @@
 (test #f char-lower-case? #\space)
 (test #f char-lower-case? #\;)
 
-;;todo (test #\. integer->char (char->integer #\.))
+(test #\. integer->char (char->integer #\.))
 (test #\A integer->char (char->integer #\A))
 (test #\a integer->char (char->integer #\a))
 (test #\A char-upcase #\A)
@@ -1068,7 +1066,8 @@
 
 (SECTION 6 7)
 (test #t string? "The word \"recursion\\\" has many meanings.")
-                                        ;(test #t string? "")
+(test #t string? "")
+
 (define f (make-string 3 #\*))
 (test "?**" 'string-set! (begin (string-set! f 0 #\?) f))
 (test "abc" string #\a #\b #\c)
@@ -1189,7 +1188,9 @@
 (test #f procedure? '(lambda (x) (* x x)))
 ;;todo (test #t call-with-current-continuation procedure?)
 (test #t procedure? /)
+
 ;;todo (test 7 apply + (list 3 4))
+
 ;;todo (test 7 apply (lambda (a b) (+ a b)) (list 3 4))
 ;;todo (test 17 apply + 10 (list 3 4))
 (test '() apply list '())

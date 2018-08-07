@@ -82,6 +82,7 @@ enum class Intern {
     op_ceil,
     op_trunc,
     op_round,
+    op_quotient,
     op_sin,
     op_cos,
     op_tan,
@@ -109,6 +110,8 @@ enum class Intern {
     op_rect,
     op_polar,
     op_hypot,
+    op_strnum,
+    op_numstr,
 
     /* Section 6.3: Booleans */
     op_not,
@@ -171,6 +174,7 @@ enum class Intern {
     op_isupper,
     op_islower,
     op_charint,
+    op_intchar,
     op_digitval,
     op_upcase,
     op_downcase,

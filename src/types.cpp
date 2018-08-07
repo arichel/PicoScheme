@@ -79,6 +79,7 @@ static SymenvPtr topenv{
         { sym("zero?"), Intern::op_zero },
         { sym("modulo"), Intern::op_mod },
         { sym("remainder"), Intern::op_rem },
+        { sym("quotient"), Intern::op_quotient },
         { sym("floor"), Intern::op_floor },
         { sym("ceil"), Intern::op_ceil },
         { sym("trunc"), Intern::op_trunc },
@@ -111,6 +112,8 @@ static SymenvPtr topenv{
         { sym("make-polar"), Intern::op_polar },
         { sym("conjugate"), Intern::op_conj },
         { sym("hypot"), Intern::op_hypot },
+        { sym("string->number"), Intern::op_strnum },
+        { sym("number->string"), Intern::op_numstr },
 
         /* Section 6.3: Booleans */
         { sym("not"), Intern::op_not },
@@ -156,6 +159,7 @@ static SymenvPtr topenv{
         /* Section 6.6: Characters */
         { sym("char?"), Intern::op_ischar },
         { sym("char->integer"), Intern::op_charint },
+        { sym("integer->char"), Intern::op_intchar },
         { sym("char=?"), Intern::op_ischareq },
         { sym("char<?"), Intern::op_ischarlt },
         { sym("char>?"), Intern::op_ischargt },

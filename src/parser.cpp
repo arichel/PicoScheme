@@ -23,7 +23,7 @@ using std::endl;
  * @param str  String to lexical analyse.
  * @param num  Uppon success, return the converted number.
  */
-Parser::Token Parser::lex_number(const std::string& str, Number& num) const
+Parser::Token Parser::lex_number(const std::string& str, Number& num)
 {
     bool is_flo = false, is_cpx = false;
 
@@ -78,19 +78,30 @@ Parser::Token Parser::lex_number(const std::string& str, Number& num) const
         if (is_cpx)
             num = z;
         else if (is_flo)
-            num = Number{ std::stod(strtok) };
+            num = Number{ std::stod(str) };
         else
-            num = std::stol(strtok);
+            num = std::stol(str);
 
         return Token::Number;
     }
     return Token::Error;
 }
 
+Number Parser::strnum(const std::string& str)
+{
+    Number num;
+    Token tok = lex_number(str, num);
+
+    if (tok == Token::Error)
+        throw std::invalid_argument("error parsing string "s + str);
+
+    return num;
+}
+
 /**
  * @brief Read characters from input stream into argument string.
  */
-Parser::Token Parser::lex_string(std::string& str, std::istream& in) const
+Parser::Token Parser::lex_string(std::string& str, std::istream& in)
 {
     str.clear();
 
@@ -121,7 +132,7 @@ Parser::Token Parser::lex_string(std::string& str, std::istream& in) const
  * @brief Lexical analyse the argument string for valid scheme
  *        symbol characters.
  */
-Parser::Token Parser::lex_symbol(const std::string& str) const
+Parser::Token Parser::lex_symbol(const std::string& str)
 {
     if (str.empty() || !is_alpha(str.front()))
         return Token::Error;
@@ -133,7 +144,7 @@ Parser::Token Parser::lex_symbol(const std::string& str) const
     return Token::Symbol;
 }
 
-Parser::Token Parser::lex_char(const std::string& str, Char& c, std::istream& in) const
+Parser::Token Parser::lex_char(const std::string& str, Char& c, std::istream& in)
 {
     constexpr struct {
         const char* name;
@@ -152,7 +163,7 @@ Parser::Token Parser::lex_char(const std::string& str, Char& c, std::istream& in
     };
     constexpr size_t ntab = sizeof(stab) / sizeof(*stab);
 
-    if (str.size() == 2 && std::isspace(in.peek())) {
+    if (str.size() == 2 && (std::isspace(in.peek()) || is_special(in.peek()))) {
         c = in.get();
         return Token::Char;
     }
@@ -165,13 +176,16 @@ Parser::Token Parser::lex_char(const std::string& str, Char& c, std::istream& in
         s[0] = '0';
         c = static_cast<Char>(stoi(s));
         return Token::Char;
-    } else
+    } else {
+        std::string name;
+        std::transform(str.begin(), str.end(), std::back_inserter(name), ::tolower);
+
         for (size_t i = 0; i < ntab; ++i)
-            if (stab[i].name == str) {
+            if (stab[i].name == name) {
                 c = stab[i].c;
                 return Token::Char;
             }
-
+    }
     return Token::Error;
 }
 
@@ -200,7 +214,7 @@ Parser::Token Parser::lex_special(const std::string& str, std::istream& in)
     }
 }
 
-Parser::Token Parser::lex_unquote(const std::string& str, std::istream& in) const
+Parser::Token Parser::lex_unquote(const std::string& str, std::istream& in)
 {
     if (str.size() != 1)
         return Token::Error;
@@ -229,7 +243,7 @@ Parser::Token Parser::skip_comment(std::istream& in) const
  * @param n   Unless zero, test the first n characters or the whole string
  *            otherwise.
  */
-bool Parser::is_digit(const std::string& str, size_t n) const
+bool Parser::is_digit(const std::string& str, size_t n)
 {
     n = n ? std::min(n, str.size()) : str.size();
 
@@ -252,7 +266,7 @@ bool Parser::is_digit(const std::string& str, size_t n) const
  * @brief Predicate returns true if the argument character is a special
  *        scheme character, starting a new expression, string or comment.
  */
-bool Parser::is_special(int c) const
+bool Parser::is_special(int c)
 {
     return strchr("()\"'`,;", c);
 }
@@ -260,7 +274,7 @@ bool Parser::is_special(int c) const
 /**
  * @brief Predicate return true if argument character is an allowed scheme character.
  */
-bool Parser::is_alpha(int c) const
+bool Parser::is_alpha(int c)
 {
     return isalpha(c) || strchr("._:?!+-*/<>=^@$%&~", c);
 }

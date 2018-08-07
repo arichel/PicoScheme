@@ -178,8 +178,8 @@ Number operator%(const Number& lhs, const Number& rhs)
         [](const Complex& z1, const Complex& z2) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
         [](const Complex& z, auto x) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
         [](auto x, const Complex& z) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
-        [](Int i0, Int i1) -> Number { return i0 % i1; },
-        [](auto x, auto y) -> Number { return fmod(x, y); }
+        [](Int i0, Int i1) -> Number { return (i1 + i0 % i1) % i1; },
+        [](auto x, auto y) -> Number { return fmod((y + fmod(x, y)), y); }
     };
     return visit(std::move(fun),
         static_cast<const Number::base_type&>(lhs),
@@ -361,6 +361,16 @@ Number ceil(const Number& x)
         return { std::ceil(z.real()), std::ceil(z.imag()) };
     } else
         return std::ceil(static_cast<Float>(x));
+}
+
+Number quotient(const Number& lhs, const Number& rhs)
+{
+    Number res = lhs / rhs;
+
+    if (is_int(res))
+        return res;
+
+    return is_positive(res) ? floor(res) : ceil(res);
 }
 
 /**
@@ -556,6 +566,9 @@ Number hypot(const Number& x, const Number& y, const Number& z)
  */
 Number pow(const Number& x, const Number& y)
 {
+    if (is_zero(x))
+        return is_zero(y) ? Int{ 1 } : Int{ 0 };
+
     return is_complex(x) || is_complex(y) ? std::pow(static_cast<Complex>(x), static_cast<Complex>(y))
                                           : std::pow(static_cast<Float>(x), static_cast<Float>(y));
 }

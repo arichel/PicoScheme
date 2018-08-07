@@ -202,12 +202,12 @@ Number& operator-=(Number& lhs, const Number& rhs);
 Number& operator*=(Number& lhs, const Number& rhs);
 Number& operator/=(Number& lhs, const Number& rhs);
 
-Number remainder(const Number& lhs, const Number& rhs);
-
 Number round(const Number& x);
 Number floor(const Number& x);
 Number ceil(const Number& x);
 Number trunc(const Number& x);
+Number remainder(const Number& lhs, const Number& rhs);
+Number quotient(const Number& lhs, const Number& rhs);
 
 Number sin(const Number& x);
 Number cos(const Number& x);

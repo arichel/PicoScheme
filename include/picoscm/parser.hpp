@@ -23,6 +23,8 @@ class Parser {
 public:
     Cell read(std::istream& in);
 
+    static Number strnum(const std::string& str);
+
 private:
     enum class Token : int {
         None,
@@ -52,17 +54,18 @@ private:
     Cell parse_vector(std::istream& in);
     Token get_token(std::istream& in);
 
-    Token lex_symbol(const std::string& str) const;
-    Token lex_unquote(const std::string& str, std::istream& in) const;
-    Token lex_char(const std::string& str, Char& c, std::istream& in) const;
-    Token lex_special(const std::string& str, std::istream& in);
-    Token lex_number(const std::string& str, Number& num) const;
-    Token lex_string(std::string& str, std::istream& in) const;
-    Token skip_comment(std::istream& in) const;
+    static bool is_alpha(int c);
+    static bool is_special(int c);
+    static bool is_digit(const std::string& str, size_t n = 0);
 
-    bool is_alpha(int c) const;
-    bool is_special(int c) const;
-    bool is_digit(const std::string& str, size_t n = 0) const;
+    static Token lex_number(const std::string& str, Number& num);
+    static Token lex_string(std::string& str, std::istream& in);
+    static Token lex_symbol(const std::string& str);
+    static Token lex_unquote(const std::string& str, std::istream& in);
+    static Token lex_char(const std::string& str, Char& c, std::istream& in);
+
+    Token lex_special(const std::string& str, std::istream& in);
+    Token skip_comment(std::istream& in) const;
 
     Token put_back = Token::None;
     std::string strtok;

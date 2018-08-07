@@ -227,6 +227,13 @@ static Cell log(const varg& args)
     }
 }
 
+static Cell numstr(const varg& args)
+{
+    std::ostringstream buf;
+    buf << get<Number>(args.at(0));
+    return std::make_shared<StringPtr::element_type>(buf.str());
+}
+
 /**
  * Scheme output @em display function.
  */
@@ -405,6 +412,12 @@ static Cell apply(const SymenvPtr& senv, const Cell& proc, const varg& args)
         }
     } else
         return call(senv, proc, args);
+}
+
+static Cell apply(const SymenvPtr& senv, const varg& args)
+{
+    varg arg{ args.begin() + 1, args.end() };
+    return apply(senv, get<Proc>(args.at(0)), arg);
 }
 
 /**
@@ -1515,6 +1528,8 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return pscm::floor(get<Number>(args.at(0)));
     case Intern::op_ceil:
         return pscm::ceil(get<Number>(args.at(0)));
+    case Intern::op_quotient:
+        return quotient(get<Number>(args.at(0)), get<Number>(args.at(1)));
     case Intern::op_trunc:
         return pscm::trunc(get<Number>(args.at(0)));
     case Intern::op_round:
@@ -1577,6 +1592,11 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
                                      get<Number>(args[2]))
                                : pscm::hypot(get<Number>(args.at(0)),
                                      get<Number>(args.at(1)));
+    case Intern::op_strnum:
+        return Parser::strnum(*get<StringPtr>(args.at(0)));
+    case Intern::op_numstr:
+        return primop::numstr(args);
+
     /* Section 6.3: Booleans */
     case Intern::op_not:
         return !is_true(args.at(0));
@@ -1658,6 +1678,9 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return is_type<Char>(args.at(0));
     case Intern::op_charint:
         return num(get<Char>(args.at(0)));
+    case Intern::op_intchar:
+        return static_cast<Char>((get<Int>(get<Number>(args.at(0)))));
+
     case Intern::op_ischareq:
         return primop::ischareq(args);
     case Intern::op_ischarlt:
@@ -1792,6 +1815,8 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return none;
     case Intern::op_eval:
         return eval(args.size() > 1 ? get<SymenvPtr>(args[1]) : senv, args[0]);
+    case Intern::_apply:
+        return primop::apply(senv, args);
     case Intern::op_macroexp:
         return primop::macroexp(senv, args);
 
