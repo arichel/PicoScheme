@@ -417,7 +417,7 @@ static Cell apply(const SymenvPtr& senv, const Cell& proc, const varg& args)
 static Cell apply(const SymenvPtr& senv, const varg& args)
 {
     varg arg{ args.begin() + 1, args.end() };
-    return apply(senv, get<Proc>(args.at(0)), arg);
+    return apply(senv, args.at(0), arg);
 }
 
 /**
@@ -802,6 +802,63 @@ static Cell isstreq(const varg& args)
 }
 
 /**
+ * Scheme @em string<? function.
+ */
+static Cell isstrlt(const varg& args)
+{
+    auto sptr = get<StringPtr>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; sptr = get<StringPtr>(*ip), ++ip) {
+        if (*sptr >= *get<StringPtr>(*ip))
+            return false;
+    }
+
+    return true;
+}
+
+/**
+ * Scheme @em string>? function.
+ */
+static Cell isstrgt(const varg& args)
+{
+    auto sptr = get<StringPtr>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; sptr = get<StringPtr>(*ip), ++ip) {
+        if (*sptr <= *get<StringPtr>(*ip))
+            return false;
+    }
+    return true;
+}
+
+/**
+ * Scheme @em string<=? function.
+ */
+static Cell isstrle(const varg& args)
+{
+    auto sptr = get<StringPtr>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; sptr = get<StringPtr>(*ip), ++ip) {
+        if (*sptr > *get<StringPtr>(*ip))
+            return false;
+    }
+    return true;
+}
+
+/**
+ * Scheme @em string>=? function.
+ */
+static Cell isstrge(const varg& args)
+{
+    auto sptr = get<StringPtr>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; sptr = get<StringPtr>(*ip), ++ip) {
+        if (*sptr < *get<StringPtr>(*ip))
+            return false;
+    }
+    return true;
+}
+
+/**
  * Scheme @em string-ci=? function.
  */
 static Cell isstrcieq(const varg& args)
@@ -819,6 +876,114 @@ static Cell isstrcieq(const varg& args)
         if (!equal(sptr->begin(), sptr->end(), sp->begin(),
                 [](auto c0, auto c1) -> bool { return std::tolower(c0) == std::tolower(c1); }))
             return false;
+    }
+    return true;
+}
+
+/**
+ * Scheme @em string-ci<? function.
+ */
+static Cell isstrcilt(const varg& args)
+{
+    auto sptr = get<StringPtr>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; sptr = get<StringPtr>(*ip), ++ip) {
+        const auto& sp = get<StringPtr>(*ip);
+
+        if (sptr->length() < sp->length()) {
+            if (!equal(sptr->begin(), sptr->end(), sp->begin(),
+                    [](auto c0, auto c1) -> bool { return std::tolower(c0) <= std::tolower(c1); }))
+                return false;
+        } else if (sptr->length() == sp->length()) {
+            if (sptr->empty())
+                return false;
+
+            if (!equal(sptr->begin(), sptr->end(), sp->begin(),
+                    [](auto c0, auto c1) -> bool { return std::tolower(c0) < std::tolower(c1); }))
+                return false;
+
+        } else {
+            if (!equal(sp->begin(), sp->end(), sptr->begin(),
+                    [](auto c0, auto c1) -> bool { return std::tolower(c0) > std::tolower(c1); }))
+                return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Scheme @em string-ci>? function.
+ */
+static Cell isstrcigt(const varg& args)
+{
+    auto sptr = get<StringPtr>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; sptr = get<StringPtr>(*ip), ++ip) {
+        const auto& sp = get<StringPtr>(*ip);
+
+        if (sptr->length() > sp->length()) {
+            if (!equal(sp->begin(), sp->end(), sptr->begin(),
+                    [](auto c0, auto c1) -> bool { return std::tolower(c0) <= std::tolower(c1); }))
+                return false;
+
+        } else if (sptr->length() == sp->length()) {
+            if (sptr->empty())
+                return false;
+
+            if (!equal(sptr->begin(), sptr->end(), sp->begin(),
+                    [](auto c0, auto c1) -> bool { return std::tolower(c0) > std::tolower(c1); }))
+                return false;
+        } else {
+            if (!equal(sptr->begin(), sptr->end(), sp->begin(),
+                    [](auto c0, auto c1) -> bool { return std::tolower(c0) > std::tolower(c1); }))
+                return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Scheme @em string-ci<=? function.
+ */
+static Cell isstrcile(const varg& args)
+{
+    auto sptr = get<StringPtr>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; sptr = get<StringPtr>(*ip), ++ip) {
+        const auto& sp = get<StringPtr>(*ip);
+
+        if (sptr->length() <= sp->length()) {
+            if (!equal(sptr->begin(), sptr->end(), sp->begin(),
+                    [](auto c0, auto c1) -> bool { return std::tolower(c0) <= std::tolower(c1); }))
+                return false;
+        } else {
+            if (!equal(sp->begin(), sp->end(), sptr->begin(),
+                    [](auto c0, auto c1) -> bool { return std::tolower(c0) > std::tolower(c1); }))
+                return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * Scheme @em string-ci>=? function.
+ */
+static Cell isstrcige(const varg& args)
+{
+    auto sptr = get<StringPtr>(args.at(0));
+
+    for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; sptr = get<StringPtr>(*ip), ++ip) {
+        const auto& sp = get<StringPtr>(*ip);
+
+        if (sptr->length() >= sp->length()) {
+            if (!equal(sp->begin(), sp->end(), sptr->begin(),
+                    [](auto c0, auto c1) -> bool { return std::tolower(c0) <= std::tolower(c1); }))
+                return false;
+        } else {
+            if (!equal(sptr->begin(), sptr->end(), sp->begin(),
+                    [](auto c0, auto c1) -> bool { return std::tolower(c0) > std::tolower(c1); }))
+                return false;
+        }
     }
     return true;
 }
@@ -868,6 +1033,9 @@ static Cell strdowncaseb(const varg& args)
  */
 static Cell strappend(const varg& args)
 {
+    if (args.empty())
+        return std::make_shared<StringPtr::element_type>();
+
     auto pstr = std::make_shared<StringPtr::element_type>(*get<StringPtr>(args.at(0)));
 
     for (auto ip = args.begin() + 1, ie = args.end(); ip != ie; ++ip)
@@ -1680,7 +1848,6 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return num(get<Char>(args.at(0)));
     case Intern::op_intchar:
         return static_cast<Char>((get<Int>(get<Number>(args.at(0)))));
-
     case Intern::op_ischareq:
         return primop::ischareq(args);
     case Intern::op_ischarlt:
@@ -1738,8 +1905,24 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
             = get<Char>(args.at(2));
     case Intern::op_isstreq:
         return primop::isstreq(args);
+    case Intern::op_isstrlt:
+        return primop::isstrlt(args);
+    case Intern::op_isstrgt:
+        return primop::isstrgt(args);
+    case Intern::op_isstrle:
+        return primop::isstrle(args);
+    case Intern::op_isstrge:
+        return primop::isstrge(args);
     case Intern::op_isstrcieq:
         return primop::isstrcieq(args);
+    case Intern::op_isstrcilt:
+        return primop::isstrcilt(args);
+    case Intern::op_isstrcigt:
+        return primop::isstrcigt(args);
+    case Intern::op_isstrcile:
+        return primop::isstrcile(args);
+    case Intern::op_isstrcige:
+        return primop::isstrcige(args);
     case Intern::op_strupcase:
         return primop::strupcase(args);
     case Intern::op_strdowncase:
@@ -1795,7 +1978,7 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     /* Section 6.10: Control features */
     case Intern::op_isproc:
         return is_proc(args.at(0)) || is_func(args[0])
-            || (is_intern(args[0]) && get<Intern>(args[0]) >= Intern::op_eq);
+            || (is_intern(args[0]) && get<Intern>(args[0]) >= Intern::_apply);
     case Intern::op_map:
         return primop::map(senv, args);
     case Intern::op_foreach:

@@ -30,6 +30,7 @@
 (define (record-error e)
   (set! errs (cons (list cur-section e) errs)))
 
+
 (define (test expect fun . args)
   (write (cons fun args))
   (display " ==> ")
@@ -46,8 +47,13 @@
            (else #t)))
 
    (if (procedure? fun)
-       (apply fun args)
+       (begin
+         (write args)
+         (newline)
+       (apply fun args))
        (car args))))
+
+(test 7 apply + (list 1 2 3))
 
 (define (report-errs)
   (newline)
@@ -1087,10 +1093,10 @@
 (test "foo" string-append "foo" "")
 (test "foo" string-append "" "foo")
 
-;;todo (test "" string-append)
+(test "" string-append)
 (test "" make-string 0)
 (test #t string=? "" "")
-;;todo (test #f string<? "" "")
+(test #f string<? "" "")
 (test #f string>? "" "")
 (test #t string<=? "" "")
 (test #t string>=? "" "")
@@ -1104,27 +1110,22 @@
 (test #f string=? "a" "b")
 (test #f string=? "9" "0")
 (test #t string=? "A" "A")
-
 (test #t string<? "A" "B")
 (test #t string<? "a" "b")
 (test #f string<? "9" "0")
 (test #f string<? "A" "A")
-
 (test #f string>? "A" "B")
 (test #f string>? "a" "b")
 (test #t string>? "9" "0")
 (test #f string>? "A" "A")
-
 (test #t string<=? "A" "B")
 (test #t string<=? "a" "b")
 (test #f string<=? "9" "0")
 (test #t string<=? "A" "A")
-
 (test #f string>=? "A" "B")
 (test #f string>=? "a" "b")
 (test #t string>=? "9" "0")
 (test #t string>=? "A" "A")
-
 (test #f string-ci=? "A" "B")
 (test #f string-ci=? "a" "B")
 (test #f string-ci=? "A" "b")
@@ -1132,7 +1133,6 @@
 (test #f string-ci=? "9" "0")
 (test #t string-ci=? "A" "A")
 (test #t string-ci=? "A" "a")
-
 (test #t string-ci<? "A" "B")
 (test #t string-ci<? "a" "B")
 (test #t string-ci<? "A" "b")
@@ -1140,7 +1140,6 @@
 (test #f string-ci<? "9" "0")
 (test #f string-ci<? "A" "A")
 (test #f string-ci<? "A" "a")
-
 (test #f string-ci>? "A" "B")
 (test #f string-ci>? "a" "B")
 (test #f string-ci>? "A" "b")
@@ -1148,7 +1147,6 @@
 (test #t string-ci>? "9" "0")
 (test #f string-ci>? "A" "A")
 (test #f string-ci>? "A" "a")
-
 (test #t string-ci<=? "A" "B")
 (test #t string-ci<=? "a" "B")
 (test #t string-ci<=? "A" "b")
@@ -1156,7 +1154,6 @@
 (test #f string-ci<=? "9" "0")
 (test #t string-ci<=? "A" "A")
 (test #t string-ci<=? "A" "a")
-
 (test #f string-ci>=? "A" "B")
 (test #f string-ci>=? "a" "B")
 (test #f string-ci>=? "A" "b")
@@ -1164,6 +1161,33 @@
 (test #t string-ci>=? "9" "0")
 (test #t string-ci>=? "A" "A")
 (test #t string-ci>=? "A" "a")
+
+;;todo
+(test #t string<?   "aa" "aaa")
+(test #t string<?   "aab" "bb")
+(test #f string<=?  "bba" "bb")
+(test #f string<=?  "baa" "bb")
+
+(test #t string-ci>?  "aaA" "aa")
+(test #t string-ci>?  "AAa" "aa")
+(test #t string-ci>?  "AaA" "aA")
+(test #t string-ci>?  "BB" "aaa")
+
+(test #t string-ci>=? "aa" "AA")
+(test #t string-ci<=? "aa" "aaA")
+(test #t string-ci<=? "aa" "AAA")
+(test #t string-ci<=? "aA" "Aaa")
+
+(test #t string-ci<?  "aa" "aaA")
+(test #t string-ci<?  "aa" "AAA")
+(test #t string-ci<?  "aA" "Aaa")
+(test #f string-ci<?  "AAA" "Aaa")
+
+(test #t string-ci<=? "aa" "AA")
+(test #t string-ci<=? "aa" "aaA")
+(test #t string-ci<=? "aa" "AAA")
+(test #t string-ci<=? "aA" "Aaa")
+
 
 (SECTION 6 8)
 (test #t vector? '#(0 (2 2 2 2) "Anna"))
@@ -1189,8 +1213,9 @@
 ;;todo (test #t call-with-current-continuation procedure?)
 (test #t procedure? /)
 
-;;todo (test 7 apply + (list 3 4))
-
+;;todo
+(test 7 apply + '())
+(test 7 apply + (list 3 4))
 ;;todo (test 7 apply (lambda (a b) (+ a b)) (list 3 4))
 ;;todo (test 17 apply + 10 (list 3 4))
 (test '() apply list '())
