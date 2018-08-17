@@ -23,7 +23,7 @@ class Parser {
 public:
     Cell read(std::istream& in);
 
-    static Number strnum(const std::string& str);
+    static Cell strnum(const std::string& str);
 
 private:
     enum class Token : int {

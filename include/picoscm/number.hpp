@@ -147,9 +147,14 @@ template <typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const Complex& z)
 {
     if (auto im = z.imag(); im > 0 || im < 0) {
-        if (im < 0)
-            return os << z.real() << (im > -1 || im < -1 ? im : '-') << 'i';
-        else if (im > 1 || im < 1)
+        if (im < 0) {
+            os << z.real();
+            if (im > -1 || im < -1)
+                return os << '-' << im << 'i';
+            else
+                return os << "-i";
+
+        } else if (im > 1 || im < 1)
             return os << z.real() << '+' << im << 'i';
         else
             return os << z.real() << "+i";

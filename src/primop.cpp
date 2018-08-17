@@ -416,7 +416,16 @@ static Cell apply(const SymenvPtr& senv, const Cell& proc, const varg& args)
 
 static Cell apply(const SymenvPtr& senv, const varg& args)
 {
-    varg arg{ args.begin() + 1, args.end() };
+    if (args.size() <= 1)
+        throw std::invalid_argument("apply - invalid number of arguments");
+
+    varg arg;
+    for (auto ip = args.begin() + 1, ie = args.end() - 1; ip != ie; ++ip)
+        arg.push_back(*ip);
+
+    for (Cell list = args.back(); is_pair(list); list = cdr(list))
+        arg.push_back(car(list));
+
     return apply(senv, args.at(0), arg);
 }
 

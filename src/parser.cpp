@@ -25,6 +25,9 @@ using std::endl;
  */
 Parser::Token Parser::lex_number(const std::string& str, Number& num)
 {
+    if (str.empty())
+        return Token::Error;
+
     bool is_flo = false, is_cpx = false;
 
     num = Int{ 0 };
@@ -69,7 +72,7 @@ Parser::Token Parser::lex_number(const std::string& str, Number& num)
             } else if (strchr("iI", *ic) && &(*ic) == &str.back()) {
                 is_cpx = true;
 
-                if (isdigit(str.at(pos)) || pos + 1 < str.size())
+                if (isdigit(str.at(pos)) || pos + 2 < str.size())
                     z.imag(z.imag() >= 0 ? std::stod(str.substr(pos, str.size()))
                                          : -std::stod(str.substr(pos, str.size())));
             } else
@@ -87,13 +90,23 @@ Parser::Token Parser::lex_number(const std::string& str, Number& num)
     return Token::Error;
 }
 
-Number Parser::strnum(const std::string& str)
+Cell Parser::strnum(const std::string& str)
 {
     Number num;
-    Token tok = lex_number(str, num);
+    Token tok;
+
+    if (!str.compare(0, 2, "#i"s))
+        tok = lex_number(str.substr(2), num);
+
+    else if (!str.compare(0, 2, "#e"s)) {
+        tok = lex_number(str.substr(2), num);
+        if (tok == Token::Number)
+            num = trunc(num);
+    } else
+        tok = lex_number(str, num);
 
     if (tok == Token::Error)
-        throw std::invalid_argument("error parsing string "s + str);
+        return false;
 
     return num;
 }
@@ -197,6 +210,8 @@ Parser::Token Parser::lex_special(const std::string& str, std::istream& in)
     if (str == "#")
         return Token::Vector;
 
+    Token tok;
+
     switch (str.at(1)) {
     case 't':
         if (str == "#t" || str == "#true")
@@ -208,6 +223,15 @@ Parser::Token Parser::lex_special(const std::string& str, std::istream& in)
 
     case '\\':
         return lex_char(str, chrtok, in);
+
+    case 'e':
+        tok = lex_number(str.substr(2), numtok);
+        if (tok == Token::Number)
+            numtok = trunc(numtok);
+        return tok;
+
+    case 'i':
+        return lex_number(str.substr(2), numtok);
 
     default:
         return Token::Error;
@@ -236,8 +260,8 @@ Parser::Token Parser::skip_comment(std::istream& in) const
 }
 
 /**
- * @brief Predicate returns true if the first n characters is are digits,
- *         floating point exponent characters (e,E) or imaginary characters (i,I).
+ * @brief Predicate returns true if the first n characters are digits,
+ *        floating point exponent characters (e,E) or imaginary characters (i,I).
  *
  * @param str String to test.
  * @param n   Unless zero, test the first n characters or the whole string
@@ -247,7 +271,9 @@ bool Parser::is_digit(const std::string& str, size_t n)
 {
     n = n ? std::min(n, str.size()) : str.size();
 
-    bool has_digit = isdigit(str.front());
+    bool has_digit = isdigit(str.front()),
+         has_sign = strchr("+-", str.front()),
+         has_imag = false;
 
     if (str.empty() || (str.size() == 1 && !has_digit))
         return false;
@@ -256,10 +282,13 @@ bool Parser::is_digit(const std::string& str, size_t n)
             if (!has_digit)
                 has_digit = isdigit(*ic);
 
+            if (!has_imag)
+                has_imag = strchr("iI", *ic);
+
             if (!isdigit(*ic) && !strchr("+-.iIeE", *ic))
                 return false;
         }
-    return has_digit;
+    return has_digit || (str.size() <= 2 && (has_sign || has_imag));
 }
 
 /**
@@ -304,12 +333,11 @@ Parser::Token Parser::get_token(std::istream& in)
         while (in.get(c) && !isspace(c) && !is_special(c))
             strtok.push_back(static_cast<Char>(c));
 
+        if (!in.good() && !in.eof())
+            return Token::Error;
+
         in.unget();
-
-        if (!in.good())
-            return in.eof() ? Token::Eof : Token::Error;
     }
-
     // Lexical analyse token string according to the first character:
     switch (c = strtok.front()) {
 
@@ -409,14 +437,20 @@ Cell Parser::parse_vector(std::istream& in)
 
     if (tok == Token::OBrace)
         while (in.good()) {
-            tok = get_token(in);
-
-            if (tok == Token::CBrace)
+            switch (tok = get_token(in)) {
+            case Token::Comment:
+                break;
+            case Token::CBrace:
                 return vptr;
-
-            put_back = tok;
-            vptr->push_back(read(in));
+            case Token::Eof:
+            case Token::Error:
+                goto error;
+            default:
+                put_back = tok;
+                vptr->push_back(read(in));
+            }
         }
+error:
     throw std::invalid_argument("error while reading vector");
 }
 
@@ -428,10 +462,10 @@ Cell Parser::parse_list(std::istream& in)
 
     while (in.good()) {
         switch (tok = get_token(in)) {
-
+        case Token::Comment:
+            break;
         case Token::CBrace:
             return list;
-
         case Token::Dot:
             cell = read(in);
             tok = get_token(in);

@@ -14,6 +14,7 @@
 #include <picoscm/types.hpp>
 
 using namespace std;
+using namespace pscm;
 
 int main(int argn, char* argv[])
 {
@@ -30,8 +31,6 @@ int main(int argn, char* argv[])
     try {
         pscm::SymenvPtr e = pscm::senv();
 
-        Cell expr = pscm::list(Intern::_apply, Intern::op_add);
-
         //        Cell expr = pscm::list(Intern::op_map,
         //            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
         //            pscm::list(Intern::_quote, pscm::list(num(1), num(2), num(3))));
@@ -40,13 +39,14 @@ int main(int argn, char* argv[])
         //            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
         //            pscm::list(Intern::_quote, pscm::list(num(1))));
 
-        //        pscm::Parser parser;
-        //        std::istringstream stream("#()");
-        //        Cell expr = parser.read(stream);
+        pscm::Parser parser;
+        std::istringstream stream("(define (h)"
+                                  ";\n"
+                                  ")");
+
+        Cell expr = parser.read(stream);
 
         cout << expr;
-        cout << " ---> " << pscm::is_pair(expr) << endl;
-
         Cell proc = pscm::eval(e, expr);
         cout << proc << endl;
 
