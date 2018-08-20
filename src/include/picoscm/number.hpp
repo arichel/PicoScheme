@@ -50,16 +50,22 @@ struct Number : std::variant<Int, Float, Complex> {
         : base_type{ static_cast<Int>(x) }
     {
     }
+
+    constexpr Number(Float x)
+        : base_type{ x }
+    {
+    }
+
     /**
      * @brief Converting constructor for arithmetic type arguments.
      */
-    constexpr Number(Float x)
-    {
-        if (x > floor(x) || x < ceil(x) || std::abs(x) > static_cast<Float>(std::numeric_limits<Int>::max()))
-            *this = base_type{ x };
-        else
-            *this = static_cast<Int>(x);
-    }
+    //    constexpr Number(Float x)
+    //    {
+    //        if (x > floor(x) || x < ceil(x) || std::abs(x) > static_cast<Float>(std::numeric_limits<Int>::max()))
+    //            *this = base_type{ x };
+    //        else
+    //            *this = static_cast<Int>(x);
+    //    }
     /**
      * @brief Converting constructor for complex type arguments.
      */
@@ -168,7 +174,7 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 template <typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const Number& num)
 {
-    return std::visit([&os](auto x) -> decltype(os) { return os << x; },
+    return std::visit([&os](auto x) -> decltype(os) { return os << std::scientific << x; },
         static_cast<Number::base_type>(num));
 }
 

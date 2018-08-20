@@ -383,9 +383,16 @@ static Cell listcopy(const varg& args)
     return head;
 }
 
+static Cell is_proc(const varg& args)
+{
+    const Cell& cell = args.at(0);
+    return pscm::is_proc(cell) || pscm::is_func(cell)
+        || (is_intern(cell) && get<Intern>(cell) >= Intern::_apply);
+}
+
 static Cell apply(const SymenvPtr& senv, const Cell& proc, const varg& args)
 {
-    if (is_proc(proc)) {
+    if (pscm::is_proc(proc)) {
         Cons arg[2], cns[4];
         Cell argv = pscm::alist(arg, Intern::_quote, nil);
         Cell expr = pscm::alist(cns, Intern::_apply, proc, argv, nil);
@@ -427,6 +434,29 @@ static Cell apply(const SymenvPtr& senv, const varg& args)
         arg.push_back(car(list));
 
     return apply(senv, args.at(0), arg);
+}
+
+struct continuation_exception {
+    continuation_exception(const Cell& cell)
+        : continuation{ cell }
+    {
+    }
+    Cell continuation;
+};
+
+static Cell callcc(const SymenvPtr& senv, const varg& args)
+{
+    varg arg{ std::make_shared<FunctionPtr::element_type>(
+        [](const SymenvPtr&, const varg& args) -> Cell {
+            throw continuation_exception{ args.at(0) };
+            return none;
+        }) };
+
+    try {
+        return apply(senv, args.at(0), arg);
+    } catch (const continuation_exception& e) {
+        return e.continuation;
+    }
 }
 
 /**
@@ -1986,8 +2016,9 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
 
     /* Section 6.10: Control features */
     case Intern::op_isproc:
-        return is_proc(args.at(0)) || is_func(args[0])
-            || (is_intern(args[0]) && get<Intern>(args[0]) >= Intern::_apply);
+        return primop::is_proc(args);
+    case Intern::op_callcc:
+        return primop::callcc(senv, args);
     case Intern::op_map:
         return primop::map(senv, args);
     case Intern::op_foreach:

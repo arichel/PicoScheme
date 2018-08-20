@@ -231,6 +231,8 @@ static SymenvPtr topenv{
         { sym("procedure?"), Intern::op_isproc },
         { sym("map"), Intern::op_map },
         { sym("for-each"), Intern::op_foreach },
+        { sym("call/cc"), Intern::op_callcc },
+        { sym("call-with-current-continuation"), Intern::op_callcc },
 
         /* Section 6.11: Exceptions */
         { sym("error"), Intern::op_error },

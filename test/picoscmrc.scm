@@ -245,3 +245,33 @@
 
 (define-macro (print fmt . vals)
   `(display (format ,fmt ,@vals)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; While loop with non-local exit.
+;;
+;; Example:
+;;
+;;    (let ((i 0)
+;;          (nmax 100))
+;;      (while (< i nmax)
+;;             (display i)
+;;             (newline)
+;;             (unless (< i 10) break)
+;;             (set! i (+ i 1))))
+;;
+(define-macro (while pred . body)
+  (letrec ((replace (lambda (symb new expr)
+                      (cond ((null?   expr) ())
+                            ((symbol? expr) (if (eq? expr symb) new expr))
+                            ((pair?   expr) (cons (replace symb new (car expr))
+                                                  (replace symb new (cdr expr))))
+                            (else expr)))))
+    (let ((body (replace 'break '(break (if #f #f)) body))
+          (loop (gensym)))
+
+      `(call-with-current-continuation
+        (lambda (break)
+          ((lambda (,loop)(when ,pred ,@body (,loop ,loop)))
+           (lambda (,loop)(when ,pred ,@body (,loop ,loop)))) )))))

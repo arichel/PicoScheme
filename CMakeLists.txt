@@ -20,7 +20,7 @@ endif(CMAKE_COMPILER_IS_GNUCC)
 # Add source directory
 file(GLOB SOURCES "src/*.cpp")
 
-set(INCLUDE_PATH "${PROJECT_SOURCE_DIR}/include/picoscm")
+set(INCLUDE_PATH "${PROJECT_SOURCE_DIR}/src/include/picoscm")
 
 ####################################################################################################
 option (BUILD_SHARED_LIBS "build picoscheme as shared library" OFF)
@@ -41,7 +41,7 @@ if (GENERATE_TESTMAIN)
     set(EXEC_NAME picoscm)
 
     add_executable(${EXEC_NAME} "test/${EXEC_NAME}.cpp")
-    target_include_directories(${EXEC_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/include")
+    target_include_directories(${EXEC_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/src/include")
     target_link_libraries(${EXEC_NAME} ${LIB_NAME})
     target_compile_options(${EXEC_NAME} PRIVATE -Wall -Wno-padded)
     set_target_properties(${EXEC_NAME} PROPERTIES CXX_STANDARD 17 CXX_EXTENSIONS OFF)

@@ -87,6 +87,8 @@ public:
 
     Func(const Symbol& sym, function_type&& fun);
 
+    Func(function_type&& fun);
+
     //    bool operator!=(const Func& func) const;
     //    bool operator==(const Func& func) const;
     Cell operator()(const SymenvPtr& senv, const std::vector<Cell>& args) const;

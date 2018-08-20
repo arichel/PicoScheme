@@ -175,6 +175,11 @@ Func::Func(const Symbol& sym, function_type&& fun)
 {
 }
 
+Func::Func(function_type&& fun)
+    : Func(sym("lambda"), std::move(fun))
+{
+}
+
 Cell Func::operator()(const SymenvPtr& senv, const std::vector<Cell>& args) const
 {
     return func(senv, args);
