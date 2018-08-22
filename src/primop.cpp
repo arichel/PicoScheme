@@ -140,10 +140,10 @@ static Cell numge(const varg& args)
  */
 static Cell max(const varg& args)
 {
-    Number res = max(get<Number>(args.at(0)), get<Number>(args.at(1)));
+    Number res = pscm::max(get<Number>(args.at(0)), get<Number>(args.at(1)));
 
     for (auto ip = args.begin() + 2, ie = args.end(); ip != ie; ++ip)
-        res = max(res, get<Number>(*ip));
+        res = pscm::max(res, get<Number>(*ip));
 
     return res;
 }
@@ -153,10 +153,10 @@ static Cell max(const varg& args)
  */
 static Cell min(const varg& args)
 {
-    Number res = min(get<Number>(args.at(0)), get<Number>(args.at(1)));
+    Number res = pscm::min(get<Number>(args.at(0)), get<Number>(args.at(1)));
 
     for (auto ip = args.begin() + 2, ie = args.end(); ip != ie; ++ip)
-        res = min(res, get<Number>(*ip));
+        res = pscm::min(res, get<Number>(*ip));
 
     return res;
 }
@@ -166,7 +166,7 @@ static Cell min(const varg& args)
  */
 static Cell add(const varg& args)
 {
-    Number res = 0;
+    Number res = Int{ 0 };
 
     for (auto& val : args)
         res += get<Number>(val);
@@ -225,6 +225,24 @@ static Cell log(const varg& args)
         return y != Number{ 10 } ? pscm::log(x) / pscm::log(y)
                                  : pscm::log10(x);
     }
+}
+
+static Cell ex2inex(const Cell& cell)
+{
+    auto& num = get<Number>(cell);
+    return is_type<Int>(num) ? Number{ static_cast<Float>(get<Int>(num)) } : num;
+}
+
+static Cell inex2ex(const Cell& cell)
+{
+    auto& num = get<Number>(cell);
+
+    if (is_type<Complex>(num) && !is_zero(imag(num)))
+        throw std::invalid_argument("inexact->exact - invalid cast for complex number");
+
+    return is_type<Int>(num) ? num
+                             : is_type<Float>(num) ? Number{ static_cast<Int>(get<Float>(num)) }
+                                                   : Number{ static_cast<Int>(get<Float>(real(num))) };
 }
 
 static Cell numstr(const varg& args)
@@ -1504,14 +1522,17 @@ static Cell readline(const varg& args)
 
 static Cell read(const varg& args)
 {
-    Port port;
+    Parser parser;
+
     if (args.size() > 0) {
-        port = get<Port>(args[0]);
+        Port port = get<Port>(args[0]);
+
         (port.is_open() && port.is_input())
             || ((void)(throw std::invalid_argument("port is closed")), 0);
-    }
-    Parser parser;
-    return parser.read(port.stream());
+
+        return parser.read(port.stream());
+    } else
+        return parser.read(std::cin);
 }
 
 static Cell read_char(const varg& args)
@@ -1695,6 +1716,10 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return is_number(args.at(0)) && !is_int(get<Number>(args.front()));
     case Intern::op_isexactint:
         return is_number(args.at(0)) && is_int(get<Number>(args.front()));
+    case Intern::op_ex2inex:
+        return primop::ex2inex(args.at(0));
+    case Intern::op_inex2ex:
+        return primop::inex2ex(args.at(0));
     case Intern::op_isodd:
         return is_number(args.at(0)) && is_odd(get<Number>(args.front()));
     case Intern::op_iseven:
@@ -2068,6 +2093,11 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
         return primop::open_infile(get<StringPtr>(args.at(0)));
     case Intern::op_open_outfile:
         return primop::open_outfile(get<StringPtr>(args.at(0)));
+    case Intern::op_close_port:
+    case Intern::op_close_inport:
+    case Intern::op_close_outport:
+        get<Port>(args.at(0)).close();
+        return none;
     case Intern::op_readline:
         return primop::readline(args);
     case Intern::op_read:

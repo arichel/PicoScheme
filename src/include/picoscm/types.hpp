@@ -60,6 +60,8 @@ enum class Intern {
     op_isexact,
     op_isinexact,
     op_isexactint,
+    op_ex2inex,
+    op_inex2ex,
     op_isodd,
     op_iseven,
     op_numeq,

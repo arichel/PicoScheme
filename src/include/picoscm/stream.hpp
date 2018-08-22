@@ -54,7 +54,7 @@ public:
     bool open_str(const std::string& str = {},
         std::ios_base::openmode mode = std::ios_base::out | std::ios_base::in);
 
-    void close();
+    void close() const;
 
     //! Return the underlying string of a string stream.
     std::string str() const;

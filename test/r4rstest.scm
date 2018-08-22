@@ -539,7 +539,6 @@
 (test #t real? 3)
 (test #t rational? 3)
 (test #t integer? 3)
-
 (test #t exact? 3)
 (test #f inexact? 3)
 
@@ -630,6 +629,7 @@
 (test 0 modulo 0 86400)
 (test 0 modulo 0 -86400)
 
+;;TODO
 (define (divtest n1 n2)
   (= n1 (+ (* n2 (quotient n1 n2))
            (remainder n1 n2))))
@@ -668,6 +668,27 @@
 
 ;;;;From: fred@sce.carleton.ca (Fred J Kaudel)
 ;;; Modified by jaffer.
+(define write-test-obj #f)
+(define load-test-obj #f)
+
+(define (check-test-file name)
+  (define test-file (open-input-file name))
+  (test #t 'input-port?
+        (call-with-input-file
+            name
+          (lambda (test-file)
+            (test load-test-obj read test-file)
+            (test #t eof-object? (peek-char test-file))
+            (test #t eof-object? (read-char test-file))
+            (input-port? test-file))))
+
+  (test #\; read-char test-file)
+  (test #\; read-char test-file)
+  (test #\; read-char test-file)
+  (test write-test-obj read test-file)
+  (test load-test-obj read test-file)
+  (close-input-port test-file))
+
 (define (test-inexact)
   (define f3.9 (string->number "3.9"))
   (define f4.0 (string->number "4.0"))
@@ -727,6 +748,7 @@
   (test f4.0 round f3.5)
   (test f4.0 round f4.5)
 
+    ;;TODO
   (test f1.0 expt f0.0 f0.0)
   (test f1.0 expt f0.0 0)
   (test f1.0 expt 0    f0.0)
@@ -741,6 +763,7 @@
   (test (atan 1) atan 1 1)
   (set! write-test-obj (list f.25 f-3.25)) ;.25 inexact errors less likely.
   (set! load-test-obj (list 'define 'foo (list 'quote write-test-obj)))
+
   (test #t call-with-output-file
         "tmp3"
         (lambda (test-file)
@@ -751,6 +774,7 @@
           (newline test-file)
           (write load-test-obj test-file)
           (output-port? test-file)))
+
   (check-test-file "tmp3")
   (set! write-test-obj wto)
   (set! load-test-obj lto)
@@ -940,19 +964,21 @@
           big-inex
           (+ (inexact->exact big-inex) 1))))
 
-(let ((have-inexacts? (and (string->number "0.0") (inexact? (string->number "0.0"))))
-      (have-bignums?  (let ((n (string->number
-                                "1427247692705959881058285969449495136382746625")))
-                        (and n (exact? n)))))
-  (cond (have-inexacts?
-         (test-inexact)
-         (test-inexact-printing)))
 
-  (if have-bignums?
-      (test-bignum))
+;;Todo
+;; (let ((have-inexacts? (and (string->number "0.0") (inexact? (string->number "0.0"))))
+;;       (have-bignums?  (let ((n (string->number
+;;                                 "1427247692705959881058285969449495136382746625")))
+;;                         (and n (exact? n)))))
+;;   (cond (have-inexacts?
+;;          (test-inexact)
+;;          (test-inexact-printing)))
 
-  (if (and have-inexacts? have-bignums?)
-      (test-numeric-predicates)))
+;;   (if have-bignums?
+;;       (test-bignum))
+
+;;   (if (and have-inexacts? have-bignums?)
+;;       (test-numeric-predicates)))
 
 (SECTION 6 5 9)
 (test "0" number->string 0)
@@ -1235,7 +1261,7 @@
 (test #f procedure? 'car)
 (test #t procedure? (lambda (x) (* x x)))
 (test #f procedure? '(lambda (x) (* x x)))
-;;todo (test #t call-with-current-continuation procedure?)
+(test #t call-with-current-continuation procedure?)
 (test #t procedure? /)
 
 (test 0 apply + '())
@@ -1350,10 +1376,12 @@
     (test 6 force p)
     (set! x 10)
     (test 6 force p))
+
   (test 3 'force
         (letrec ((p (delay (if c 3 (begin (set! c #t) (+ (force p) 1)))))
                  (c #f))
           (force p)))
+
   (report-errs))
 
 (SECTION 6 10 1)
@@ -1373,24 +1401,6 @@
 (close-input-port this-file)
 (close-input-port this-file)
 
-(define (check-test-file name)
-  (define test-file (open-input-file name))
-
-  (test #t 'input-port?
-        (call-with-input-file
-            name
-          (lambda (test-file)
-            (test load-test-obj read test-file)
-            (test #t eof-object? (peek-char test-file))
-            (test #t eof-object? (read-char test-file))
-            (input-port? test-file))))
-
-  (test #\; read-char test-file)
-  (test #\; read-char test-file)
-  (test #\; read-char test-file)
-  (test write-test-obj read test-file)
-  (test load-test-obj read test-file)
-  (close-input-port test-file))
 
 (SECTION 6 10 3)
 (define write-test-obj
@@ -1409,6 +1419,7 @@
         (newline test-file)
         (write load-test-obj test-file)
         (output-port? test-file)))
+
 (check-test-file "tmp1")
 
 (define test-file (open-output-file "tmp2"))

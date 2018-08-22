@@ -1,7 +1,7 @@
 PicoScheme
 ==========
 
-A small embeddable scheme interpreter implementation in c++17. This project was
+A small, embeddable scheme interpreter implementation in c++17. This project was
 started because I wanted to learn recent c++ features, especially to evaluate the
 new [std::variant] class template as plain c-union replacement and shared,
 reference counting pointers for basic memory management. Considering that there
@@ -11,7 +11,8 @@ from the old [R4RS scheme] specification are implemented. Postponed for now is
 a complete numeric tower, including rational numbers and arbitrary precision
 arithmetic, and more advanced features like [call/cc] and *define-syntax* macros,
 which I haven't fully understood so far. However integer, floating point and
-complex numbers and old school lisp-style macros are implemented.
+complex numbers, call/cc as simple escape procedure and old school lisp-style
+macros are implemented.
 
 ### Credits ###
 While a more formal approach, on how to implement a dynamically typed,
@@ -33,13 +34,13 @@ A scheme cell is derived from a [std::variant] type as a union of all supported
 types. Atomic types, like booleans, characters, numbers and symbols are
 directly stored as value types and compound types like strings, vectors,
 IO-ports or closures are either stored as shared pointers or by a small handle
-class with internal pointer to the implementation class. This assures that the
-byte size of a scheme cell remains reasonable small. The largest value type
-are numbers with 16 bytes for a complex number as a double floating point pair
-and 8 bytes for the number variant internals itself. A scheme cell has therefore
-a size of 32 bytes in total (24 bytes + 8 bytes internals). Scheme cons-cells
-are stored as plain c-pointers into the global cell store which is basically
-a [std::deque] sequence container of cons-cell pairs.
+class with internal pointer to the implementation class. This assures, that the
+byte size of a scheme cell remains reasonable small. Currently, the largest value
+type are numbers with 16 bytes for a complex number as a double floating point pair
+and 8 bytes for the number variant internals itself and alignment padding. A
+scheme cell has therefore a size of 32 bytes in total (24 bytes + 8 bytes internals). Scheme cons-cells
+Scheme cons-cells are stored as plain c-pointers into the global cell store,
+which is basically a [std::deque] sequence container of cons-cell pairs.
 
 ### Garbage collector ###
 todo

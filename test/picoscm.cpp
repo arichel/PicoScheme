@@ -20,7 +20,7 @@ int main(int argn, char* argv[])
 {
     using pscm::Intern, pscm::Cell, pscm::list, pscm::sym, pscm::num, pscm::str, pscm::fun, pscm::nil;
 
-    fun(sym("greet"), [cntr = 0](auto senv, auto args) mutable->Cell {
+    fun(sym("greet"), [cntr = 0](auto senv, auto args) mutable -> Cell {
         return list(str("hello world"), num(cntr++));
     });
 

@@ -82,9 +82,13 @@ Parser::Token Parser::lex_number(const std::string& str, Number& num)
             num = z;
         else if (is_flo)
             num = Number{ std::stod(str) };
-        else
-            num = std::stol(str);
-
+        else {
+            try {
+                num = std::stol(str);
+            } catch (std::out_of_range& e) {
+                num = Number{ std::stod(str) };
+            }
+        }
         return Token::Number;
     }
     return Token::Error;

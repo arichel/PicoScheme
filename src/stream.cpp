@@ -171,12 +171,12 @@ std::ostream& operator<<(std::ostream& os, const DisplayManip<Cell>& manip)
 {
     return std::visit([&os, &manip](auto& val) -> std::ostream& {
         using T = std::decay_t<decltype(val)>;
-        if
-            constexpr(std::is_same_v<T, None>) return os;
-        else if
-            constexpr(std::is_same_v<T, Char>) return os << val;
-        else if
-            constexpr(std::is_same_v<T, StringPtr>) return os << display(val);
+        if constexpr (std::is_same_v<T, None>)
+            return os;
+        else if constexpr (std::is_same_v<T, Char>)
+            return os << val;
+        else if constexpr (std::is_same_v<T, StringPtr>)
+            return os << display(val);
         else
             return os << manip.value;
     },
@@ -206,27 +206,24 @@ bool Port::is_open() const noexcept
     return std::visit([](auto& os) {
         using S = std::decay_t<decltype(os)>;
 
-        if
-            constexpr(std::is_same_v<S, std::ofstream>) return os.is_open();
+        if constexpr (std::is_same_v<S, std::ofstream>)
+            return os.is_open();
         else
             return os.good();
     },
         *pstream);
 }
 
-void Port::close()
+void Port::close() const
 {
     std::visit([](auto& os) {
         using S = std::decay_t<decltype(os)>;
         os.flush();
         os.clear();
-        if
-            constexpr(std::is_same_v<S, std::fstream>)
-            {
-                if (os.is_open())
-                    os.close();
-            }
-        else
+        if constexpr (std::is_same_v<S, std::fstream>) {
+            if (os.is_open())
+                os.close();
+        } else
             os.setstate(std::ios_base::eofbit);
     },
         *pstream);
@@ -235,7 +232,7 @@ void Port::close()
 bool Port::open(const std::string& path, std::ios_base::openmode mode)
 {
     close();
-    mode = mode;
+    this->mode = mode;
     *pstream = std::fstream{ path, mode };
     return is_open();
 }
@@ -243,7 +240,7 @@ bool Port::open(const std::string& path, std::ios_base::openmode mode)
 bool Port::open_str(const std::string& str, std::ios_base::openmode mode)
 {
     close();
-    mode = mode;
+    this->mode = mode;
     *pstream = std::stringstream{ str, mode };
     return is_open();
 }

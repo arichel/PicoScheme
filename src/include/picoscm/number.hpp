@@ -92,37 +92,30 @@ struct Number : std::variant<Int, Float, Complex> {
         auto fun = [](auto& num) -> T {
             using TT = std::decay_t<decltype(num)>;
 
-            if
-                constexpr(std::is_same_v<TT, Int>)
-                {
-                    if
-                        constexpr(std::is_integral_v<T>) return static_cast<T>(num);
+            if constexpr (std::is_same_v<TT, Int>) {
+                if constexpr (std::is_integral_v<T>)
+                    return static_cast<T>(num);
 
-                    else if
-                        constexpr(std::is_floating_point_v<T>) return static_cast<T>(num);
+                else if constexpr (std::is_floating_point_v<T>)
+                    return static_cast<T>(num);
 
-                    else // T is Complex:
-                        return static_cast<T>(static_cast<typename T::value_type>(num));
-                }
-            else if
-                constexpr(std::is_same_v<TT, Float>)
-                {
-                    if
-                        constexpr(std::is_arithmetic_v<T>) return static_cast<T>(num);
+                else // T is Complex:
+                    return static_cast<T>(static_cast<typename T::value_type>(num));
 
-                    else // T is Complex
-                        return static_cast<T>(static_cast<typename T::value_type>(num));
-                }
-            else if
-                constexpr(std::is_same_v<TT, Complex>)
-                {
-                    if
-                        constexpr(std::is_arithmetic_v<T>) return static_cast<T>(std::abs(num));
+            } else if constexpr (std::is_same_v<TT, Float>) {
+                if constexpr (std::is_arithmetic_v<T>)
+                    return static_cast<T>(num);
 
-                    else
-                        return static_cast<T>(num);
-                }
-            else
+                else // T is Complex
+                    return static_cast<T>(static_cast<typename T::value_type>(num));
+
+            } else if constexpr (std::is_same_v<TT, Complex>) {
+                if constexpr (std::is_arithmetic_v<T>)
+                    return static_cast<T>(std::abs(num));
+
+                else
+                    return static_cast<T>(num);
+            } else
                 static_assert(always_false<TT>::value, "invalid variant");
         };
 
@@ -174,7 +167,12 @@ std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>&
 template <typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const Number& num)
 {
-    return std::visit([&os](auto x) -> decltype(os) { return os << std::scientific << x; },
+    return std::visit([&os](auto x) -> decltype(os) {
+        if constexpr (std::is_same_v<Int, decltype(x)>)
+            return os << x;
+        else
+            return os << std::scientific << x;
+    },
         static_cast<Number::base_type>(num));
 }
 
@@ -185,19 +183,12 @@ bool operator<(const Number& lhs, const Number& rhs);
 bool operator>=(const Number& lhs, const Number& rhs);
 bool operator<=(const Number& lhs, const Number& rhs);
 
+Number min(const Number& lhs, const Number& rhs);
+Number max(const Number& lhs, const Number& rhs);
+
 inline bool is_zero(const Number& x) { return !(x != Number{ 0 }); }
 inline bool is_negative(const Number& x) { return x < Number{ 0 }; }
 inline bool is_positive(const Number& x) { return x > Number{ 0 }; }
-
-inline Number min(const Number& lhs, const Number& rhs)
-{
-    return rhs < lhs ? rhs : lhs;
-}
-
-inline Number max(const Number& lhs, const Number& rhs)
-{
-    return rhs > lhs ? rhs : lhs;
-}
 
 Number inv(const Number& x);
 
