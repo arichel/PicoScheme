@@ -334,6 +334,13 @@ FunctionPtr fun(const Symbol& sym, FunctionPtr::element_type::function_type&& fn
     return fptr;
 }
 
+FunctionPtr Scheme::mkfun(const Symbol& sym, function_type&& fn, const SymenvPtr& env)
+{
+    auto fptr = std::make_shared<FunctionPtr::element_type>(sym, std::move(fn));
+    addenv(sym, fptr, env);
+    return fptr;
+}
+
 StringPtr str(const Char* s)
 {
     return std::make_shared<StringPtr::element_type>(s);
@@ -384,6 +391,65 @@ Cell call(const SymenvPtr& senv, const Cell& proc, const std::vector<Cell>& args
         return call(senv, get<Intern>(proc), args);
     else
         return (*get<FunctionPtr>(proc))(senv, args);
+}
+
+void Scheme::repl(std::istream& in, std::ostream& out)
+{
+    SymenvPtr env = newenv(topenv);
+    Parser parser;
+    Cell expr;
+
+    for (;;)
+        try {
+            for (;;) {
+                out << "> ";
+                expr = none;
+                expr = parser.read(in);
+                expr = eval(env, expr);
+
+                if (is_none(expr))
+                    continue;
+
+                if (is_exit(expr))
+                    return;
+
+                out << expr << std::endl;
+            }
+        } catch (std::exception& e) {
+            if (is_none(expr))
+                std::cerr << e.what() << std::endl;
+            else
+                std::cerr << e.what() << ": " << expr << std::endl;
+        }
+}
+
+void Scheme::load(const std::string& filnam, const SymenvPtr& symenv)
+{
+    const SymenvPtr& env = symenv ? symenv : topenv;
+
+    std::ifstream in;
+    Parser parser;
+    Cell expr = none;
+
+    in.exceptions(std::ifstream::badbit);
+
+    try {
+        in.open(filnam);
+        if (!in.is_open())
+            throw std::ios_base::failure("couldn't open input file: '"s + filnam + "'"s);
+
+        do {
+            expr = parser.read(in);
+            expr = eval(env, expr);
+            expr = none;
+        } while (!in.eof());
+
+    } catch (const std::exception& e) {
+        if (is_none(expr))
+            std::cerr << e.what() << '\n';
+        else
+            std::cerr << e.what() << ": " << expr << '\n';
+    }
 }
 
 } // namespace pscm

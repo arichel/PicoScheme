@@ -364,19 +364,37 @@ public:
     using Symbol = Symtab::Symbol;
     using Symenv = SymbolEnv<Symbol, Cell>;
     using SymenvPtr = std::shared_ptr<Symenv>;
+    using function_type = Func::function_type;
 
     template <typename CAR, typename CDR>
     Cons* cons(CAR&& car, CDR&& cdr)
     {
         return &store.emplace_back(std::forward<CAR>(car), std::forward<CDR>(cdr));
     }
+
+    FunctionPtr mkfun(const Symbol& sym, function_type&& fn, const SymenvPtr& env = nullptr);
+
     Symbol mksym(const char* name) { return symtab[name]; }
 
     Symbol gensym();
 
     SymenvPtr newenv(const SymenvPtr& env);
 
-    void addenv(const Symbol& sym, const Cell& cell, const SymenvPtr& env);
+    void addenv(const Symbol& sym, const Cell& cell, const SymenvPtr& env = nullptr);
+
+    /**
+     * Interactive scheme read eval print loop.
+     *
+     * @param symenv
+     *        Optional, unless null-pointer, a shared parent environment pointer.
+     *        or use default environment as parent.
+     *
+     * @param in  Optional, an input stream or use default std::cin.
+     * @param out Optional, an output stream or use default std::cout.
+     */
+    void repl(std::istream& in = std::cin, std::ostream& out = std::cout);
+
+    void load(const std::string& filnam, const SymenvPtr& env = nullptr);
 
 private:
     static constexpr size_t dflt_bucket_count = 1024; //<! Initial default hash table bucket count.

@@ -24,12 +24,13 @@ int main(int argn, char* argv[])
         return list(str("hello world"), num(cntr++));
     });
 
+    pscm::Scheme scm;
+
     //    pscm::load("picoscmrc.scm");
     //    pscm::repl();
     //    return 0;
 
     try {
-        pscm::Scheme scm;
 
         return 0;
 
