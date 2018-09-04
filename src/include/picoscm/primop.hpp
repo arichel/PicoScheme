@@ -11,7 +11,7 @@
 
 #include <vector>
 
-#include "types.hpp"
+#include "scheme.hpp"
 
 namespace pscm {
 
@@ -22,7 +22,7 @@ namespace pscm {
  * @param args   Function argument vector.
  * @return Function result or special symbol @ref pscm::none for a void function.
  */
-Cell call(const SymenvPtr& senv, Intern primop, const std::vector<Cell>& args);
+Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const std::vector<Cell>& args);
 
 }; // namespace pscm
 #endif // PRIMOP_HPP

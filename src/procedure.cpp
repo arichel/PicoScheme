@@ -1,8 +1,7 @@
 #include <set>
 
-#include "cell.hpp"
-#include "eval.hpp"
-#include "proc.hpp"
+#include "procedure.hpp"
+#include "scheme.hpp"
 
 namespace pscm {
 
@@ -35,7 +34,7 @@ static bool is_unique_symbol_list(Cell args)
  * @brief Closure to capture an environment pointer, a formal
  *        argument list and a code list of one or more scheme expressions.
  */
-struct Proc::Closure {
+struct Procedure::Closure {
 
     Closure(const SymenvPtr& senv, const Cell& args, const Cell& code, bool is_macro)
         : senv{ senv }
@@ -60,37 +59,37 @@ struct Proc::Closure {
     bool is_macro;
 };
 
-Proc::Proc(Proc&&) noexcept = default;
-Proc& Proc::operator=(Proc&&) noexcept = default;
-Proc::~Proc() = default;
+Procedure::Procedure(Procedure&&) noexcept = default;
+Procedure& Procedure::operator=(Procedure&&) noexcept = default;
+Procedure::~Procedure() = default;
 
-Proc::Proc(const SymenvPtr& senv, const Cell& args, const Cell& code, bool is_macro)
+Procedure::Procedure(const SymenvPtr& senv, const Cell& args, const Cell& code, bool is_macro)
     : impl{ std::make_unique<Closure>(senv, args, code, is_macro) }
 {
 }
 
-Proc::Proc(const Proc& proc)
+Procedure::Procedure(const Procedure& proc)
     : impl{ std::make_unique<Closure>(*proc.impl) }
 {
 }
 
-bool Proc::is_macro() const noexcept
+bool Procedure::is_macro() const noexcept
 {
     return impl->is_macro;
 }
 
-Proc& Proc::operator=(const Proc& proc)
+Procedure& Procedure::operator=(const Procedure& proc)
 {
     *impl = *proc.impl;
     return *this;
 }
 
-bool Proc::operator!=(const Proc& proc) const noexcept
+bool Procedure::operator!=(const Procedure& proc) const noexcept
 {
     return *impl != *proc.impl;
 }
 
-bool Proc::operator==(const Proc& proc) const noexcept
+bool Procedure::operator==(const Procedure& proc) const noexcept
 {
     return !(*impl != *proc.impl);
 }
@@ -104,29 +103,29 @@ bool Proc::operator==(const Proc& proc) const noexcept
  *         requires additional cell-storage to build the evaluated
  *         argument list.
  */
-std::pair<SymenvPtr, Cell> Proc::apply(const SymenvPtr& senv, Cell args, bool is_list) const
+std::pair<SymenvPtr, Cell> Procedure::apply(Scheme& scm, const SymenvPtr& env, Cell args, bool is_list) const
 {
     // Create a new child environment and set the closure environment as father:
-    SymenvPtr newenv = std::make_shared<SymenvPtr::element_type>(impl->senv);
+    SymenvPtr newenv = scm.mkenv(impl->senv);
 
     Cell iter = impl->args; // closure formal parameter symbol list
 
     if (is_list) { // Evaluate each list item of a (lambda args body) expression argument list:
         for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
-            newenv->add(get<Symbol>(car(iter)), eval(senv, car(args)));
+            newenv->add(get<Symbol>(car(iter)), scm.eval(env, car(args)));
 
         // Handle the last symbol of a dotted formal parameter list or a single symbol lambda
         // argument. This symbol is assigned to the evaluated list of remaining expressions
         // which requires additional cons-cell storage.
         if (iter != args)
-            newenv->add(get<Symbol>(iter), eval_list(senv, args, is_list));
+            newenv->add(get<Symbol>(iter), scm.eval_list(env, args, is_list));
     } else {
         // Evaluate each argument of a (apply proc x y ... args) expression and add to newenv:
         for (/* */; is_pair(iter) && is_pair(cdr(args)); iter = cdr(iter), args = cdr(args))
-            newenv->add(get<Symbol>(car(iter)), eval(senv, car(args)));
+            newenv->add(get<Symbol>(car(iter)), scm.eval(env, car(args)));
 
         if (is_nil(cdr(args))) {
-            args = eval(senv, car(args)); // last list item must evaluate to nil or a list
+            args = scm.eval(env, car(args)); // last list item must evaluate to nil or a list
 
             // Add each list item of this list to newenv:
             for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
@@ -135,7 +134,7 @@ std::pair<SymenvPtr, Cell> Proc::apply(const SymenvPtr& senv, Cell args, bool is
             if (iter != args) // dottet formal parmeter list:
                 newenv->add(get<Symbol>(iter), args);
         } else
-            newenv->add(get<Symbol>(iter), eval_list(senv, args, is_list));
+            newenv->add(get<Symbol>(iter), scm.eval_list(env, args, is_list));
     }
     return { newenv, impl->code };
 }
@@ -143,12 +142,14 @@ std::pair<SymenvPtr, Cell> Proc::apply(const SymenvPtr& senv, Cell args, bool is
 /**
  * @brief Expand a macro
  */
-Cell Proc::expand(Cell& expr) const
+Cell Procedure::expand(Scheme& scm, Cell& expr) const
 {
+    is_macro() || (void(throw std::invalid_argument("expand - not a macro")), 0);
+
     Cell args = cdr(expr), iter = impl->args; // macro formal parameter symbol list
 
     // Create a new child environment and set the closure environment as father:
-    SymenvPtr newenv = std::make_shared<SymenvPtr::element_type>(impl->senv);
+    SymenvPtr newenv = scm.mkenv(impl->senv);
 
     // Add unevaluated macro parameters to new environment:
     for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
@@ -159,33 +160,23 @@ Cell Proc::expand(Cell& expr) const
 
     // Expand and replace argument expression with evaluated macro:
     set_car(expr, Intern::_begin);
-    set_car(cdr(expr), args = eval(newenv, syntax::_begin(newenv, impl->code)));
+    set_car(cdr(expr), args = scm.eval(newenv, scm.syntax_begin(newenv, impl->code)));
     set_cdr(cdr(expr), nil);
     return args;
 }
 
-std::pair<SymenvPtr, Cell> apply(const SymenvPtr& senv, const Proc& proc, const Cell& args, bool is_list)
-{
-    return proc.apply(senv, args, is_list);
-}
-
-Func::Func(const Symbol& sym, function_type&& fun)
+Function::Function(const Symbol& sym, function_type&& fun)
     : valptr{ &sym.value() }
     , func{ std::move(fun) }
 {
 }
 
-Func::Func(function_type&& fun)
-    : Func(sym("lambda"), std::move(fun))
+Cell Function::operator()(Scheme& scm, const SymenvPtr& env, const std::vector<Cell>& args) const
 {
+    return func(scm, env, args);
 }
 
-Cell Func::operator()(const SymenvPtr& senv, const std::vector<Cell>& args) const
-{
-    return func(senv, args);
-}
-
-const std::string& Func::name() const
+const std::string& Function::name() const
 {
     return static_cast<const std::string&>(*valptr);
 }

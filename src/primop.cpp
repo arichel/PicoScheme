@@ -13,8 +13,6 @@
 #include <iostream>
 #include <memory>
 
-#include "cell.hpp"
-#include "eval.hpp"
 #include "parser.hpp"
 #include "primop.hpp"
 
@@ -271,7 +269,7 @@ static Cell display(const varg& args)
  * Scheme list @em append function.
  * @verbatim (append [list_0 list_1 ... expr]) => nil | expr | (list_0 . list_1 ... . expr) @endverbatim
  */
-static Cell append(const varg& args)
+static Cell append(Scheme& scm, const varg& args)
 {
     if (!args.size())
         return nil;
@@ -285,10 +283,10 @@ static Cell append(const varg& args)
     for (size_t i = 0; i < args.size() - 1; ++i) {
         for (Cell list = args[i]; is_pair(list); list = cdr(list)) {
             if (is_nil(tail)) {
-                head = cons(car(list), nil);
+                head = scm.cons(car(list), nil);
                 tail = head;
             } else {
-                set_cdr(tail, cons(car(list), nil));
+                set_cdr(tail, scm.cons(car(list), nil));
                 tail = cdr(tail);
             }
         }
@@ -304,7 +302,7 @@ static Cell append(const varg& args)
  * @brief Scheme @em make-list function.
  * @verbatim (make-list len [fill = none]) => (fill ... fill) @endverbatim
  */
-static Cell makelist(const varg& args)
+static Cell makelist(Scheme& scm, const varg& args)
 {
     Int size = get<Int>(get<Number>(args.at(0)));
     if (size < 1)
@@ -314,10 +312,10 @@ static Cell makelist(const varg& args)
     if (args.size() > 1)
         val = args[1];
 
-    Cell head = cons(val, nil);
+    Cell head = scm.cons(val, nil);
 
     for (Cell tail = head; size > 1; --size, tail = cdr(tail))
-        set_cdr(tail, cons(val, nil));
+        set_cdr(tail, scm.cons(val, nil));
 
     return head;
 }
@@ -326,11 +324,11 @@ static Cell makelist(const varg& args)
  * Scheme @em reverse list function.
  * @verbatim (reverse (list 1 2 ... n)) => (n n-1 ... 2 1) @endverbatim
  */
-static Cell reverse(const varg& args)
+static Cell reverse(Scheme& scm, const varg& args)
 {
     Cell list = args.at(0), head = nil;
 
-    for (/* */; is_pair(list); head = cons(car(list), head), list = cdr(list))
+    for (/* */; is_pair(list); head = scm.cons(car(list), head), list = cdr(list))
         ;
 
     return head;
@@ -383,17 +381,17 @@ static Cell listsetb(const varg& args)
     return none;
 }
 
-static Cell listcopy(const varg& args)
+static Cell listcopy(Scheme& scm, const varg& args)
 {
     Cell list = args.at(0);
 
     if (is_nil(list))
         return nil;
 
-    Cell head = cons(car(list), nil), tail = head;
+    Cell head = scm.cons(car(list), nil), tail = head;
 
     for (list = cdr(list); is_pair(list); list = cdr(list), tail = cdr(tail))
-        set_cdr(tail, cons(car(list), nil));
+        set_cdr(tail, scm.cons(car(list), nil));
 
     if (!is_nil(list))
         set_cdr(tail, list);
@@ -408,7 +406,7 @@ static Cell is_proc(const varg& args)
         || (is_intern(cell) && get<Intern>(cell) >= Intern::_apply);
 }
 
-static Cell apply(const SymenvPtr& senv, const Cell& proc, const varg& args)
+static Cell apply(Scheme& scm, const SymenvPtr& senv, const Cell& proc, const varg& args)
 {
     if (pscm::is_proc(proc)) {
         Cons arg[2], cns[4];
@@ -417,11 +415,11 @@ static Cell apply(const SymenvPtr& senv, const Cell& proc, const varg& args)
 
         if (args.empty()) {
             set_cdr(cddr(expr), nil);
-            return eval(senv, expr);
+            return scm.eval(senv, expr);
 
         } else if (args.size() == 1) {
             set_car(cdr(argv), args.front());
-            return eval(senv, expr);
+            return scm.eval(senv, expr);
 
         } else {
             std::vector<Cons> vec;
@@ -433,13 +431,13 @@ static Cell apply(const SymenvPtr& senv, const Cell& proc, const varg& args)
 
             set_car(cdr(argv), head);
             set_cdr(cddr(expr), nil);
-            return eval(senv, expr);
+            return scm.eval(senv, expr);
         }
     } else
-        return call(senv, proc, args);
+        return scm.apply(senv, proc, args);
 }
 
-static Cell apply(const SymenvPtr& senv, const varg& args)
+static Cell apply(Scheme& scm, const SymenvPtr& senv, const varg& args)
 {
     if (args.size() <= 1)
         throw std::invalid_argument("apply - invalid number of arguments");
@@ -451,7 +449,7 @@ static Cell apply(const SymenvPtr& senv, const varg& args)
     for (Cell list = args.back(); is_pair(list); list = cdr(list))
         arg.push_back(car(list));
 
-    return apply(senv, args.at(0), arg);
+    return apply(scm, senv, args.at(0), arg);
 }
 
 struct continuation_exception {
@@ -462,16 +460,16 @@ struct continuation_exception {
     Cell continuation;
 };
 
-static Cell callcc(const SymenvPtr& senv, const varg& args)
+static Cell callcc(Scheme& scm, const SymenvPtr& senv, const varg& args)
 {
-    varg arg{ std::make_shared<FunctionPtr::element_type>(
-        [](const SymenvPtr&, const varg& args) -> Cell {
+    varg arg{ scm.mkfun(
+        [](Scheme& scm, const SymenvPtr&, const varg& args) -> Cell {
             throw continuation_exception{ args.at(0) };
             return none;
         }) };
 
     try {
-        return apply(senv, args.at(0), arg);
+        return apply(scm, senv, args.at(0), arg);
     } catch (const continuation_exception& e) {
         return e.continuation;
     }
@@ -498,7 +496,7 @@ static Cell memq(const SymenvPtr& senv, const varg& args)
 /**
  * Scheme list @em member function.
  */
-static Cell member(const SymenvPtr& senv, const varg& args)
+static Cell member(Scheme scm, const SymenvPtr& senv, const varg& args)
 {
     Cell list = args.at(1);
     const Cell& obj = args.front();
@@ -509,7 +507,7 @@ static Cell member(const SymenvPtr& senv, const varg& args)
 
         for (; is_pair(list); list = cdr(list)) {
             argv.back() = car(list);
-            if (is_true(apply(senv, proc, argv)))
+            if (is_true(apply(scm, senv, proc, argv)))
                 return list;
         }
 
@@ -549,7 +547,7 @@ static Cell assq(const SymenvPtr& senv, const varg& args)
 /**
  * Scheme list @em assoc function.
  */
-static Cell assoc(const SymenvPtr& senv, const varg& args)
+static Cell assoc(Scheme& scm, const SymenvPtr& senv, const varg& args)
 {
     Cell list = args.at(1);
     const Cell& obj = args.front();
@@ -563,7 +561,7 @@ static Cell assoc(const SymenvPtr& senv, const varg& args)
                 break;
 
             argv.back() = caar(list);
-            if (is_true(apply(senv, proc, argv)))
+            if (is_true(apply(scm, senv, proc, argv)))
                 return car(list);
         }
 
@@ -800,7 +798,7 @@ static Cell string(const varg& args)
 /**
  * Scheme string->list function.
  */
-static Cell strlist(const varg& args)
+static Cell strlist(Scheme& scm, const varg& args)
 {
     const auto& pstr = get<StringPtr>(args.at(0));
 
@@ -815,10 +813,10 @@ static Cell strlist(const varg& args)
     if (args.size() > 1)
         pos = std::min(get<Int>(get<Number>(args[1])), end);
 
-    Cell head = cons(pstr->at(pos), nil), tail = head;
+    Cell head = scm.cons(pstr->at(pos), nil), tail = head;
 
     for (auto ip = pstr->begin() + pos + 1, ie = pstr->begin() + end; ip != ie; ++ip, tail = cdr(tail))
-        set_cdr(tail, cons(*ip, nil));
+        set_cdr(tail, scm.cons(*ip, nil));
 
     return head;
 }
@@ -1232,7 +1230,7 @@ static Cell list2vec(const varg& args)
  * Scheme @em vector->list function.
  * @verbatim (vector->list  #(x0 x1 x2 ... xn) [pos [end]]) => '(x0 x1 x2 ... xn)  @endverbatim
  */
-static Cell vec2list(const varg& args)
+static Cell vec2list(Scheme& scm, const varg& args)
 {
     using size_type = VectorPtr::element_type::difference_type;
 
@@ -1247,10 +1245,10 @@ static Cell vec2list(const varg& args)
     if (pos == end)
         return nil;
 
-    Cell list = cons(vec->at(pos), nil), tail = list;
+    Cell list = scm.cons(vec->at(pos), nil), tail = list;
 
     for (auto ip = vec->begin() + pos + 1, ie = vec->begin() + end; ip != ie; ++ip, tail = cdr(tail))
-        set_cdr(tail, cons(*ip, nil));
+        set_cdr(tail, scm.cons(*ip, nil));
 
     return list;
 }
@@ -1362,32 +1360,32 @@ static Cell vec_appendb(const varg& args)
     return vptr;
 }
 
-static Cell callw_port(const SymenvPtr& senv, Port port, const Cell& proc)
+static Cell callw_port(Scheme& scm, const SymenvPtr& senv, Port port, const Cell& proc)
 {
     Cons cons[4];
-    Cell cell = eval(senv, alist(cons, Intern::_apply, proc, port, nil));
+    Cell cell = scm.eval(senv, alist(cons, Intern::_apply, proc, port, nil));
     port.close();
     return cell;
 }
 
-static Cell callw_infile(const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
+static Cell callw_infile(Scheme& scm, const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
 {
     Port port;
     if (!port.open(*filnam, std::ios_base::in))
         throw std::ios_base::failure("couldn't open input file: '"s + *filnam + "'"s);
 
     Cons cons[4];
-    return eval(senv, alist(cons, Intern::_apply, proc, port, nil));
+    return scm.eval(senv, alist(cons, Intern::_apply, proc, port, nil));
 }
 
-static Cell callw_outfile(const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
+static Cell callw_outfile(Scheme& scm, const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
 {
     Port port;
     if (!port.open(*filnam, std::ios_base::out))
         throw std::ios_base::failure("couldn't open output file: '"s + *filnam + "'"s);
 
     Cons cons[4];
-    return eval(senv, alist(cons, Intern::_apply, proc, port, nil));
+    return scm.eval(senv, alist(cons, Intern::_apply, proc, port, nil));
 }
 
 static Cell open_infile(const StringPtr& filnam)
@@ -1490,25 +1488,26 @@ static Cell write_str(const varg& args)
  * Scheme @em list function.
  * @verbatim (list [arg_0 ... arg_n]) => nil | (arg_0 ... arg_n) @endverbatim
  */
-static Cell list(const varg& args)
+static Cell list(Scheme& scm, const varg& args)
 {
     Cell list = nil;
     if (args.size()) {
-        list = cons(args.front(), nil);
+        list = scm.cons(args.front(), nil);
 
         Cell tail = list;
         for (auto iter = ++args.begin(); iter != args.end(); ++iter, tail = cdr(tail))
-            set_cdr(tail, cons(*iter, nil));
+            set_cdr(tail, scm.cons(*iter, nil));
     }
     return list;
 }
 
 static Cell readline(const varg& args)
 {
-    StringPtr line = str("");
+    StringPtr line = mkstr("");
 
     if (args.size() > 0) {
         Port port = get<Port>(args[0]);
+
         (port.is_open() && port.is_input())
             || ((void)(throw std::invalid_argument("port is closed")), 0);
 
@@ -1520,9 +1519,9 @@ static Cell readline(const varg& args)
     return line;
 }
 
-static Cell read(const varg& args)
+static Cell read(Scheme& scm, const varg& args)
 {
-    Parser parser;
+    Parser parser(scm);
 
     if (args.size() > 0) {
         Port port = get<Port>(args[0]);
@@ -1561,7 +1560,7 @@ static Cell peek_char(const varg& args)
  * Scheme @em read-string function.
  * @todo This is a dummy implementation.
  */
-static Cell read_str(const varg& args)
+static Cell read_str(Scheme& scm, const varg& args)
 {
     Port port;
     Number num = get<Number>(args.at(0));
@@ -1573,22 +1572,22 @@ static Cell read_str(const varg& args)
         (port.is_open() && port.is_input())
             || ((void)(throw std::invalid_argument("port is closed")), 0);
     }
-    Parser parser;
+    Parser parser(scm);
     return parser.read(port.stream());
 }
 
-static Cell macroexp(const SymenvPtr& senv, const varg& args)
+static Cell macroexp(Scheme& scm, const SymenvPtr& senv, const varg& args)
 {
     Cell expr = args.at(0);
 
     if (!is_pair(expr))
         return expr;
 
-    Cell proc = eval(senv, car(expr));
+    Cell proc = scm.eval(senv, car(expr));
     if (!is_macro(proc))
         return expr;
 
-    return get<Proc>(proc).expand(expr);
+    return get<Procedure>(proc).expand(scm, expr);
 }
 
 static Cell error(const varg& args)
@@ -1600,7 +1599,7 @@ static Cell error(const varg& args)
     return none;
 }
 
-static Cell foreach (const SymenvPtr& senv, const varg& args)
+static Cell foreach (Scheme& scm, const SymenvPtr& senv, const varg& args)
 {
     args.size() > 1
         || ((void)(throw std::invalid_argument("for-each - not enough arguments")), 0);
@@ -1612,7 +1611,7 @@ static Cell foreach (const SymenvPtr& senv, const varg& args)
         varg argv{ 1 };
         for (Cell list = args.at(1); is_pair(list); list = cdr(list)) {
             argv[0] = car(list);
-            apply(senv, proc, argv);
+            apply(scm, senv, proc, argv);
         }
         return none;
     } else { // multiple list version:
@@ -1629,13 +1628,13 @@ static Cell foreach (const SymenvPtr& senv, const varg& args)
                 } else
                     return none;
 
-            apply(senv, proc, argv);
+            apply(scm, senv, proc, argv);
             argv.clear();
         }
     }
 }
 
-static Cell map(const SymenvPtr& senv, const varg& args)
+static Cell map(Scheme& scm, const SymenvPtr& senv, const varg& args)
 {
     args.size() > 1
         || ((void)(throw std::invalid_argument("map - not enough arguments")), 0);
@@ -1649,11 +1648,11 @@ static Cell map(const SymenvPtr& senv, const varg& args)
             return nil;
 
         varg argv{ 1, car(list) };
-        Cell head = cons(apply(senv, proc, argv), nil), tail = head;
+        Cell head = scm.cons(apply(scm, senv, proc, argv), nil), tail = head;
 
         for (list = cdr(list); is_pair(list); list = cdr(list), tail = cdr(tail)) {
             argv[0] = car(list);
-            set_cdr(tail, cons(apply(senv, proc, argv), nil));
+            set_cdr(tail, scm.cons(apply(scm, senv, proc, argv), nil));
         }
         return head;
 
@@ -1662,7 +1661,6 @@ static Cell map(const SymenvPtr& senv, const varg& args)
 
         varg argv;
         argv.reserve(lists.size());
-
         Cell head = nil, tail = nil;
 
         for (;;) {
@@ -1674,10 +1672,10 @@ static Cell map(const SymenvPtr& senv, const varg& args)
                     return head;
 
             if (is_pair(head)) {
-                set_cdr(tail, cons(apply(senv, proc, argv), nil));
+                set_cdr(tail, scm.cons(apply(scm, senv, proc, argv), nil));
                 tail = cdr(tail);
             } else
-                head = tail = cons(apply(senv, proc, argv), nil);
+                head = tail = scm.cons(apply(scm, senv, proc, argv), nil);
             argv.clear();
         }
     }
@@ -1687,7 +1685,7 @@ static Cell map(const SymenvPtr& senv, const varg& args)
 
 namespace pscm {
 
-Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
+Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
 {
     switch (primop) {
     /* Section 6.1: Equivalence predicates */
@@ -1839,7 +1837,7 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
 
     /* Section 6.4: Pair and lists */
     case Intern::op_cons:
-        return cons(args.at(0), args.at(1));
+        return scm.cons(args.at(0), args.at(1));
     case Intern::op_car:
         return car(args.at(0));
     case Intern::op_cdr:
@@ -1859,9 +1857,9 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_setcdr:
         return (void)(set_cdr(args.at(0), args.at(1))), none;
     case Intern::op_list:
-        return primop::list(args);
+        return primop::list(scm, args);
     case Intern::op_mklist:
-        return primop::makelist(args);
+        return primop::makelist(scm, args);
     case Intern::op_isnil:
         return is_nil(args.at(0));
     case Intern::op_ispair:
@@ -1869,7 +1867,7 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_islist:
         return is_list(args.at(0));
     case Intern::op_append:
-        return primop::append(args);
+        return primop::append(scm, args);
     case Intern::op_length:
         return Number{ list_length(args.at(0)) };
     case Intern::op_listref:
@@ -1877,9 +1875,9 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_listsetb:
         return primop::listsetb(args);
     case Intern::op_listcopy:
-        return primop::listcopy(args);
+        return primop::listcopy(scm, args);
     case Intern::op_reverse:
-        return primop::reverse(args);
+        return primop::reverse(scm, args);
     case Intern::op_reverseb:
         return primop::reverseb(args);
     case Intern::op_memq:
@@ -1887,13 +1885,13 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_memv:
         return primop::memq(senv, args);
     case Intern::op_member:
-        return primop::member(senv, args);
+        return primop::member(scm, senv, args);
     case Intern::op_assq:
         return primop::assq(senv, args);
     case Intern::op_assv:
         return primop::assq(senv, args);
     case Intern::op_assoc:
-        return primop::assoc(senv, args);
+        return primop::assoc(scm, senv, args);
 
     /* Section 6.5: Symbols */
     case Intern::op_issym:
@@ -1901,15 +1899,15 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_symstr:
         return std::make_shared<StringPtr::element_type>(get<Symbol>(args.at(0)).value());
     case Intern::op_strsym:
-        return sym(get<StringPtr>(args.at(0))->c_str());
+        return scm.mksym(get<StringPtr>(args.at(0))->c_str());
     case Intern::op_gensym:
-        return gensym();
+        return scm.mksym();
 
     /* Section 6.6: Characters */
     case Intern::op_ischar:
         return is_type<Char>(args.at(0));
     case Intern::op_charint:
-        return num(get<Char>(args.at(0)));
+        return mknum(get<Char>(args.at(0)));
     case Intern::op_intchar:
         return static_cast<Char>((get<Int>(get<Number>(args.at(0)))));
     case Intern::op_ischareq:
@@ -2004,7 +2002,7 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_strfillb:
         return primop::strfillb(args);
     case Intern::op_strlist:
-        return primop::strlist(args);
+        return primop::strlist(scm, args);
     case Intern::op_liststr:
         return primop::liststr(args);
 
@@ -2012,8 +2010,8 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_isvec:
         return is_type<VectorPtr>(args.at(0));
     case Intern::op_mkvec:
-        return args.size() > 1 ? vec(get<Number>(args[0]), args[1])
-                               : vec(get<Number>(args.at(0)), none);
+        return args.size() > 1 ? mkvec(get<Number>(args[0]), args[1])
+                               : mkvec(get<Number>(args.at(0)), none);
     case Intern::op_vec:
         return std::make_shared<VectorPtr::element_type>(args);
     case Intern::op_veclen:
@@ -2023,7 +2021,7 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_vecsetb:
         return primop::vector_setb(args);
     case Intern::op_veclist:
-        return primop::vec2list(args);
+        return primop::vec2list(scm, args);
     case Intern::op_listvec:
         return primop::list2vec(args);
     case Intern::op_veccopy:
@@ -2043,11 +2041,11 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_isproc:
         return primop::is_proc(args);
     case Intern::op_callcc:
-        return primop::callcc(senv, args);
+        return primop::callcc(scm, senv, args);
     case Intern::op_map:
-        return primop::map(senv, args);
+        return primop::map(scm, senv, args);
     case Intern::op_foreach:
-        return primop::foreach (senv, args);
+        return primop::foreach (scm, senv, args);
 
     /* Section 6.11: Exceptions */
     case Intern::op_error:
@@ -2059,14 +2057,14 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_replenv:
         return senv;
     case Intern::op_repl:
-        repl(senv);
+        scm.repl(senv);
         return none;
     case Intern::op_eval:
-        return eval(args.size() > 1 ? get<SymenvPtr>(args[1]) : senv, args[0]);
+        return scm.eval(args.size() > 1 ? get<SymenvPtr>(args[1]) : senv, args.at(0));
     case Intern::_apply:
-        return primop::apply(senv, args);
+        return primop::apply(scm, senv, args);
     case Intern::op_macroexp:
-        return primop::macroexp(senv, args);
+        return primop::macroexp(scm, senv, args);
 
     /* Section 6.13: Input and output */
     case Intern::op_isport:
@@ -2084,11 +2082,11 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_isoutport_open:
         return is_type<Port>(args.at(0)) && get<Port>(args[0]).is_output() && get<Port>(args[0]).is_open();
     case Intern::op_callw_port:
-        return primop::callw_port(senv, get<Port>(args.at(0)), args.at(1));
+        return primop::callw_port(scm, senv, get<Port>(args.at(0)), args.at(1));
     case Intern::op_callw_infile:
-        return primop::callw_infile(senv, get<StringPtr>(args.at(0)), args.at(1));
+        return primop::callw_infile(scm, senv, get<StringPtr>(args.at(0)), args.at(1));
     case Intern::op_callw_outfile:
-        return primop::callw_outfile(senv, get<StringPtr>(args.at(0)), args.at(1));
+        return primop::callw_outfile(scm, senv, get<StringPtr>(args.at(0)), args.at(1));
     case Intern::op_open_infile:
         return primop::open_infile(get<StringPtr>(args.at(0)));
     case Intern::op_open_outfile:
@@ -2101,13 +2099,13 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_readline:
         return primop::readline(args);
     case Intern::op_read:
-        return primop::read(args);
+        return primop::read(scm, args);
     case Intern::op_read_char:
         return primop::read_char(args);
     case Intern::op_peek_char:
         return primop::peek_char(args);
     case Intern::op_read_str:
-        return primop::read_str(args);
+        return primop::read_str(scm, args);
     case Intern::op_eof:
         return Char{ EOF };
     case Intern::op_iseof:
@@ -2127,7 +2125,7 @@ Cell call(const SymenvPtr& senv, Intern primop, const varg& args)
 
     /* Section 6.14: System interface */
     case Intern::op_load:
-        load(*get<StringPtr>(args.at(0)), senv);
+        scm.load(*get<StringPtr>(args.at(0)), senv);
         return none;
 
     default:

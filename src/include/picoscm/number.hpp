@@ -55,19 +55,8 @@ struct Number : std::variant<Int, Float, Complex> {
         : base_type{ x }
     {
     }
-
     /**
-     * @brief Converting constructor for arithmetic type arguments.
-     */
-    //    constexpr Number(Float x)
-    //    {
-    //        if (x > floor(x) || x < ceil(x) || std::abs(x) > static_cast<Float>(std::numeric_limits<Int>::max()))
-    //            *this = base_type{ x };
-    //        else
-    //            *this = static_cast<Int>(x);
-    //    }
-    /**
-     * @brief Converting constructor for complex type arguments.
+     * Converting constructor for complex type arguments.
      */
     constexpr Number(const Complex& z)
         : Number{ z.real(), z.imag() }
@@ -84,7 +73,7 @@ struct Number : std::variant<Int, Float, Complex> {
     }
 
     /**
-     * @brief Conversion operator to convert a Number type to the requested arithmetic or complex type.
+     * Conversion operator to convert a Number type to the requested arithmetic or complex type.
      */
     template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T> || std::is_same_v<T, Complex>>>
     explicit constexpr operator T() const noexcept
@@ -124,23 +113,17 @@ struct Number : std::variant<Int, Float, Complex> {
 };
 
 template <typename T>
-Number num(const T& x) { return { x }; }
+Number mknum(const T& x) { return { x }; }
 
 template <typename RE, typename IM>
-Number num(const RE& x, const IM& y) { return { x, y }; }
+Number mknum(const RE& x, const IM& y) { return { x, y }; }
 
-constexpr bool is_int(const Number& num) { return is_type<Int>(num); }
-constexpr bool is_float(const Number& num) { return is_type<Float>(num); }
-constexpr bool is_complex(const Number& num) { return is_type<Complex>(num); }
+inline bool is_int(const Number& num) { return is_type<Int>(num); }
+inline bool is_float(const Number& num) { return is_type<Float>(num); }
+inline bool is_complex(const Number& num) { return is_type<Complex>(num); }
 
 bool is_integer(const Number& num);
 bool is_odd(const Number& num);
-
-constexpr inline Number operator""_int(unsigned long long val) { return static_cast<Int>(val); }
-constexpr inline Number operator""_flo(unsigned long long val) { return static_cast<Int>(val); }
-constexpr inline Number operator""_cpx(unsigned long long val) { return Number{ 0., static_cast<Float>(val) }; }
-constexpr inline Number operator""_flo(long double val) { return static_cast<Float>(val); }
-constexpr inline Number operator""_cpx(long double val) { return Number{ 0., static_cast<Float>(val) }; }
 
 template <typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os, const Complex& z)

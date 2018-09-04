@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <cstring>
 
-#include "cell.hpp"
 #include "parser.hpp"
 
 namespace pscm {
@@ -399,25 +398,25 @@ Cell Parser::read(std::istream& in)
             return chrtok;
 
         case Token::Quote:
-            return list(s_quote, read(in));
+            return scm.list(s_quote, read(in));
 
         case Token::QuasiQuote:
-            return list(s_quasiquote, read(in));
+            return scm.list(s_quasiquote, read(in));
 
         case Token::Unquote:
-            return list(s_unquote, read(in));
+            return scm.list(s_unquote, read(in));
 
         case Token::UnquoteSplice:
-            return list(s_unquotesplice, read(in));
+            return scm.list(s_unquotesplice, read(in));
 
         case Token::Number:
             return numtok;
 
         case Token::String:
-            return str(strtok.c_str());
+            return mkstr(strtok.c_str());
 
         case Token::Symbol:
-            return sym(strtok.c_str());
+            return scm.mksym(strtok.c_str());
 
         case Token::Vector:
             return parse_vector(in);
@@ -436,7 +435,7 @@ Cell Parser::read(std::istream& in)
 
 Cell Parser::parse_vector(std::istream& in)
 {
-    VectorPtr vptr = vec(0, none);
+    VectorPtr vptr = mkvec(0, none);
     Token tok = get_token(in);
 
     if (tok == Token::OBrace)
@@ -489,10 +488,10 @@ Cell Parser::parse_list(std::istream& in)
             cell = read(in);
 
             if (is_pair(tail)) {
-                set_cdr(tail, cons(cell, nil));
+                set_cdr(tail, scm.cons(cell, nil));
                 tail = cdr(tail);
             } else {
-                list = cons(cell, nil);
+                list = scm.cons(cell, nil);
                 tail = list;
             }
         }

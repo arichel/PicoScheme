@@ -6,35 +6,29 @@
 #include <iostream>
 #include <memory>
 
-#include <picoscm/cell.hpp>
-#include <picoscm/eval.hpp>
 #include <picoscm/parser.hpp>
-#include <picoscm/primop.hpp>
-#include <picoscm/symbol.hpp>
-#include <picoscm/types.hpp>
+#include <picoscm/scheme.hpp>
 
 using namespace std;
 using namespace pscm;
 
 int main(int argn, char* argv[])
 {
-    using pscm::Intern, pscm::Cell, pscm::list, pscm::sym, pscm::num, pscm::str, pscm::fun, pscm::nil;
-
-    fun(sym("greet"), [cntr = 0](auto senv, auto args) mutable -> Cell {
-        return list(str("hello world"), num(cntr++));
-    });
+    using pscm::Intern, pscm::Cell, pscm::mknum, pscm::mkstr, pscm::nil;
 
     pscm::Scheme scm;
 
-    //    pscm::load("picoscmrc.scm");
-    //    pscm::repl();
-    //    return 0;
+    scm.mkfun("greet", [cntr = 0](Scheme& scm, const SymenvPtr& senv, const std::vector<Cell>& args) mutable -> Cell {
+        return scm.list(mkstr("hello world"), mknum(cntr++));
+    });
+
+    scm.load("picoscmrc.scm");
+    scm.repl();
+    return 0;
 
     try {
 
-        return 0;
-
-        pscm::SymenvPtr e = pscm::senv();
+        pscm::SymenvPtr e = scm.mkenv();
 
         //        Cell expr = pscm::list(Intern::op_map,
         //            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
@@ -44,7 +38,7 @@ int main(int argn, char* argv[])
         //            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
         //            pscm::list(Intern::_quote, pscm::list(num(1))));
 
-        pscm::Parser parser;
+        pscm::Parser parser(scm);
         std::istringstream stream("(define (h)"
                                   ";\n"
                                   ")");
@@ -52,7 +46,7 @@ int main(int argn, char* argv[])
         Cell expr = parser.read(stream);
 
         cout << expr;
-        Cell proc = pscm::eval(e, expr);
+        Cell proc = scm.eval(e, expr);
         cout << proc << endl;
 
     } catch (std::bad_variant_access& e) {

@@ -8,7 +8,7 @@
  *************************************************************************************/
 #include <cstring>
 
-#include "cell.hpp"
+#include "scheme.hpp"
 #include "stream.hpp"
 
 namespace pscm {
@@ -143,7 +143,7 @@ std::ostream& operator<<(std::ostream& os, Intern opcode)
     }
 }
 
-static std::ostream& operator<<(std::ostream& os, Proc proc)
+static std::ostream& operator<<(std::ostream& os, Procedure proc)
 {
     return proc.is_macro() ? os << "#<macro>" : os << "#<clojure>";
 }

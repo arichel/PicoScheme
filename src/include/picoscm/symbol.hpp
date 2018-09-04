@@ -145,7 +145,7 @@ public:
     SymbolEnv(std::initializer_list<std::pair<Sym, T>> args)
         : table{ args.size() }
     {
-        for (auto & [ sym, val ] : args)
+        for (auto& [sym, val] : args)
             add(sym, val);
     }
 
@@ -206,24 +206,6 @@ public:
 private:
     const std::shared_ptr<SymbolEnv> next = nullptr;
     std::unordered_map<key_type, T> table;
-};
-
-template <typename Sym, typename Code>
-struct Opcode {
-    using value_type = typename Sym::value_type;
-
-    Opcode(const Sym& sym, Code code)
-        : _value(&sym.value())
-        , _code{ code }
-    {
-    }
-    template <typename T>
-    operator T() const { return static_cast<T>(_code); }
-    const value_type& value() const { return *_value; }
-
-private:
-    const value_type* _value;
-    Code _code;
 };
 
 } // namespace pscm

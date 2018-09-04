@@ -1,5 +1,5 @@
-#ifndef PROC_HPP
-#define PROC_HPP
+#ifndef PROCEDURE_HPP
+#define PROCEDURE_HPP
 
 #include <functional>
 #include <memory>
@@ -10,9 +10,12 @@
 namespace pscm {
 
 struct Cell;
+class Scheme;
+
 using Symtab = SymbolTable<std::string>;
 using Symbol = Symtab::Symbol;
-using SymenvPtr = std::shared_ptr<SymbolEnv<Symbol, Cell>>;
+using Symenv = SymbolEnv<Symbol, Cell>;
+using SymenvPtr = std::shared_ptr<Symenv>;
 
 /**
  * @brief Procedure type to represent a scheme closure.
@@ -26,7 +29,7 @@ using SymenvPtr = std::shared_ptr<SymbolEnv<Symbol, Cell>>;
  *  body        := (expr . list)
  * @endverbatim
  */
-class Proc {
+class Procedure {
 public:
     /**
      * @brief Construct a new closure.
@@ -34,19 +37,19 @@ public:
      * @param args  Formal lambda expression argument list or symbol.
      * @param code  Non empty list of one or more scheme expression forming the lambda body.
      */
-    Proc(const SymenvPtr& senv, const Cell& args, const Cell& code, bool is_macro = false);
-    Proc(const Proc& proc);
-    Proc(Proc&& proc) noexcept;
-    ~Proc();
+    Procedure(const SymenvPtr& senv, const Cell& args, const Cell& code, bool is_macro = false);
+    Procedure(const Procedure& proc);
+    Procedure(Procedure&& proc) noexcept;
+    ~Procedure();
 
     /// Predicate returns true if closure should be applied as macro.
     bool is_macro() const noexcept;
 
-    Proc& operator=(const Proc&);
-    Proc& operator=(Proc&&) noexcept;
+    Procedure& operator=(const Procedure&);
+    Procedure& operator=(Procedure&&) noexcept;
 
-    bool operator!=(const Proc& proc) const noexcept;
-    bool operator==(const Proc& proc) const noexcept;
+    bool operator!=(const Procedure& proc) const noexcept;
+    bool operator==(const Procedure& proc) const noexcept;
 
     /**
      * @brief Closure application.
@@ -62,36 +65,27 @@ public:
      * @return New child environment of the closure parent environment and the closure body
      *         expression list.
      */
-    std::pair<SymenvPtr, Cell> apply(const SymenvPtr& senv, Cell args, bool is_list = true) const;
+    std::pair<SymenvPtr, Cell> apply(Scheme& scm, const SymenvPtr& env, Cell args, bool is_list = true) const;
 
     /**
      * @brief Replace expression with the expanded closure macro.
      * @param expr (closure-macro arg0 ... arg_n)
      * @return The expanded macro body.
      */
-    Cell expand(Cell& expr) const;
+    Cell expand(Scheme& scm, Cell& expr) const;
 
 private:
     struct Closure;
     std::unique_ptr<Closure> impl;
 };
 
-/**
- * @brief Conveniance function to call the Proc::apply member function.
- */
-std::pair<SymenvPtr, Cell> apply(const SymenvPtr& senv, const Proc& proc, const Cell& args, bool is_list = true);
-
-class Func {
+class Function {
 public:
-    using function_type = std::function<Cell(const SymenvPtr&, const std::vector<Cell>&)>;
+    using function_type = std::function<Cell(Scheme& scm, const SymenvPtr&, const std::vector<Cell>&)>;
 
-    Func(const Symbol& sym, function_type&& fun);
+    Function(const Symbol& sym, function_type&& fun);
 
-    Func(function_type&& fun);
-
-    //    bool operator!=(const Func& func) const;
-    //    bool operator==(const Func& func) const;
-    Cell operator()(const SymenvPtr& senv, const std::vector<Cell>& args) const;
+    Cell operator()(Scheme& scm, const SymenvPtr& senv, const std::vector<Cell>& args) const;
 
     const std::string& name() const;
 
@@ -102,4 +96,4 @@ private:
 
 }; // namespace pscm
 
-#endif // PROC_HPP
+#endif // PROCEDURE_HPP
