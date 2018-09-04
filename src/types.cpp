@@ -275,6 +275,8 @@ static SymenvPtr topenv{
 
         /* Section 6.14: System interface */
         { sym("load"), Intern::op_load },
+
+        /* Extension: regular expressions */
     }
 };
 
@@ -290,12 +292,32 @@ Symbol gensym()
     return symtab[str.c_str()];
 }
 
+Symbol Scheme::gensym()
+{
+    Symbol::value_type str("symbol ");
+    str.append(std::to_string(symtab.size()));
+    return symtab[str.c_str()];
+}
+
 SymenvPtr senv(const SymenvPtr& env)
 {
     return std::make_shared<SymenvPtr::element_type>(env ? env : topenv);
 }
 
+SymenvPtr Scheme::newenv(const SymenvPtr& env)
+{
+    return std::make_shared<SymenvPtr::element_type>(env ? env : topenv);
+}
+
 void addenv(const Symbol& sym, const Cell& cell, const SymenvPtr& env)
+{
+    if (env)
+        env->add(sym, cell);
+    else
+        topenv->add(sym, cell);
+}
+
+void Scheme::addenv(const Symbol& sym, const Cell& cell, const SymenvPtr& env)
 {
     if (env)
         env->add(sym, cell);

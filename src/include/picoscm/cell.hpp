@@ -21,58 +21,40 @@ using std::get;
 size_t store_size();
 
 /**
- * A scheme cell is a variant type of all supported scheme types.
- */
-struct Cell : Variant {
-    using base_type = Variant;
-    using Variant::Variant;
-
-    /**
-     * Type conversion operator to return the value hold by this Cell.
-     * @throws std::bad_variant_access
-     */
-    //    template <typename T>
-    //    operator T&() const { return std::get<T>(static_cast<Variant>(*this)); }
-
-    //    template <typename T>
-    //    operator T&() { return std::get<T>(*this); }
-};
-
-/**
  * Return a textual representation of template argument type.
  */
 template <typename CellType>
 constexpr const char* type_name()
 {
     using T = std::decay_t<CellType>;
-    if
-        constexpr(std::is_same_v<T, Nil>) return "()";
-    else if
-        constexpr(std::is_same_v<T, None>) return "#<none>";
-    else if
-        constexpr(std::is_same_v<T, Intern>) return "#<primop>";
-    else if
-        constexpr(std::is_same_v<T, Bool>) return "#<boolean>";
-    else if
-        constexpr(std::is_same_v<T, Char>) return "#<character>";
-    else if
-        constexpr(std::is_same_v<T, Number>) return "#<number>";
-    else if
-        constexpr(std::is_same_v<T, Cons*>) return "#<cons>";
-    else if
-        constexpr(std::is_same_v<T, StringPtr>) return "#<string>";
-    else if
-        constexpr(std::is_same_v<T, VectorPtr>) return "#<vector>";
-    else if
-        constexpr(std::is_same_v<T, FunctionPtr>) return "#<function>";
-    else if
-        constexpr(std::is_same_v<T, Port>) return "#<port>";
-    else if
-        constexpr(std::is_same_v<T, Symbol>) return "#<symbol>";
-    else if
-        constexpr(std::is_same_v<T, SymenvPtr>) return "#<environment>";
-    else if
-        constexpr(std::is_same_v<T, Proc>) return "#<procedure>";
+    if constexpr (std::is_same_v<T, Nil>)
+        return "()";
+    else if constexpr (std::is_same_v<T, None>)
+        return "#<none>";
+    else if constexpr (std::is_same_v<T, Intern>)
+        return "#<primop>";
+    else if constexpr (std::is_same_v<T, Bool>)
+        return "#<boolean>";
+    else if constexpr (std::is_same_v<T, Char>)
+        return "#<character>";
+    else if constexpr (std::is_same_v<T, Number>)
+        return "#<number>";
+    else if constexpr (std::is_same_v<T, Cons*>)
+        return "#<cons>";
+    else if constexpr (std::is_same_v<T, StringPtr>)
+        return "#<string>";
+    else if constexpr (std::is_same_v<T, VectorPtr>)
+        return "#<vector>";
+    else if constexpr (std::is_same_v<T, FunctionPtr>)
+        return "#<function>";
+    else if constexpr (std::is_same_v<T, Port>)
+        return "#<port>";
+    else if constexpr (std::is_same_v<T, Symbol>)
+        return "#<symbol>";
+    else if constexpr (std::is_same_v<T, SymenvPtr>)
+        return "#<environment>";
+    else if constexpr (std::is_same_v<T, Proc>)
+        return "#<procedure>";
     else
         return "#<unknown>";
 }
@@ -258,12 +240,9 @@ Cons* alist(Cons (&cons)[size], T&& t, Args&&... args)
 {
     cons[0].first = std::forward<T>(t);
 
-    if
-        constexpr(size > 1)
-        {
-            cons[0].second = alist(reinterpret_cast<Cons(&)[size - 1]>(cons[1]), std::forward<Args>(args)...);
-        }
-    else
+    if constexpr (size > 1) {
+        cons[0].second = alist(reinterpret_cast<Cons(&)[size - 1]>(cons[1]), std::forward<Args>(args)...);
+    } else
         cons[0].second = nil;
 
     return &cons[0];

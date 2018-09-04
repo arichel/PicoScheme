@@ -24,11 +24,15 @@ int main(int argn, char* argv[])
         return list(str("hello world"), num(cntr++));
     });
 
-    pscm::load("picoscmrc.scm");
-    pscm::repl();
-    return 0;
+    //    pscm::load("picoscmrc.scm");
+    //    pscm::repl();
+    //    return 0;
 
     try {
+        pscm::Scheme scm;
+
+        return 0;
+
         pscm::SymenvPtr e = pscm::senv();
 
         //        Cell expr = pscm::list(Intern::op_map,
