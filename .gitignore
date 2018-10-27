@@ -27,6 +27,7 @@ Makefile*
 *.prl
 *.app
 moc_*.cpp
+*.cpp~*
 ui_*.h
 qrc_*.cpp
 Thumbs.db

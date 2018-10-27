@@ -16,8 +16,8 @@ namespace pscm {
 
 bool is_integer(const Number& num)
 {
-    auto fun = overloads{
-        [](Int i) -> bool { return true; },
+    constexpr auto fun = overloads{
+        [](Int) -> bool { return true; },
         [](Float x) -> bool {
             return !(x > floor(x)
                 || x < ceil(x)
@@ -27,17 +27,17 @@ bool is_integer(const Number& num)
             return imag(z) < 0 || imag(z) > 0 ? false : is_integer(real(z));
         },
     };
-    return visit(std::move(fun), static_cast<const Number::base_type&>(num));
+    return visit(fun, static_cast<const Number::base_type&>(num));
 }
 
 bool is_odd(const Number& num)
 {
-    auto fun = overloads{
+    constexpr auto fun = overloads{
         [](Int i) -> bool { return std::abs(i) % Int{ 2 }; },
         [](Float x) -> bool { return fmod(x, 2.); },
         [](const Complex& z) -> bool { return imag(z) < 0 || imag(z) > 0 ? true : fmod(real(z), 2.); },
     };
-    return visit(std::move(fun), static_cast<const Number::base_type&>(num));
+    return visit(fun, static_cast<const Number::base_type&>(num));
 }
 
 /**
@@ -69,7 +69,7 @@ bool operator!=(const Number& lhs, const Number& rhs)
 {
     using value_type = Complex::value_type;
 
-    auto fun = overloads{
+    constexpr auto fun = overloads{
         [](const Complex& z0, const Complex& z1) -> bool {
             return z0 != z1;
         },
@@ -85,11 +85,11 @@ bool operator!=(const Number& lhs, const Number& rhs)
         [](Int x, Int y) -> bool {
             return x != y;
         },
-        [](auto x, auto y) -> bool {
+        [](auto, auto) -> bool {
             return true;
         }
     };
-    return visit(std::move(fun),
+    return visit(fun,
         static_cast<const Number::base_type&>(lhs),
         static_cast<const Number::base_type&>(rhs));
 }
@@ -189,14 +189,14 @@ Number operator-(const Number& x)
 
 Number operator%(const Number& lhs, const Number& rhs)
 {
-    auto fun = overloads{
-        [](const Complex& z1, const Complex& z2) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
-        [](const Complex& z, auto x) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
-        [](auto x, const Complex& z) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
+    constexpr auto fun = overloads{
+        [](const Complex&, const Complex&) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
+        [](const Complex&, auto) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
+        [](auto, const Complex&) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
         [](Int i0, Int i1) -> Number { return (i1 + i0 % i1) % i1; },
         [](auto x, auto y) -> Number { return fmod((y + fmod(x, y)), y); }
     };
-    return visit(std::move(fun),
+    return visit(fun,
         static_cast<const Number::base_type&>(lhs),
         static_cast<const Number::base_type&>(rhs));
 }
@@ -204,13 +204,13 @@ Number operator%(const Number& lhs, const Number& rhs)
 Number remainder(const Number& lhs, const Number& rhs)
 {
     constexpr auto fun = overloads{
-        [](const Complex& z1, const Complex& z2) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
-        [](const Complex& z, auto x) -> Number { return ((void)(throw std::invalid_argument("remainder - not definied for complex numbers")), 0); },
-        [](auto x, const Complex& z) -> Number { return ((void)(throw std::invalid_argument("remainder - not definied for complex numbers")), 0); },
+        [](const Complex&, const Complex&) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
+        [](const Complex&, auto) -> Number { return ((void)(throw std::invalid_argument("remainder - not definied for complex numbers")), 0); },
+        [](auto, const Complex&) -> Number { return ((void)(throw std::invalid_argument("remainder - not definied for complex numbers")), 0); },
         [](Int i0, Int i1) -> Number { return static_cast<Int>(std::remainder(i0, i1)); },
         [](auto x, auto y) -> Number { return std::remainder(x, y); }
     };
-    return visit(std::move(fun),
+    return visit(fun,
         static_cast<const Number::base_type&>(lhs),
         static_cast<const Number::base_type&>(rhs));
 }
@@ -224,7 +224,7 @@ Number operator+(const Number& lhs, const Number& rhs)
 {
     using value_type = Complex::value_type;
 
-    auto fun = overloads{
+    constexpr auto fun = overloads{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 + z1; },
         [](const Complex& z, auto x) -> Number { return z + static_cast<value_type>(x); },
         [](auto x, const Complex& z) -> Number { return static_cast<value_type>(x) + z; },
@@ -239,7 +239,7 @@ Number operator+(const Number& lhs, const Number& rhs)
             return static_cast<T>(x) + static_cast<T>(y);
         }
     };
-    return visit(std::move(fun),
+    return visit(fun,
         static_cast<const Number::base_type&>(lhs),
         static_cast<const Number::base_type&>(rhs));
 }
@@ -253,7 +253,7 @@ Number operator-(const Number& lhs, const Number& rhs)
 {
     using value_type = Complex::value_type;
 
-    auto fun = overloads{
+    constexpr auto fun = overloads{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 - z1; },
         [](const Complex& z, auto x) -> Number { return z - static_cast<value_type>(x); },
         [](auto x, const Complex& z) -> Number { return static_cast<value_type>(x) - z; },
@@ -268,7 +268,7 @@ Number operator-(const Number& lhs, const Number& rhs)
             return static_cast<T>(x) - static_cast<T>(y);
         }
     };
-    return visit(std::move(fun),
+    return visit(fun,
         static_cast<const Number::base_type&>(lhs),
         static_cast<const Number::base_type&>(rhs));
 }
@@ -280,7 +280,7 @@ Number operator*(const Number& lhs, const Number& rhs)
 {
     using value_type = Complex::value_type;
 
-    auto fun = overloads{
+    constexpr auto fun = overloads{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 * z1; },
         [](const Complex& z, auto x) -> Number { return z * static_cast<value_type>(x); },
         [](auto x, const Complex& z) -> Number { return static_cast<value_type>(x) * z; },
@@ -289,7 +289,7 @@ Number operator*(const Number& lhs, const Number& rhs)
             return static_cast<T>(x) * static_cast<T>(y);
         }
     };
-    return visit(std::move(fun),
+    return visit(fun,
         static_cast<const Number::base_type&>(lhs),
         static_cast<const Number::base_type&>(rhs));
 }
@@ -303,7 +303,7 @@ Number operator/(const Number& lhs, const Number& rhs)
 
     rhs != Number{ 0 } || ((void)(throw std::invalid_argument("divide by zero")), 0);
 
-    auto fun = overloads{
+    constexpr auto fun = overloads{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 / z1; },
         [](const Complex& z, auto x) -> Number { return z / static_cast<value_type>(x); },
         [](auto x, const Complex& z) -> Number { return static_cast<value_type>(x) / z; },
@@ -318,7 +318,7 @@ Number operator/(const Number& lhs, const Number& rhs)
             return static_cast<T>(x) / static_cast<T>(y);
         }
     };
-    return visit(std::move(fun),
+    return visit(fun,
         static_cast<const Number::base_type&>(lhs),
         static_cast<const Number::base_type&>(rhs));
 }
@@ -366,7 +366,7 @@ static T round_even(T x)
  */
 Number round(const Number& x)
 {
-    auto fun = overloads{
+    constexpr auto fun = overloads{
         [](Int i) -> Number {
             return i;
         },
@@ -377,7 +377,7 @@ Number round(const Number& x)
             return { round_even(z.real()), round_even(z.imag()) };
         }
     };
-    return visit(std::move(fun), static_cast<const Number::base_type&>(x));
+    return visit(fun, static_cast<const Number::base_type&>(x));
 }
 
 /**
@@ -610,7 +610,7 @@ Number pow(const Number& x, const Number& y)
     if (is_zero(x))
         return is_zero(y) ? Int{ 1 } : Int{ 0 };
 
-    auto fun = overloads{
+    constexpr auto fun = overloads{
         [](const Complex& x, const Complex& y) -> Number {
             return std::pow(x, y);
         },
@@ -633,7 +633,7 @@ Number pow(const Number& x, const Number& y)
             return std::pow(static_cast<Float>(x), static_cast<Float>(y));
         }
     };
-    return visit(std::move(fun), static_cast<const Number::base_type&>(x),
+    return visit(fun, static_cast<const Number::base_type&>(x),
         static_cast<const Number::base_type&>(y));
 }
 
