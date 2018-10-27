@@ -106,7 +106,7 @@ T& get(Cell& cell)
     try {
         return std::get<T>(static_cast<Variant&>(cell));
 
-    } catch (std::bad_variant_access& e) {
+    } catch (std::bad_variant_access&) {
         throw bad_cell_access<T>(cell);
     }
 }
@@ -117,7 +117,7 @@ T&& get(Cell&& cell)
     try {
         return std::get<T>(static_cast<Variant&&>(std::move(cell)));
 
-    } catch (std::bad_variant_access& e) {
+    } catch (std::bad_variant_access&) {
         throw bad_cell_access<T>(cell);
     }
 }
@@ -128,7 +128,7 @@ const T& get(const Cell& cell)
     try {
         return std::get<T>(static_cast<Variant&>(const_cast<Cell&>(cell)));
 
-    } catch (std::bad_variant_access& e) {
+    } catch (std::bad_variant_access&) {
         throw bad_cell_access<T>(cell);
     }
 }
@@ -139,7 +139,7 @@ const T&& get(const Cell&& cell)
     try {
         return std::get<T>(static_cast<const Variant&&>(std::move(cell)));
 
-    } catch (std::bad_variant_access& e) {
+    } catch (std::bad_variant_access&) {
         throw bad_cell_access<T>(cell);
     }
 }

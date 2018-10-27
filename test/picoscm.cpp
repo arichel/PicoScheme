@@ -22,7 +22,11 @@ int main(int argn, char* argv[])
         return scm.list(mkstr("hello world"), mknum(cntr++));
     });
 
-    scm.load("picoscmrc.scm");
+    if (argn > 1)
+        scm.load(argv[1]);
+    else
+        scm.load("picoscmrc.scm");
+
     scm.repl();
     return 0;
 

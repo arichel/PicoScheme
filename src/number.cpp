@@ -119,7 +119,7 @@ bool operator>(const Number& lhs, const Number& rhs)
     return visit([](auto x, auto y) {
         if constexpr (!std::is_same_v<Complex, decltype(x)> && !std::is_same_v<Complex, decltype(y)>) {
             using T = std::common_type_t<decltype(x), decltype(y)>;
-            return static_cast<T>(x) > static_cast<T>(y);
+            return (static_cast<T>(x) > static_cast<T>(y));
         } else
             return ((void)(throw std::invalid_argument("uncomparable complex number")), false);
     },

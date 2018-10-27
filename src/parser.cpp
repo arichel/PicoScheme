@@ -7,6 +7,7 @@
  * @copyright MIT License
  *************************************************************************************/
 #include <algorithm>
+#include <cctype>
 #include <cstring>
 
 #include "parser.hpp"
@@ -84,7 +85,7 @@ Parser::Token Parser::lex_number(const std::string& str, Number& num)
         else {
             try {
                 num = std::stol(str);
-            } catch (std::out_of_range& e) {
+            } catch (std::out_of_range&) {
                 num = Number{ std::stod(str) };
             }
         }

@@ -1,16 +1,18 @@
 ####################################################################################################
+#
+# PicoScheme build instruction for Windows with Visual Studio installed:
+# 1) Open a developer console for Visual Studio and change into the PicoScheme directory.
+# 2) Type 'mkdir build' to create a new build subdirectory.
+# 3) Type 'cmake -H. -Bbuild' to generate a Visual Studio project file
+# 4) Change into the 'build' subdirectory and type 'msbuild PicoScheme.sln'
+# 5) Change into the 'Debug' subdirectory and type 'picoscm ../../test/picoscmrc.scm'
+
 cmake_minimum_required(VERSION 3.2)
 
 set(CMAKE_BUILD_TYPE Debug)
 
 project(PicoScheme VERSION 0.1 LANGUAGES CXX)
 set(LIB_NAME picoscheme)
-
-# Enable c++17 for MS-compiler
-if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /wd4061 /wd4623 /wd4100
-        /wd4820 /wd4625 /wd4626 /wd4571 /wd5026 /wd5027")
-endif(MSVC)
 
 # Set debug flags for gcc
 if(CMAKE_COMPILER_IS_GNUCC)
@@ -29,7 +31,14 @@ option (BUILD_SHARED_LIBS "build picoscheme as shared library" OFF)
 add_library(${LIB_NAME} ${SOURCES})
 
 target_include_directories(${LIB_NAME} PRIVATE ${INCLUDE_PATH})
-target_compile_options(${LIB_NAME} PRIVATE -Wall) # -Wno-sign-conversion)
+
+if(MSVC)
+    target_compile_options(${LIB_NAME} PRIVATE /W3 /std:c++17)
+else(MSVC)
+    target_compile_options(${LIB_NAME} PRIVATE -Wall -Wno-padded -Wextra -pedantic)
+endif(MSVC)
+
+#target_compile_options(${LIB_NAME} PRIVATE -Wall) # -Wno-sign-conversion)
 set_target_properties(${LIB_NAME} PROPERTIES CXX_STANDARD 17 CXX_EXTENSIONS OFF)
 
 install (TARGETS ${LIB_NAME} DESTINATION lib)
@@ -44,7 +53,13 @@ if (GENERATE_TESTMAIN)
     add_executable(${EXEC_NAME} "test/${EXEC_NAME}.cpp")
     target_include_directories(${EXEC_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/src/include")
     target_link_libraries(${EXEC_NAME} ${LIB_NAME})
-    target_compile_options(${EXEC_NAME} PRIVATE -Wall -Wno-padded)
+
+    if(MSVC)
+        target_compile_options(${EXEC_NAME} PRIVATE /W3 /std:c++17)
+    else(MSVC)
+        target_compile_options(${EXEC_NAME} PRIVATE -Wall -Wno-padded -Wextra -pedantic)
+    endif(MSVC)
+
     set_target_properties(${EXEC_NAME} PROPERTIES CXX_STANDARD 17 CXX_EXTENSIONS OFF)
 
     install (TARGETS ${EXEC_NAME} DESTINATION bin)
