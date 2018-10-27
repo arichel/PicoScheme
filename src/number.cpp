@@ -16,7 +16,7 @@ namespace pscm {
 
 bool is_integer(const Number& num)
 {
-    static auto fun = overloads{
+    static overloads fun{
         [](Int) -> bool { return true; },
         [](Float x) -> bool {
             return !(x > floor(x)
@@ -32,7 +32,7 @@ bool is_integer(const Number& num)
 
 bool is_odd(const Number& num)
 {
-    static auto fun = overloads{
+    static overloads fun{
         [](Int i) -> bool { return std::abs(i) % Int{ 2 }; },
         [](Float x) -> bool { return fmod(x, 2.); },
         [](const Complex& z) -> bool { return imag(z) < 0 || imag(z) > 0 ? true : fmod(real(z), 2.); },
@@ -69,7 +69,7 @@ bool operator!=(const Number& lhs, const Number& rhs)
 {
     using value_type = Complex::value_type;
 
-    static auto fun = overloads{
+    static overloads fun{
         [](const Complex& z0, const Complex& z1) -> bool {
             return z0 != z1;
         },
@@ -189,7 +189,7 @@ Number operator-(const Number& x)
 
 Number operator%(const Number& lhs, const Number& rhs)
 {
-    static auto fun = overloads{
+    static overloads fun{
         [](const Complex&, const Complex&) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
         [](const Complex&, auto) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
         [](auto, const Complex&) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
@@ -203,7 +203,7 @@ Number operator%(const Number& lhs, const Number& rhs)
 
 Number remainder(const Number& lhs, const Number& rhs)
 {
-    static auto fun = overloads{
+    static overloads fun{
         [](const Complex&, const Complex&) -> Number { return ((void)(throw std::invalid_argument("modulo - not definied for complex numbers")), 0); },
         [](const Complex&, auto) -> Number { return ((void)(throw std::invalid_argument("remainder - not definied for complex numbers")), 0); },
         [](auto, const Complex&) -> Number { return ((void)(throw std::invalid_argument("remainder - not definied for complex numbers")), 0); },
@@ -224,7 +224,7 @@ Number operator+(const Number& lhs, const Number& rhs)
 {
     using value_type = Complex::value_type;
 
-    static auto fun = overloads{
+    static overloads fun{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 + z1; },
         [](const Complex& z, auto x) -> Number { return z + static_cast<value_type>(x); },
         [](auto x, const Complex& z) -> Number { return static_cast<value_type>(x) + z; },
@@ -253,7 +253,7 @@ Number operator-(const Number& lhs, const Number& rhs)
 {
     using value_type = Complex::value_type;
 
-    static auto fun = overloads{
+    static overloads fun{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 - z1; },
         [](const Complex& z, auto x) -> Number { return z - static_cast<value_type>(x); },
         [](auto x, const Complex& z) -> Number { return static_cast<value_type>(x) - z; },
@@ -280,7 +280,7 @@ Number operator*(const Number& lhs, const Number& rhs)
 {
     using value_type = Complex::value_type;
 
-    static auto fun = overloads{
+    static overloads fun{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 * z1; },
         [](const Complex& z, auto x) -> Number { return z * static_cast<value_type>(x); },
         [](auto x, const Complex& z) -> Number { return static_cast<value_type>(x) * z; },
@@ -303,7 +303,7 @@ Number operator/(const Number& lhs, const Number& rhs)
 
     rhs != Number{ 0 } || ((void)(throw std::invalid_argument("divide by zero")), 0);
 
-    static auto fun = overloads{
+    static overloads fun{
         [](const Complex& z0, const Complex& z1) -> Number { return z0 / z1; },
         [](const Complex& z, auto x) -> Number { return z / static_cast<value_type>(x); },
         [](auto x, const Complex& z) -> Number { return static_cast<value_type>(x) / z; },
@@ -366,7 +366,7 @@ static T round_even(T x)
  */
 Number round(const Number& x)
 {
-    static auto fun = overloads{
+    static overloads fun{
         [](Int i) -> Number {
             return i;
         },
@@ -610,7 +610,7 @@ Number pow(const Number& x, const Number& y)
     if (is_zero(x))
         return is_zero(y) ? Int{ 1 } : Int{ 0 };
 
-    static auto fun = overloads{
+    static overloads fun{
         [](const Complex& x, const Complex& y) -> Number {
             return std::pow(x, y);
         },

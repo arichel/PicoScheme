@@ -153,7 +153,7 @@ static std::ostream& operator<<(std::ostream& os, Procedure proc)
  */
 std::ostream& operator<<(std::ostream& os, const Cell& cell)
 {
-    overloads fun{
+    static overloads fun{
         [&os](None) { os << "#<none>"; },
         [&os](Nil) { os << "()"; },
         [&os](Bool arg) { os << (arg ? "#t" : "#f"); },
@@ -163,7 +163,7 @@ std::ostream& operator<<(std::ostream& os, const Cell& cell)
         [&os](const Port&) { os << "#<port>"; },
         [&os](auto& arg) { os << arg; }
     };
-    std::visit(std::move(fun), static_cast<const Cell::base_type&>(cell));
+    std::visit(fun, static_cast<const Cell::base_type&>(cell));
     return os;
 }
 

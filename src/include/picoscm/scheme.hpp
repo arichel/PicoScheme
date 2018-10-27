@@ -184,7 +184,7 @@ Cons* cons(Store& store, CAR&& car, CDR&& cdr)
 
 //! Recursion base case
 template <typename Store>
-Cell list(Store& store) { return nil; }
+Cell list(Store&) { return nil; }
 
 //! Build a cons list of all arguments
 template <typename Store, typename T, typename... Args>

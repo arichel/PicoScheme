@@ -1,5 +1,5 @@
 /*********************************************************************************/ /**
- * @file types.cpp
+ * @file scheme.cpp
  *
  * @version   0.1
  * @date      2018-
@@ -26,15 +26,13 @@ bool is_equal(const Cell& lhs, const Cell& rhs)
     if (lhs.index() != rhs.index())
         return false;
 
-    auto test = overloads{
+    static overloads test{
         [](const StringPtr& lhs, const StringPtr& rhs) -> bool { return *lhs == *rhs; },
         [](const VectorPtr& lhs, const VectorPtr& rhs) -> bool { return lhs == rhs || (lhs->size() == rhs->size() && std::equal(lhs->begin(), lhs->end(), rhs->begin(), is_equal)); },
         [](Cons* lhs, Cons* rhs) -> bool { return is_list_equal(lhs, rhs); },
         [](auto&, auto&) -> bool { return false; }
     };
-    return visit(std::move(test),
-        static_cast<const Cell::base_type&>(lhs),
-        static_cast<const Cell::base_type&>(rhs));
+    return visit(test, static_cast<const Cell::base_type&>(lhs), static_cast<const Cell::base_type&>(rhs));
 }
 
 bool is_list(Cell cell)
