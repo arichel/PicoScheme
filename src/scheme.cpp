@@ -362,9 +362,9 @@ Cell Scheme::eval_list(const SymenvPtr& env, Cell list, bool is_list)
     return head;
 }
 
-const std::vector<Cell>& Scheme::eval_args(const SymenvPtr& env, Cell args, bool is_list)
+std::vector<Cell> Scheme::eval_args(const SymenvPtr& env, Cell args, bool is_list)
 {
-    stack.clear();
+    std::vector<Cell> stack;
 
     if (is_list) { // expression: (proc x y ... z)
         for (/* */; is_pair(args); args = cdr(args))

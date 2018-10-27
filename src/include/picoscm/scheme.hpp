@@ -627,7 +627,7 @@ public:
     Cell eval_list(const SymenvPtr& env, Cell list, bool is_list = true);
 
     /**
-     * @brief Evaluate argument list into an argument vector.
+     * Evaluate argument list into an argument vector.
      *
      * @param senv Symbol environment, where to evaluate the argument list.
      * @param args Argument list to evaluate.
@@ -636,7 +636,7 @@ public:
      *                        must be nil or an argument list itself.
      * @return Vector of evaluated arguments.
      */
-    const std::vector<Cell>& eval_args(const SymenvPtr& env, Cell args, bool is_list = true);
+    std::vector<Cell> eval_args(const SymenvPtr& env, Cell args, bool is_list = true);
 
     /**
      * Call an external function or procedure opcode.
@@ -689,7 +689,6 @@ private:
     Symtab symtab{ dflt_bucket_count };
 
     std::deque<Cons> store;
-    std::vector<Cell> stack;
 
     SymenvPtr topenv{
         new Symenv{

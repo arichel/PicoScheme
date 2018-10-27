@@ -469,7 +469,7 @@ struct continuation_exception {
 static Cell callcc(Scheme& scm, const SymenvPtr& senv, const varg& args)
 {
     varg arg{ scm.mkfun(
-        [](Scheme& scm, const SymenvPtr&, const varg& args) -> Cell {
+        [](Scheme&, const SymenvPtr&, const varg& args) -> Cell {
             throw continuation_exception{ args.at(0) };
             return none;
         }) };
@@ -484,7 +484,7 @@ static Cell callcc(Scheme& scm, const SymenvPtr& senv, const varg& args)
 /**
  * Scheme list @em member function.
  */
-static Cell memq(const SymenvPtr& senv, const varg& args)
+static Cell memq(const SymenvPtr&, const varg& args)
 {
     Cell list = args.at(1);
     const Cell& obj = args.front();
@@ -531,7 +531,7 @@ static Cell member(Scheme scm, const SymenvPtr& senv, const varg& args)
 /**
  * Scheme list @em assq function.
  */
-static Cell assq(const SymenvPtr& senv, const varg& args)
+static Cell assq(const SymenvPtr&, const varg& args)
 {
     Cell list = args.at(1);
     const Cell& obj = args.front();

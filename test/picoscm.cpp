@@ -18,7 +18,7 @@ int main(int argn, char* argv[])
 
     pscm::Scheme scm;
 
-    scm.mkfun("greet", [cntr = 0](Scheme& scm, const SymenvPtr& senv, const std::vector<Cell>& args) mutable -> Cell {
+    scm.mkfun("greet", [cntr = 0](Scheme& scm, const SymenvPtr&, const std::vector<Cell>&) mutable -> Cell {
         return scm.list(mkstr("hello world"), mknum(cntr++));
     });
 
