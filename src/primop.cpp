@@ -10,6 +10,7 @@
  * @copyright MIT License
  *************************************************************************************/
 #include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <memory>
 
@@ -460,6 +461,11 @@ struct continuation_exception {
     Cell continuation;
 };
 
+/**
+ * Call with current continuation.
+ *
+ * Simple implementation as escape continuation
+ */
 static Cell callcc(Scheme& scm, const SymenvPtr& senv, const varg& args)
 {
     varg arg{ scm.mkfun(
@@ -805,7 +811,7 @@ static Cell strlist(Scheme& scm, const varg& args)
     if (pstr->empty())
         return nil;
 
-    Int pos = 0, end = pstr->length();
+    Int pos = 0, end = static_cast<Int>(pstr->length());
 
     if (args.size() > 2)
         end = std::min(get<Int>(get<Number>(args[2])), end);

@@ -10,6 +10,7 @@
 #define SYMBOL_HPP
 
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -18,10 +19,10 @@ namespace pscm {
 using namespace std::string_literals;
 
 /**
- * @brief Symbol table of to provide unique symbols.
+ * @brief Symbol table to provide unique symbols.
  *
- * A symbol table is bijective mapping between values of type T
- * to unique symbols of type Symtab<T>::Symbol.
+ * A symbol table is a factory class to provide unique Symbols as a surjective mapping between
+ * values of type T to symbols of type Symtab<T>::Symbol.
  *
  * @tparam T     Value type of symbol, like std::string, char, int,...
  * @tparam Hash  Hash function object that implements a has function for values of type T.
@@ -31,7 +32,7 @@ template <typename T, typename Hash = std::hash<T>, typename Equal = std::equal_
 struct SymbolTable {
 
     /**
-     * @brief Symbol structure as pointer handle.
+     * @brief Symbol .
      */
     struct Symbol {
         using value_type = T;
@@ -114,8 +115,10 @@ private:
 };
 
 /**
- * @brief Symbol environment as tree of unordered associative containers of
- *        symbol keys and values of type T.
+ * Symbol-value environment
+ *
+ * A symbol environment associates symbols to values. Symbol value bindings
+ * are unique per environment. Several environments build child-parent trees
  *
  * @tparam Sym Symbol type
  * @tparam T   Value type
@@ -150,7 +153,7 @@ public:
     }
 
     /**
-     * @brief Insert a new symbol and value or reassign value of an existing symbol
+     * @brief Insert a new symbol and value or reassign a bound value of an existing symbol
      *        in this environment only.
      */
     void add(const Sym& sym, const T& val)
@@ -159,9 +162,9 @@ public:
     }
 
     /**
-     * @brief Reassign value of first found symbol in this or any
-     *        reachable parent environment.
-     * @throw std::invalid_argument exception for unknown or unreachable symbols.
+     * Reassign a bound value of first found symbol in this or any
+     * reachable parent environment.
+     * @throw std::invalid_argument exception for an unknown or unreachable symbols.
      */
     void set(const Sym& sym, const T& arg)
     {
@@ -183,7 +186,7 @@ public:
 
     /**
      * @brief Lookup a symbol in this or any reachable parent environment
-     *        and return its value.
+     *        and return its bound value.
      *
      * @throw std::invalid_argument exception for unknown or unreachable symbols.
      */

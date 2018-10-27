@@ -8,7 +8,8 @@ set(LIB_NAME picoscheme)
 
 # Enable c++17 for MS-compiler
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /wd4061 /wd4623 /wd4100
+        /wd4820 /wd4625 /wd4626 /wd4571 /wd5026 /wd5027")
 endif(MSVC)
 
 # Set debug flags for gcc

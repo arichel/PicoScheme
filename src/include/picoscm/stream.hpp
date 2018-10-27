@@ -35,6 +35,10 @@ std::ostream& operator<<(std::ostream& os, Intern opcode);
 std::ostream& operator<<(std::ostream& os, const Cell& cell);
 std::ostream& operator<<(std::ostream& os, const DisplayManip<Cell>& cell);
 
+/**
+ * Scheme io-port to represent either an std::iostream, std::fstream
+ * or std::stringstream port.
+ */
 class Port {
 public:
     Port();
