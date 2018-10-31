@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <deque>
+#include <regex>
 #include <vector>
 
 #include "number.hpp"
@@ -20,11 +21,12 @@ using Bool = bool;
 using Char = char;
 using Cons = std::pair<Cell, Cell>;
 using StringPtr = std::shared_ptr<std::basic_string<Char>>;
+using RegexPtr = std::shared_ptr<std::basic_regex<Char>>;
 using VectorPtr = std::shared_ptr<std::vector<Cell>>;
 using FunctionPtr = std::shared_ptr<Function>;
 
 using Variant = std::variant<None, Nil, Intern, Bool, Char, Number, Cons*,
-    StringPtr, VectorPtr, Port, Symbol, SymenvPtr, FunctionPtr, Procedure>;
+    StringPtr, RegexPtr, VectorPtr, Port, Symbol, SymenvPtr, FunctionPtr, Procedure>;
 
 static const None none{}; //!< void return symbol
 static const Nil nil{}; //!< empty list symbol
@@ -83,6 +85,8 @@ private:
             return "#<cons>";
         else if constexpr (std::is_same_v<T, StringPtr>)
             return "#<string>";
+        else if constexpr (std::is_same_v<T, RegexPtr>)
+            return "#<regex>";
         else if constexpr (std::is_same_v<T, VectorPtr>)
             return "#<vector>";
         else if constexpr (std::is_same_v<T, FunctionPtr>)
@@ -149,6 +153,7 @@ inline bool is_none(const Cell& cell) { return is_type<None>(cell); }
 inline bool is_bool(const Cell& cell) { return is_type<Bool>(cell); }
 inline bool is_char(const Cell& cell) { return is_type<Char>(cell); }
 inline bool is_string(const Cell& cell) { return is_type<StringPtr>(cell); }
+inline bool is_regex(const Cell& cell) { return is_type<RegexPtr>(cell); }
 inline bool is_pair(const Cell& cell) { return is_type<Cons*>(cell); }
 inline bool is_intern(const Cell& cell) { return is_type<Intern>(cell); }
 inline bool is_port(const Cell& cell) { return is_type<Port>(cell); }
@@ -552,9 +557,16 @@ enum class Intern {
     op_currjiffy,
     op_jiffspsec,
     op_features,
+
+    /* Section extensions */
+    op_regex,
+    op_regex_match,
+    op_regex_search,
+    op_regex_replace,
 };
 
 VectorPtr mkvec(Number size, const Cell& val);
+StringPtr mkstr(const StringPtr::element_type& s);
 StringPtr mkstr(const Char* s);
 
 class Scheme {
@@ -945,6 +957,9 @@ private:
             { mksym("load"), Intern::op_load },
 
             /* Extension: regular expressions */
+            { mksym("regex"), Intern::op_regex },
+            { mksym("regex-match"), Intern::op_regex_match },
+            { mksym("regex-search"), Intern::op_regex_search },
         }
     };
 };

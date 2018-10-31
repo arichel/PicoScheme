@@ -158,6 +158,7 @@ std::ostream& operator<<(std::ostream& os, const Cell& cell)
         [&os](Nil) { os << "()"; },
         [&os](Bool arg) { os << (arg ? "#t" : "#f"); },
         [&os](Char arg) { os << "#\\" << arg; },
+        [&os](const RegexPtr&) { os << "#<regex>"; },
         [&os](const SymenvPtr& arg) { os << "#<symenv " << arg.get() << '>'; },
         [&os](const FunctionPtr& arg) { os << "#<function " << arg->name() << '>'; },
         [&os](const Port&) { os << "#<port>"; },

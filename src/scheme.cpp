@@ -113,6 +113,11 @@ FunctionPtr Scheme::mkfun(const std::string& name, Function::function_type&& fn,
     return fptr;
 }
 
+StringPtr mkstr(const StringPtr::element_type& s)
+{
+    return std::make_shared<StringPtr::element_type>(s);
+}
+
 StringPtr mkstr(const Char* s)
 {
     return std::make_shared<StringPtr::element_type>(s);

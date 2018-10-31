@@ -1687,6 +1687,90 @@ static Cell map(Scheme& scm, const SymenvPtr& senv, const varg& args)
     }
 }
 
+/**
+ * Return a regular expression object from argument string.
+ * Scheme function (regex "regex"
+ *
+ *
+ * @param args[0]  Regular expression string.
+ * @param args[1]  Optional -
+ *
+ * @throws a std::regex_error exception if the supplied regular expression
+ *         string is invalid
+ */
+static Cell regex(Scheme&, const varg& args)
+{
+    using regex = RegexPtr::element_type;
+    auto& pstr = get<StringPtr>(args.at(0));
+
+    regex::flag_type flags = regex::ECMAScript | regex::icase;
+    return std::make_shared<RegexPtr::element_type>(*pstr, flags);
+}
+
+/**
+ * Determine if the argument regular expression matches the entire string.
+ * Implement scheme function: <em> (regex-match regex string [submatch? = false]) </em>
+ *
+ * @param args[0] Regular expression
+ * @param args[1] String to match
+ * @param args[2] Optional - if true and match exists, return vector of
+ *                matched string and all possible submatches or false otherwise.
+ * @return false if no match exists, true or vector otherwise.
+ */
+static Cell regex_match(const varg& args)
+{
+    using string = StringPtr::element_type;
+    using vector = VectorPtr::element_type;
+
+    auto& pregex = get<RegexPtr>(args.at(0));
+    auto& pstr = get<StringPtr>(args.at(1));
+
+    bool submatches = args.size() > 2 && get<Bool>(args[2]);
+
+    if (submatches) {
+        std::match_results<string::const_iterator> smatch;
+
+        if (std::regex_match(*pstr, smatch, *pregex)) {
+
+            auto vres{ std::make_shared<vector>(smatch.size()) };
+
+            for (auto& m : smatch)
+                vres->push_back(pscm::mkstr(m.str()));
+
+            return vres;
+        } else
+            return false;
+
+    } else
+        return std::regex_match(*pstr, *pregex);
+}
+
+/**
+ * Determine if the argument regular expression matches some subsequence in the string.
+ * Implement scheme function: <em> (regex-match regex string [submatch? = false]) </em>
+ *
+ * @param args[0] Regular expression
+ * @param args[1] String to match
+ * @return false if no match exists, or a vector of found submatches otherwise.
+ */
+static Cell regex_search(const varg& args)
+{
+    using string = StringPtr::element_type;
+    using vector = VectorPtr::element_type;
+
+    auto& pregex = get<RegexPtr>(args.at(0));
+    auto str{ *get<StringPtr>(args.at(1)) };
+
+    std::match_results<string::const_iterator> smatch;
+    auto vres{ std::make_shared<vector>(0) };
+
+    while (std::regex_search(str, smatch, *pregex)) {
+        vres->push_back(pscm::mkstr(smatch.str()));
+        str = smatch.suffix();
+    }
+    return vres->size() ? Cell{ vres } : Cell{ false };
+}
+
 } // namespace primop
 
 namespace pscm {
@@ -2133,6 +2217,14 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_load:
         scm.load(*get<StringPtr>(args.at(0)), senv);
         return none;
+
+        /* Section extensions - Regular expressions */
+    case Intern::op_regex:
+        return primop::regex(scm, args);
+    case Intern::op_regex_match:
+        return primop::regex_match(args);
+    case Intern::op_regex_search:
+        return primop::regex_search(args);
 
     default:
         throw std::invalid_argument("invalid primary opcode");

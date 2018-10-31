@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <iostream>
 #include <memory>
+#include <regex>
 
 #include <picoscm/parser.hpp>
 #include <picoscm/scheme.hpp>
@@ -14,6 +15,11 @@ using namespace pscm;
 
 int main(int argn, char* argv[])
 {
+
+    //    std::regex rx("hallo|paul");
+    //    cout << sizeof(rx) << endl;
+    //    return 0;
+
     using pscm::Intern, pscm::Cell, pscm::mknum, pscm::mkstr, pscm::nil;
 
     pscm::Scheme scm;
