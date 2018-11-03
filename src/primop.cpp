@@ -21,6 +21,8 @@ using varg = std::vector<pscm::Cell>;
 
 namespace pscm::primop {
 
+using namespace std::string_literals;
+
 /**
  * Scheme @em boolean=? predicate function
  */

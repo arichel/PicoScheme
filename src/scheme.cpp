@@ -14,6 +14,8 @@
 
 namespace pscm {
 
+using namespace std::string_literals;
+
 bool is_else(const Cell& cell) { return is_intern(cell) && get<Intern>(cell) == Intern::_else; }
 bool is_arrow(const Cell& cell) { return is_intern(cell) && get<Intern>(cell) == Intern::_arrow; }
 bool is_exit(const Cell& cell) { return is_intern(cell) && get<Intern>(cell) == Intern::op_exit; }

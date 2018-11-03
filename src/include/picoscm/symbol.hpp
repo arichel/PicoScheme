@@ -16,10 +16,8 @@
 
 namespace pscm {
 
-using namespace std::string_literals;
-
 /**
- * @brief Symbol table to provide unique symbols.
+ * Symbol table to provide unique symbols.
  *
  * A symbol table is a factory class to provide unique Symbols as a surjective mapping between
  * values of type T to symbols of type Symtab<T>::Symbol.
@@ -32,11 +30,18 @@ template <typename T, typename Hash = std::hash<T>, typename Equal = std::equal_
 struct SymbolTable {
 
     /**
-     * @brief Symbol .
+     * A Symbol as handle to a pointer of type T into the symbol table
      */
     struct Symbol {
+
+        struct Hash {
+            size_t operator()(const Symbol& sym) const noexcept
+            {
+                return Symbol::hash(sym);
+            }
+        };
+
         using value_type = T;
-        using key_type = size_t;
 
         Symbol() = delete;
         Symbol(const Symbol&) = default;
@@ -53,12 +58,9 @@ struct SymbolTable {
             return *ptr;
         }
 
-        /**
-         * @brief Conversion operator to map a symbol to a unique key value.
-         */
-        operator key_type() const noexcept
+        static size_t hash(const Symbol& sym) noexcept
         {
-            return reinterpret_cast<key_type>(ptr);
+            return reinterpret_cast<size_t>(sym.ptr);
         }
 
         /**
@@ -74,15 +76,22 @@ struct SymbolTable {
             return ptr != sym.ptr;
         }
 
+        bool operator<(const Symbol& sym) const noexcept
+        {
+            return ptr < sym.ptr;
+        }
+
     private:
         Symbol(const T& val)
             : ptr{ &val }
         {
         }
-        friend SymbolTable;
+        friend SymbolTable; //! needs access to private constructor
 
         std::add_pointer_t<std::add_const_t<T>> ptr; //! or const T*
     };
+
+    using symbol_type = Symbol;
 
     /**
      * @brief Construct a symbol table
@@ -123,21 +132,20 @@ private:
  * @tparam Sym Symbol type
  * @tparam T   Value type
  */
-template <typename Sym, typename T>
+template <typename Sym, typename T, typename Hash = std::hash<Sym>>
 class SymbolEnv {
 
 public:
     using symbol_type = Sym;
     using value_type = T;
-
-    using key_type = typename Sym::key_type;
+    using shared_type = std::shared_ptr<SymbolEnv>;
 
     /**
      * @brief Construct a symbol environment as top- or sub-environment.
      * @param parent Optional, unless null-pointer. construct a sub-environment connected
      *               to the parent environment or a top-environment otherwise.
      */
-    SymbolEnv(const std::shared_ptr<SymbolEnv>& parent = nullptr)
+    SymbolEnv(const shared_type& parent = nullptr)
         : next{ parent }
     {
     }
@@ -145,8 +153,9 @@ public:
     /**
      * @brief Construct to top environment and initialize it with {symbol,value} pairs.
      */
-    SymbolEnv(std::initializer_list<std::pair<Sym, T>> args)
-        : table{ args.size() }
+    SymbolEnv(std::initializer_list<std::pair<Sym, T>> args, const shared_type& parent = nullptr)
+        : next{ parent }
+        , table{ args.size() }
     {
         for (auto& [sym, val] : args)
             add(sym, val);
@@ -180,7 +189,7 @@ public:
 
         } while ((senv = senv->next.get()));
 
-        throw std::invalid_argument("unknown symbol "s
+        throw std::invalid_argument(std::string{ "unknown symbol " }
             + static_cast<std::string>(sym.value()));
     }
 
@@ -202,14 +211,15 @@ public:
 
         } while ((senv = senv->next.get()));
 
-        throw std::invalid_argument("unknown symbol "s
+        throw std::invalid_argument(std::string{ "unknown symbol " }
             + static_cast<std::string>(sym.value()));
     }
 
 private:
     const std::shared_ptr<SymbolEnv> next = nullptr;
-    std::unordered_map<key_type, T> table;
+    std::unordered_map<Sym, T, Hash> table;
 };
 
 } // namespace pscm
+
 #endif // SYMBOL_HPP

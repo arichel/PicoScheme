@@ -19,7 +19,7 @@ static bool is_unique_symbol_list(Cell args)
     if (is_nil(args) || is_symbol(args))
         return true;
 
-    std::set<Symbol::key_type> symset;
+    std::set<Symbol> symset;
 
     for (/* */; is_pair(args); args = cdr(args)) {
         Cell sym = car(args);

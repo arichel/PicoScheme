@@ -14,6 +14,8 @@
 
 namespace pscm {
 
+using namespace std::string_literals;
+
 using std::cout;
 using std::endl;
 

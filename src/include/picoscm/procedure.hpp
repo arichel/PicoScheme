@@ -14,8 +14,8 @@ class Scheme;
 
 using Symtab = SymbolTable<std::string>;
 using Symbol = Symtab::Symbol;
-using Symenv = SymbolEnv<Symbol, Cell>;
-using SymenvPtr = std::shared_ptr<Symenv>;
+using Symenv = SymbolEnv<Symbol, Cell, Symbol::Hash>;
+using SymenvPtr = Symenv::shared_type;
 
 /**
  * @brief Procedure type to represent a scheme closure.
