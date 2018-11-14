@@ -222,11 +222,11 @@ Parser::Token Parser::lex_special(const std::string& str, std::istream& in)
     case 't':
         if (str == "#t" || str == "#true")
             return Token::True;
-
+        [[fallthrough]];
     case 'f':
         if (str == "#f" || str == "#false")
             return Token::False;
-
+        [[fallthrough]];
     case '\\':
         return lex_char(str, chrtok, in);
 

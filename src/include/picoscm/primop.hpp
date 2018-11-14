@@ -24,5 +24,5 @@ namespace pscm {
  */
 Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const std::vector<Cell>& args);
 
-}; // namespace pscm
+} // namespace pscm
 #endif // PRIMOP_HPP

@@ -33,14 +33,6 @@ struct SymbolTable {
      * A Symbol as handle to a pointer of type T into the symbol table
      */
     struct Symbol {
-
-        struct Hash {
-            size_t operator()(const Symbol& sym) const noexcept
-            {
-                return Symbol::hash(sym);
-            }
-        };
-
         using value_type = T;
 
         Symbol() = delete;
@@ -56,11 +48,6 @@ struct SymbolTable {
         const T& value() const noexcept
         {
             return *ptr;
-        }
-
-        static size_t hash(const Symbol& sym) noexcept
-        {
-            return reinterpret_cast<size_t>(sym.ptr);
         }
 
         /**
@@ -80,6 +67,13 @@ struct SymbolTable {
         {
             return ptr < sym.ptr;
         }
+
+        struct hash {
+            size_t operator()(const Symbol& sym) const noexcept
+            {
+                return reinterpret_cast<size_t>(sym.ptr);
+            }
+        };
 
     private:
         Symbol(const T& val)

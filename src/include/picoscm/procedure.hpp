@@ -14,8 +14,8 @@ class Scheme;
 
 using Symtab = SymbolTable<std::string>;
 using Symbol = Symtab::Symbol;
-using Symenv = SymbolEnv<Symbol, Cell, Symbol::Hash>;
-using SymenvPtr = Symenv::shared_type;
+using Symenv = SymbolEnv<Symbol, Cell, Symbol::hash>;
+using SymenvPtr = std::shared_ptr<Symenv>;
 
 /**
  * @brief Procedure type to represent a scheme closure.
@@ -94,6 +94,6 @@ private:
     function_type func;
 };
 
-}; // namespace pscm
+} // namespace pscm
 
 #endif // PROCEDURE_HPP
