@@ -49,8 +49,8 @@ using Variant = std::variant <
 
 static const None none {}; //!< void return symbol
 static const Nil  nil  {}; //!< empty list symbol
-
 // clang-format on
+
 enum class Intern {
     /* Scheme syntax opcodes: */
     _or,

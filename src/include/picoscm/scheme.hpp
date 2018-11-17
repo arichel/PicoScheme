@@ -358,6 +358,10 @@ public:
      */
     Cell syntax_begin(const SymenvPtr& env, Cell args);
 
+    void gcdump();
+    void gcollect(SymenvPtr env = nullptr);
+    void mark(Cell cell);
+
 protected:
     Cell syntax_if(const SymenvPtr& env, const Cell& args);
 

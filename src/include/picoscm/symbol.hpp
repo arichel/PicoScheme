@@ -10,6 +10,7 @@
 #define SYMBOL_HPP
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -120,7 +121,8 @@ public:
     }
 
     /**
-     * Construct to top environment and initialize it with {symbol,value} pairs.
+     * Construct a new top or child environment and initialize it with {symbol,value} pairs
+     * from initializer list.
      */
     SymbolEnv(std::initializer_list<std::pair<Sym, T>> args, const shared_type& parent = nullptr)
         : next{ parent }
@@ -183,6 +185,28 @@ public:
         throw std::invalid_argument(std::string{ "unknown symbol " }
             + static_cast<std::string>(sym.value()));
     }
+
+    struct Cursor {
+        auto begin() { return env.table.begin(); }
+        auto end() { return env.table.end(); }
+        auto begin() const { return env.table.begin(); }
+        auto end() const { return env.table.end(); }
+
+        std::optional<Cursor> next()
+        {
+            return env.next ? Cursor{ *env.next } : std::nullopt;
+        }
+
+    private:
+        friend class SymbolEnv;
+        Cursor(SymbolEnv& env)
+            : env{ env }
+        {
+        }
+        SymbolEnv& env;
+    };
+
+    Cursor cursor() { return Cursor{ *this }; }
 
 private:
     const std::shared_ptr<SymbolEnv> next = nullptr;

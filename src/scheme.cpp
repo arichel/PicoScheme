@@ -7,6 +7,7 @@
  * @copyright MIT License
  *************************************************************************************/
 #include <functional>
+#include <iomanip>
 
 #include "parser.hpp"
 #include "primop.hpp"
@@ -28,12 +29,19 @@ bool is_equal(const Cell& lhs, const Cell& rhs)
     if (lhs.index() != rhs.index())
         return false;
 
+    // clang-format off
     static overloads test{
         [](const StringPtr& lhs, const StringPtr& rhs) -> bool { return *lhs == *rhs; },
-        [](const VectorPtr& lhs, const VectorPtr& rhs) -> bool { return lhs == rhs || (lhs->size() == rhs->size() && std::equal(lhs->begin(), lhs->end(), rhs->begin(), is_equal)); },
+        [](const VectorPtr& lhs, const VectorPtr& rhs) -> bool
+        {
+            return lhs == rhs
+                    || (lhs->size() == rhs->size()
+                    && std::equal(lhs->begin(), lhs->end(), rhs->begin(), is_equal));
+        },
         [](Cons* lhs, Cons* rhs) -> bool { return is_list_equal(lhs, rhs); },
         [](auto&, auto&) -> bool { return false; }
-    };
+    }; // clang-format on
+
     return visit(test, static_cast<const Cell::base_type&>(lhs), static_cast<const Cell::base_type&>(rhs));
 }
 
@@ -163,6 +171,45 @@ Cell Scheme::apply(const SymenvPtr& env, const Cell& cell, const std::vector<Cel
 std::pair<SymenvPtr, Cell> Scheme::apply(const SymenvPtr& env, const Cell& proc, const Cell& args, bool is_list)
 {
     return get<Procedure>(proc).apply(*this, env, args, is_list);
+}
+
+void Scheme::gcdump()
+{
+    std::cout << "Store size: " << store.size() << '\n';
+
+    size_t ic = 0;
+    for (auto& cons : store) {
+        std::cout << ic++ << " | " << std::left << std::setw(25) << cons.first << " : " << cons.second << '\n';
+    }
+}
+
+void Scheme::mark(Cell cell)
+{
+    if (is_proc(cell)) {
+        //        mark(get<Procedure>(cell).code());
+        //        gcollect(get<Procedure>(cell).senv());
+    } else {
+        for (/* */; is_pair(cell); cell = cdr(cell)) {
+            //           if (marked(get<Cons*>(cell)))
+            //                return;
+
+            //            mark(get<Cons*>(cell));
+            //            mark(car(cell));
+        }
+        if (!is_nil(cell))
+            mark(cell);
+    }
+}
+
+void Scheme::gcollect(SymenvPtr env)
+{
+    auto& e = env ? env : topenv;
+
+    gcdump();
+
+    for (auto& [sym, cell] : e->cursor()) {
+        mark(cell);
+    }
 }
 
 Cell Scheme::expand(const Cell& macro, Cell& args)

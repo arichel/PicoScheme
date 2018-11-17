@@ -33,12 +33,12 @@ int main(int argn, char* argv[])
     else
         scm.load("picoscmrc.scm");
 
-    scm.repl();
-    return 0;
+    // scm.repl();
+    // return 0;
 
     try {
 
-        pscm::SymenvPtr e = scm.mkenv();
+        pscm::SymenvPtr env = scm.mkenv();
 
         //        Cell expr = pscm::list(Intern::op_map,
         //            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
@@ -49,13 +49,20 @@ int main(int argn, char* argv[])
         //            pscm::list(Intern::_quote, pscm::list(num(1))));
 
         pscm::Parser parser(scm);
-        std::istringstream stream("(define (h)"
-                                  ";\n"
-                                  ")");
+        std::istringstream stream("(define (hello x)  "
+                                  "   (display x)     "
+                                  "   (newline))      "
+                                  "                   "
+                                  "(define n 43)      "
+                                  "(hello n)          ");
         Cell expr = parser.read(stream);
-
-        Cell proc = scm.eval(e, expr);
+        Cell proc = scm.eval(env, expr);
         cout << proc << endl;
+
+        cout << scm.eval(env, parser.read(stream)) << endl;
+        cout << scm.eval(env, parser.read(stream)) << endl;
+
+        scm.gcollect(env);
 
     } catch (std::bad_variant_access& e) {
         cout << e.what() << endl;
