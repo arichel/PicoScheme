@@ -64,10 +64,7 @@ public:
     std::string str() const;
 
     template <typename T>
-    explicit operator T&()
-    {
-        return std::get<T>(*pstream);
-    }
+    explicit operator T&() { return std::get<T>(*pstream); }
 
     bool operator!=(const Port& stream) const noexcept;
     bool operator==(const Port& stream) const noexcept;
@@ -76,10 +73,8 @@ private:
     using stream_variant = std::variant<std::iostream, std::fstream, std::stringstream>;
 
     template <typename T>
-    bool is_type() const
-    {
-        return std::holds_alternative<T>(*pstream);
-    }
+    bool is_type() const { return std::holds_alternative<T>(*pstream); }
+
     std::shared_ptr<stream_variant> pstream;
     std::ios_base::openmode mode;
 };

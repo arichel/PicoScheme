@@ -1,12 +1,11 @@
 #include <set>
 
-#include "procedure.hpp"
 #include "scheme.hpp"
 
 namespace pscm {
 
 /**
- * @brief Test argument list for unique symbols.
+ *  Test argument list for unique symbols.
  *
  *  Predicate is used to check, that formal parameters of lambda
  *  expression  @verbatim (lambda (x y z ... x) code...) @endverbatim
@@ -95,7 +94,7 @@ bool Procedure::operator==(const Procedure& proc) const noexcept
 }
 
 /**
- * First evaluate each argument list item in the current environment senv.
+ * First evaluate items in the argument list in the current environment senv.
  * Assign the result to symbols of the closure formal parameter list into
  * a new child environment of the previously captured closure environment.
  *
@@ -165,20 +164,16 @@ Cell Procedure::expand(Scheme& scm, Cell& expr) const
     return args;
 }
 
+Function::Function(const Symbol& sym, const function_type& fun)
+    : function_type{ fun }
+    , sym{ sym }
+{
+}
+
 Function::Function(const Symbol& sym, function_type&& fun)
-    : valptr{ &sym.value() }
-    , func{ std::move(fun) }
+    : function_type{ std::move(fun) }
+    , sym{ sym }
 {
-}
-
-Cell Function::operator()(Scheme& scm, const SymenvPtr& env, const std::vector<Cell>& args) const
-{
-    return func(scm, env, args);
-}
-
-const std::string& Function::name() const
-{
-    return static_cast<const std::string&>(*valptr);
 }
 
 } // namespace pscm

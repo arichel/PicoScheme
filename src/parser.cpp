@@ -147,6 +147,17 @@ Parser::Token Parser::lex_string(std::string& str, std::istream& in)
     return Token::Error;
 }
 
+Parser::Token Parser::lex_regex(std::string& str, std::istream& in)
+{
+    if (str != "#re" || in.get() != '\"')
+        return Token::Error;
+
+    if (lex_string(str, in) != Token::String)
+        return Token::Error;
+
+    return Token::Regex;
+}
+
 /**
  * @brief Lexical analyse the argument string for valid scheme
  *        symbol characters.
@@ -211,7 +222,7 @@ Parser::Token Parser::lex_char(const std::string& str, Char& c, std::istream& in
 /**
  * @brief Lexical analyse a special scheme symbol.
  */
-Parser::Token Parser::lex_special(const std::string& str, std::istream& in)
+Parser::Token Parser::lex_special(std::string& str, std::istream& in)
 {
     if (str == "#")
         return Token::Vector;
@@ -238,6 +249,9 @@ Parser::Token Parser::lex_special(const std::string& str, std::istream& in)
 
     case 'i':
         return lex_number(str.substr(2), numtok);
+
+    case 'r':
+        return lex_regex(str, in);
 
     default:
         return Token::Error;
@@ -417,6 +431,9 @@ Cell Parser::read(std::istream& in)
 
         case Token::String:
             return mkstr(strtok.c_str());
+
+        case Token::Regex:
+            return mkregex(strtok);
 
         case Token::Symbol:
             return scm.mksym(strtok.c_str());

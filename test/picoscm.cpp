@@ -52,10 +52,8 @@ int main(int argn, char* argv[])
         std::istringstream stream("(define (h)"
                                   ";\n"
                                   ")");
-
         Cell expr = parser.read(stream);
 
-        cout << expr;
         Cell proc = scm.eval(e, expr);
         cout << proc << endl;
 

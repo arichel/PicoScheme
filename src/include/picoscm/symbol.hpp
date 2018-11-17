@@ -28,7 +28,6 @@ namespace pscm {
  */
 template <typename T, typename Hash = std::hash<T>, typename Equal = std::equal_to<T>>
 struct SymbolTable {
-
     /**
      * A Symbol as handle to a pointer of type T into the symbol table
      */
@@ -43,30 +42,16 @@ struct SymbolTable {
         Symbol& operator=(Symbol&& s) = default;
 
         /**
-         * @brief Return a constant refererence to the symbol value T.
+         * Return a constant refererence to the symbol value T.
          */
-        const T& value() const noexcept
-        {
-            return *ptr;
-        }
+        const T& value() const noexcept { return *ptr; }
 
         /**
-         * @brief Equality predicate.
+         * Equality predicate.
          */
-        bool operator==(const Symbol& sym) const noexcept
-        {
-            return ptr == sym.ptr;
-        }
-
-        bool operator!=(const Symbol& sym) const noexcept
-        {
-            return ptr != sym.ptr;
-        }
-
-        bool operator<(const Symbol& sym) const noexcept
-        {
-            return ptr < sym.ptr;
-        }
+        bool operator==(const Symbol& sym) const noexcept { return ptr == sym.ptr; }
+        bool operator!=(const Symbol& sym) const noexcept { return ptr != sym.ptr; }
+        bool operator<(const Symbol& sym) const noexcept { return ptr < sym.ptr; }
 
         struct hash {
             size_t operator()(const Symbol& sym) const noexcept
@@ -80,15 +65,11 @@ struct SymbolTable {
             : ptr{ &val }
         {
         }
-        friend SymbolTable; //! needs access to private constructor
-
+        friend struct SymbolTable; //! needs access to private constructor
         std::add_pointer_t<std::add_const_t<T>> ptr; //! or const T*
     };
-
-    using symbol_type = Symbol;
-
     /**
-     * @brief Construct a symbol table
+     * Construct a symbol table
      * @param bucket_count Initial hash table bucket count hint.
      */
     SymbolTable(size_t bucket_count = 0)
@@ -103,15 +84,9 @@ struct SymbolTable {
      * @return Symbol of type Symtab<T>::Symbol.
      */
     template <typename Val>
-    Symbol operator[](Val&& val)
-    {
-        return *table.emplace(std::forward<Val>(val)).first;
-    }
+    Symbol operator[](Val&& val) { return *table.emplace(std::forward<Val>(val)).first; }
 
-    size_t size()
-    {
-        return table.size();
-    }
+    size_t size() { return table.size(); }
 
 private:
     std::unordered_set<T, Hash, Equal> table;
@@ -135,7 +110,7 @@ public:
     using shared_type = std::shared_ptr<SymbolEnv>;
 
     /**
-     * @brief Construct a symbol environment as top- or sub-environment.
+     * Construct a symbol environment as top- or sub-environment.
      * @param parent Optional, unless null-pointer. construct a sub-environment connected
      *               to the parent environment or a top-environment otherwise.
      */
@@ -145,7 +120,7 @@ public:
     }
 
     /**
-     * @brief Construct to top environment and initialize it with {symbol,value} pairs.
+     * Construct to top environment and initialize it with {symbol,value} pairs.
      */
     SymbolEnv(std::initializer_list<std::pair<Sym, T>> args, const shared_type& parent = nullptr)
         : next{ parent }
@@ -156,8 +131,8 @@ public:
     }
 
     /**
-     * @brief Insert a new symbol and value or reassign a bound value of an existing symbol
-     *        in this environment only.
+     * Insert a new symbol and value or reassign a bound value of an existing symbol
+     * in this environment only.
      */
     void add(const Sym& sym, const T& val)
     {
@@ -188,8 +163,8 @@ public:
     }
 
     /**
-     * @brief Lookup a symbol in this or any reachable parent environment
-     *        and return its bound value.
+     * Lookup a symbol in this or any reachable parent environment
+     * and return its bound value.
      *
      * @throw std::invalid_argument exception for unknown or unreachable symbols.
      */

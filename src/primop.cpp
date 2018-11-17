@@ -16,6 +16,8 @@
 
 #include "parser.hpp"
 #include "primop.hpp"
+#include "procedure.hpp"
+#include "scheme.hpp"
 
 using varg = std::vector<pscm::Cell>;
 
@@ -470,12 +472,13 @@ struct continuation_exception {
  */
 static Cell callcc(Scheme& scm, const SymenvPtr& senv, const varg& args)
 {
-    varg arg{ scm.mkfun(
-        [](Scheme&, const SymenvPtr&, const varg& args) -> Cell {
-            throw continuation_exception{ args.at(0) };
-            return none;
-        }) };
+    std::function<Cell(Scheme&, const SymenvPtr&, const std::vector<Cell>&)>
+        lambda = [](Scheme&, const SymenvPtr&, const varg& args) -> Cell {
+        throw continuation_exception{ args.at(0) };
+        return none;
+    };
 
+    varg arg{ scm.mkfun(std::move(lambda)) };
     try {
         return apply(scm, senv, args.at(0), arg);
     } catch (const continuation_exception& e) {
@@ -775,7 +778,8 @@ static Cell digitval(const varg& args)
     return false;
 }
 /**
- * Scheme make-string function.
+ * Scheme @em make-string function.
+ * (make-string len [char])
  */
 static Cell mkstring(const varg& args)
 {
@@ -1511,20 +1515,18 @@ static Cell list(Scheme& scm, const varg& args)
 
 static Cell readline(const varg& args)
 {
-    StringPtr line = mkstr("");
-
+    std::string str;
     if (args.size() > 0) {
         Port port = get<Port>(args[0]);
 
         (port.is_open() && port.is_input())
             || ((void)(throw std::invalid_argument("port is closed")), 0);
 
-        getline(port.stream(), *line);
+        getline(port.stream(), str);
     } else {
-        std::string str;
         getline(std::cin, str);
     }
-    return line;
+    return std::make_shared<StringPtr::element_type>(std::move(str));
 }
 
 static Cell read(Scheme& scm, const varg& args)
@@ -1693,7 +1695,6 @@ static Cell map(Scheme& scm, const SymenvPtr& senv, const varg& args)
  * Return a regular expression object from argument string.
  * Scheme function (regex "regex"
  *
- *
  * @param args[0]  Regular expression string.
  * @param args[1]  Optional -
  *
@@ -1734,7 +1735,8 @@ static Cell regex_match(const varg& args)
 
         if (std::regex_match(*pstr, smatch, *pregex)) {
 
-            auto vres{ std::make_shared<vector>(smatch.size()) };
+            auto vres{ std::make_shared<vector>() };
+            vres->reserve(smatch.size());
 
             for (auto& m : smatch)
                 vres->push_back(pscm::mkstr(m.str()));
@@ -2220,13 +2222,15 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
         scm.load(*get<StringPtr>(args.at(0)), senv);
         return none;
 
-        /* Section extensions - Regular expressions */
+    /* Section extensions - Regular expressions */
     case Intern::op_regex:
         return primop::regex(scm, args);
     case Intern::op_regex_match:
         return primop::regex_match(args);
     case Intern::op_regex_search:
         return primop::regex_search(args);
+    case Intern::op_usecount:
+        return Number{ use_count(args.at(0)) };
 
     default:
         throw std::invalid_argument("invalid primary opcode");

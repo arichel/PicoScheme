@@ -11,7 +11,9 @@
 
 #include <vector>
 
-#include "scheme.hpp"
+#include "types.hpp"
+
+class Scheme;
 
 namespace pscm {
 

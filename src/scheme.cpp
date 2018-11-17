@@ -125,6 +125,13 @@ StringPtr mkstr(const Char* s)
     return std::make_shared<StringPtr::element_type>(s);
 }
 
+RegexPtr mkregex(const String& str)
+{
+    using regex = RegexPtr::element_type;
+    regex::flag_type flags = regex::ECMAScript | regex::icase;
+    return std::make_shared<RegexPtr::element_type>(str, flags);
+}
+
 VectorPtr mkvec(Number size, const Cell& val)
 {
     using size_type = VectorPtr::element_type::size_type;
@@ -238,7 +245,7 @@ Cell Scheme::syntax_if(const SymenvPtr& env, const Cell& args)
     if (is_true(eval(env, car(args))))
         return cadr(args);
 
-    else if (Cell last = cddr(args); !is_nil(last))
+    else if (const Cell& last = cddr(args); !is_nil(last))
         return car(last);
 
     else
@@ -490,6 +497,19 @@ Cell Scheme::eval(SymenvPtr env, Cell expr)
             return apply(env, opcode, eval_args(env, args));
         }
     }
+}
+
+Int use_count(const Cell& cell)
+{
+    static overloads pointer{
+        [](const StringPtr& p) -> Int { return p.use_count(); },
+        [](const RegexPtr& p) -> Int { return p.use_count(); },
+        [](const VectorPtr& p) -> Int { return p.use_count(); },
+        [](const SymenvPtr& p) -> Int { return p.use_count(); },
+        [](const FunctionPtr& p) -> Int { return p.use_count(); },
+        [](auto&) -> Int { return 0; },
+    };
+    return visit(pointer, static_cast<const Cell::base_type&>(cell));
 }
 
 } // namespace pscm

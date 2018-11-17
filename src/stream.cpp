@@ -253,10 +253,7 @@ std::string Port::str() const
 
 std::iostream& Port::stream()
 {
-    return std::visit([](auto& os) -> std::iostream& {
-        return os;
-    },
-        *pstream);
+    return std::visit([](auto& os) -> std::iostream& { return os; }, *pstream);
 }
 
 bool Port::operator!=(const Port& stream) const noexcept

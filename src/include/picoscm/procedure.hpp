@@ -2,23 +2,15 @@
 #define PROCEDURE_HPP
 
 #include <functional>
-#include <memory>
-#include <utility>
 
-#include "symbol.hpp"
+#include "types.hpp"
 
 namespace pscm {
 
-struct Cell;
 class Scheme;
 
-using Symtab = SymbolTable<std::string>;
-using Symbol = Symtab::Symbol;
-using Symenv = SymbolEnv<Symbol, Cell, Symbol::hash>;
-using SymenvPtr = std::shared_ptr<Symenv>;
-
 /**
- * @brief Procedure type to represent a scheme closure.
+ * Procedure type to represent a scheme closure.
  *
  * @verbatim
  * (lambda args body)  => closure: [symenv, args, body](define *world* '())
@@ -32,7 +24,7 @@ using SymenvPtr = std::shared_ptr<Symenv>;
 class Procedure {
 public:
     /**
-     * @brief Construct a new closure.
+     * Construct a new closure.
      * @param senv  Symbol environment pointer to capture.
      * @param args  Formal lambda expression argument list or symbol.
      * @param code  Non empty list of one or more scheme expression forming the lambda body.
@@ -52,7 +44,8 @@ public:
     bool operator==(const Procedure& proc) const noexcept;
 
     /**
-     * @brief Closure application.
+     * Closure application.
+     *
      * @param senv  Current environment, where to evaluate expressions of the argument list.
      * @param args  Argument expression list of a scheme lambda or apply expression.
      *
@@ -68,7 +61,7 @@ public:
     std::pair<SymenvPtr, Cell> apply(Scheme& scm, const SymenvPtr& env, Cell args, bool is_list = true) const;
 
     /**
-     * @brief Replace expression with the expanded closure macro.
+     * Replace expression with the expanded closure macro.
      * @param expr (closure-macro arg0 ... arg_n)
      * @return The expanded macro body.
      */
@@ -79,19 +72,26 @@ private:
     std::unique_ptr<Closure> impl;
 };
 
-class Function {
-public:
-    using function_type = std::function<Cell(Scheme& scm, const SymenvPtr&, const std::vector<Cell>&)>;
+/**
+ * Functor wrapper for external function objects.
+ *
+ * External function signature:  func(Scheme& scm, SymenvPtr& env, std::vector<Cell> argv) -> Cell
+ */
+struct Function : public std::function<Cell(Scheme&, const SymenvPtr&, const std::vector<Cell>&)> {
 
-    Function(const Symbol& sym, function_type&& fun);
+    using function_type = std::function<Cell(Scheme&, const SymenvPtr&, const std::vector<Cell>&)>;
+    /**
+     * Function object constructor
+     * @param sym Symbol bound to this function.
+     * @param fun External procedure.
+     */
+    Function(const Symbol&, const function_type&);
+    Function(const Symbol&, function_type&&);
 
-    Cell operator()(Scheme& scm, const SymenvPtr& senv, const std::vector<Cell>& args) const;
-
-    const std::string& name() const;
+    const Symbol::value_type& name() const { return sym.value(); };
 
 private:
-    const Symbol::value_type* valptr;
-    function_type func;
+    const Symbol& sym;
 };
 
 } // namespace pscm

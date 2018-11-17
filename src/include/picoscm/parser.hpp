@@ -48,6 +48,7 @@ private:
         Number, // (+|-)[0-9]+(\.[0-9]+)
         Symbol, // [a-zA-Z_%:+-][a-zA-Z_%:+-]*
         Vector,
+        Regex, // #re/12343434/
 
         Eof,
         Error
@@ -59,15 +60,16 @@ private:
 
     static bool is_alpha(int c);
     static bool is_special(int c);
-    static bool is_digit(const std::string& mkstr, size_t n = 0);
+    static bool is_digit(const std::string&, size_t n = 0);
 
-    static Token lex_number(const std::string& mkstr, Number& mknum);
-    static Token lex_string(std::string& mkstr, std::istream& in);
-    static Token lex_symbol(const std::string& mkstr);
-    static Token lex_unquote(const std::string& mkstr, std::istream& in);
-    static Token lex_char(const std::string& mkstr, Char& c, std::istream& in);
+    static Token lex_number(const std::string&, Number&);
+    static Token lex_string(std::string&, std::istream& in);
+    static Token lex_regex(std::string&, std::istream& in);
+    static Token lex_symbol(const std::string&);
+    static Token lex_unquote(const std::string&, std::istream& in);
+    static Token lex_char(const std::string&, Char& c, std::istream& in);
 
-    Token lex_special(const std::string& mkstr, std::istream& in);
+    Token lex_special(std::string&, std::istream& in);
     Token skip_comment(std::istream& in) const;
 
     Token put_back = Token::None;
