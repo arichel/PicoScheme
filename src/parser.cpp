@@ -489,6 +489,7 @@ Cell Parser::parse_list(std::istream& in)
             break;
         case Token::CBrace:
             return list;
+
         case Token::Dot:
             cell = read(in);
             tok = get_token(in);

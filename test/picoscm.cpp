@@ -7,6 +7,7 @@
 #include <memory>
 #include <regex>
 
+#include <picoscm/gc.hpp>
 #include <picoscm/parser.hpp>
 #include <picoscm/scheme.hpp>
 
@@ -33,8 +34,8 @@ int main(int argn, char* argv[])
     else
         scm.load("picoscmrc.scm");
 
-    // scm.repl();
-    // return 0;
+    scm.repl();
+    return 0;
 
     try {
 
@@ -62,7 +63,11 @@ int main(int argn, char* argv[])
         cout << scm.eval(env, parser.read(stream)) << endl;
         cout << scm.eval(env, parser.read(stream)) << endl;
 
-        scm.gcollect(env);
+        GCollector gc;
+        gc.logging(true);
+        gc.dump(scm);
+        gc.collect(scm, env);
+        gc.dump(scm);
 
     } catch (std::bad_variant_access& e) {
         cout << e.what() << endl;

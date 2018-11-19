@@ -103,35 +103,25 @@ private:
  * @tparam T   Value type
  */
 template <typename Sym, typename T, typename Hash = std::hash<Sym>>
-class SymbolEnv {
+class SymbolEnv : public std::enable_shared_from_this<SymbolEnv<Sym, T, Hash>> {
 
 public:
     using symbol_type = Sym;
     using value_type = T;
     using shared_type = std::shared_ptr<SymbolEnv>;
 
-    /**
-     * Construct a symbol environment as top- or sub-environment.
-     * @param parent Optional, unless null-pointer. construct a sub-environment connected
-     *               to the parent environment or a top-environment otherwise.
-     */
-    SymbolEnv(const shared_type& parent = nullptr)
-        : next{ parent }
+    using std::enable_shared_from_this<SymbolEnv>::shared_from_this;
+    using std::enable_shared_from_this<SymbolEnv>::weak_from_this;
+
+    static shared_type create(const shared_type& parent = nullptr)
     {
+        return shared_type{ new SymbolEnv{ parent } };
     }
 
-    /**
-     * Construct a new top or child environment and initialize it with {symbol,value} pairs
-     * from initializer list.
-     */
-    SymbolEnv(std::initializer_list<std::pair<Sym, T>> args, const shared_type& parent = nullptr)
-        : next{ parent }
-        , table{ args.size() }
+    static shared_type create(std::initializer_list<std::pair<Sym, T>> args, const shared_type& parent = nullptr)
     {
-        for (auto& [sym, val] : args)
-            add(sym, val);
+        return shared_type{ new SymbolEnv{ args, parent } };
     }
-
     /**
      * Insert a new symbol and value or reassign a bound value of an existing symbol
      * in this environment only.
@@ -142,7 +132,7 @@ public:
     }
 
     /**
-     * Reassign a bound value of first found symbol in this or any
+     * Reassign a bound value of the first found symbol in this or any
      * reachable parent environment.
      * @throw std::invalid_argument exception for an unknown or unreachable symbols.
      */
@@ -187,26 +177,52 @@ public:
     }
 
     struct Cursor {
-        auto begin() { return env.table.begin(); }
-        auto end() { return env.table.end(); }
-        auto begin() const { return env.table.begin(); }
-        auto end() const { return env.table.end(); }
+        auto begin() const { return env.lock()->table.begin(); }
+        auto end() const { return env.lock()->table.end(); }
+        auto symenv() const { return shared_type{ env }; }
 
-        std::optional<Cursor> next()
+        std::optional<Cursor> next() const
         {
-            return env.next ? Cursor{ *env.next } : std::nullopt;
+            shared_type e{ env };
+            return e->next ? std::optional<Cursor>{ Cursor{ e->next } }
+                           : std::nullopt;
         }
 
     private:
         friend class SymbolEnv;
-        Cursor(SymbolEnv& env)
-            : env{ env }
+        Cursor(std::weak_ptr<SymbolEnv> env)
+            : env{ std::move(env) }
         {
         }
-        SymbolEnv& env;
+        //shared_type env;
+        std::weak_ptr<SymbolEnv> env;
     };
 
-    Cursor cursor() { return Cursor{ *this }; }
+    Cursor cursor() { return Cursor{ weak_from_this() }; }
+    Cursor cursor() const { return Cursor{ weak_from_this() }; }
+
+private:
+    /**
+     * Construct a symbol environment as top- or sub-environment.
+     * @param parent Optional, unless null-pointer. construct a sub-environment connected
+     *               to the parent environment or a top-environment otherwise.
+     */
+    SymbolEnv(const shared_type& parent = nullptr)
+        : next{ parent }
+    {
+    }
+
+    /**
+     * Construct a new top or child environment and initialize it with {symbol,value} pairs
+     * from initializer list.
+     */
+    SymbolEnv(std::initializer_list<std::pair<Sym, T>> args, const shared_type& parent = nullptr)
+        : next{ parent }
+        , table{ args.size() }
+    {
+        for (auto& [sym, val] : args)
+            add(sym, val);
+    }
 
 private:
     const std::shared_ptr<SymbolEnv> next = nullptr;

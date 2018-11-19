@@ -30,22 +30,19 @@ public:
      * @param code  Non empty list of one or more scheme expression forming the lambda body.
      */
     Procedure(const SymenvPtr& senv, const Cell& args, const Cell& code, bool is_macro = false);
-    Procedure(const Procedure& proc);
-    Procedure(Procedure&& proc) noexcept;
-    ~Procedure();
 
     /// Predicate returns true if closure should be applied as macro.
     bool is_macro() const noexcept;
 
-    Procedure& operator=(const Procedure&);
-    Procedure& operator=(Procedure&&) noexcept;
+    Cell senv() const noexcept;
+    Cell args() const noexcept;
+    Cell code() const noexcept;
 
     bool operator!=(const Procedure& proc) const noexcept;
     bool operator==(const Procedure& proc) const noexcept;
 
     /**
      * Closure application.
-     *
      * @param senv  Current environment, where to evaluate expressions of the argument list.
      * @param args  Argument expression list of a scheme lambda or apply expression.
      *
@@ -69,7 +66,7 @@ public:
 
 private:
     struct Closure;
-    std::unique_ptr<Closure> impl;
+    std::shared_ptr<Closure> impl;
 };
 
 /**
@@ -91,7 +88,7 @@ struct Function : public std::function<Cell(Scheme&, const SymenvPtr&, const std
     const Symbol::value_type& name() const { return sym.value(); };
 
 private:
-    const Symbol& sym;
+    Symbol sym;
 };
 
 } // namespace pscm

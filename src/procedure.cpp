@@ -44,7 +44,6 @@ struct Procedure::Closure {
         if (!is_unique_symbol_list(args) || !is_pair(code))
             throw std::invalid_argument("invalid procedure definition");
     }
-
     bool operator!=(const Closure& impl) const noexcept
     {
         return senv != impl.senv
@@ -58,30 +57,15 @@ struct Procedure::Closure {
     bool is_macro;
 };
 
-Procedure::Procedure(Procedure&&) noexcept = default;
-Procedure& Procedure::operator=(Procedure&&) noexcept = default;
-Procedure::~Procedure() = default;
-
 Procedure::Procedure(const SymenvPtr& senv, const Cell& args, const Cell& code, bool is_macro)
-    : impl{ std::make_unique<Closure>(senv, args, code, is_macro) }
+    : impl{ std::make_shared<Closure>(senv, args, code, is_macro) }
 {
 }
 
-Procedure::Procedure(const Procedure& proc)
-    : impl{ std::make_unique<Closure>(*proc.impl) }
-{
-}
-
-bool Procedure::is_macro() const noexcept
-{
-    return impl->is_macro;
-}
-
-Procedure& Procedure::operator=(const Procedure& proc)
-{
-    *impl = *proc.impl;
-    return *this;
-}
+Cell Procedure::senv() const noexcept { return impl->senv; }
+Cell Procedure::args() const noexcept { return impl->args; }
+Cell Procedure::code() const noexcept { return impl->code; }
+bool Procedure::is_macro() const noexcept { return impl->is_macro; }
 
 bool Procedure::operator!=(const Procedure& proc) const noexcept
 {

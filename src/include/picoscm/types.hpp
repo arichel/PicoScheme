@@ -21,7 +21,7 @@ using None        = std::monostate;
 using Nil         = std::nullptr_t;
 using Bool        = bool;
 using Char        = char;
-using Cons        = std::pair<Cell, Cell>;
+using Cons        = std::tuple<Cell, Cell, bool>;
 using String      = std::basic_string<Char>;
 using StringPtr   = std::shared_ptr<String>;
 using RegexPtr    = std::shared_ptr<std::regex>;
@@ -279,6 +279,8 @@ enum class Intern {
     op_replenv,
     op_repl,
     op_eval,
+    op_gc,
+    op_gcdump,
     op_macroexp,
 
     /* Section 6.13: Input and output */

@@ -14,6 +14,7 @@
 #include <iostream>
 #include <memory>
 
+#include "gc.hpp"
 #include "parser.hpp"
 #include "primop.hpp"
 #include "procedure.hpp"
@@ -1586,6 +1587,30 @@ static Cell read_str(Scheme& scm, const varg& args)
     return parser.read(port.stream());
 }
 
+static Cell gcollect(Scheme& scm, const SymenvPtr& senv, const varg& args)
+{
+    GCollector gc;
+    bool logok = args.size() > 0 ? get<Bool>(args[0]) : false;
+
+    gc.logging(logok);
+    gc.collect(scm, senv);
+    return none;
+}
+
+static Cell gcdump(Scheme& scm, const varg& args)
+{
+    GCollector gc;
+    Port port;
+
+    if (args.size() > 1) {
+        port = get<Port>(args[0]);
+        (port.is_open() && port.is_output())
+            || ((void)(throw std::invalid_argument("port is must be an output port and open")), 0);
+    }
+    gc.dump(scm, port.stream());
+    return none;
+}
+
 static Cell macroexp(Scheme& scm, const SymenvPtr& senv, const varg& args)
 {
     Cell expr = args.at(0);
@@ -2157,6 +2182,10 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
         return scm.eval(args.size() > 1 ? get<SymenvPtr>(args[1]) : senv, args.at(0));
     case Intern::_apply:
         return primop::apply(scm, senv, args);
+    case Intern::op_gc:
+        return primop::gcollect(scm, senv, args);
+    case Intern::op_gcdump:
+        return primop::gcdump(scm, args);
     case Intern::op_macroexp:
         return primop::macroexp(scm, senv, args);
 
