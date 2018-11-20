@@ -50,9 +50,7 @@ Symbol Scheme::mksym(const Char* name) { return this->symtab[name]; }
 
 Symbol Scheme::mksym()
 {
-    Symbol::value_type str{ "symbol " };
-    str.append(std::to_string(symtab.size()));
-    return symtab[str.c_str()];
+    return symtab[String{ "symbol " }.append(std::to_string(symtab.size()))];
 }
 
 SymenvPtr Scheme::mkenv(const SymenvPtr& env)

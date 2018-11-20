@@ -10,6 +10,7 @@
 
 #include "scheme.hpp"
 #include "stream.hpp"
+#include "utils.hpp"
 
 namespace pscm {
 

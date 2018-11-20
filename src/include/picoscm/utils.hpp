@@ -4,6 +4,7 @@
 #include <utility>
 #include <variant>
 
+namespace pscm {
 /**
  * @brief Build a vistor type for std::visit, where the function application
  *        operator () is overloaded for each template argument type.
@@ -24,5 +25,5 @@ constexpr bool is_type(Variant&& v)
 {
     return std::holds_alternative<T>(std::forward<Variant>(v));
 }
-
+}
 #endif // UTILS_HPP

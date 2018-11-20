@@ -96,17 +96,6 @@
                              (loop (cdr lst) surface hit dist)))))))
     (loop *world* #f #f 1e308)))
 
-
-
-(letrec ((loop (lambda (i)
-                 (unless (> i 10)
-                   (display i)
-                   (newline)
-                   (loop (+ i 1))))))
-  (loop 0))
-
-
-
 (define (sendray pt ray)
   (let* ((x   (first-hit pt ray))
          (s   (vector-ref x 0))
@@ -153,10 +142,10 @@
   (defsphere  70.0 -100.0 -1200.0 200.0 0.9)
 
   (do ((x -2 (+ x 1)))
-      ((> x 2) *none*)
+      ((> x 2))
 
     (do ((z 2 (+ z 1)))
-        ((> z 7) *none*)
+        ((> z 7))
 
       (defsphere (* x 200.0) 300.0 (* z -400.0) 40.0 0.75)))
 

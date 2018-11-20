@@ -16,11 +16,6 @@ using namespace pscm;
 
 int main(int argn, char* argv[])
 {
-
-    //    std::regex rx("hallo|paul");
-    //    cout << sizeof(rx) << endl;
-    //    return 0;
-
     using pscm::Intern, pscm::Cell, pscm::mknum, pscm::mkstr, pscm::nil;
 
     pscm::Scheme scm;
@@ -38,36 +33,25 @@ int main(int argn, char* argv[])
     return 0;
 
     try {
-
         pscm::SymenvPtr env = scm.mkenv();
 
-        //        Cell expr = pscm::list(Intern::op_map,
-        //            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
-        //            pscm::list(Intern::_quote, pscm::list(num(1), num(2), num(3))));
+        // (for-each (lambda (x) x) (quote (1 2 3 4)))
+        Cell expr = scm.list(Intern::op_foreach,
+            scm.list(Intern::_lambda, scm.list(scm.mksym("x")), scm.mksym("x")),
+            scm.list(Intern::_quote, scm.list(pscm::mknum(1), pscm::mknum(2))));
 
-        //        Cell expr = pscm::list(Intern::_apply,
-        //            pscm::list(Intern::_lambda, pscm::list(sym("x")), sym("x")),
-        //            pscm::list(Intern::_quote, pscm::list(num(1))));
+        //        pscm::Parser parser(scm);
+        //        std::istringstream stream("(define (hello x)  "
+        //                                  "   (display x)     "
+        //                                  "   (newline))      "
+        //                                  "                   "
+        //                                  "(define n 43)      "
+        //                                  "(hello n)          ");
+        //        Cell expr = parser.read(stream);
 
-        pscm::Parser parser(scm);
-        std::istringstream stream("(define (hello x)  "
-                                  "   (display x)     "
-                                  "   (newline))      "
-                                  "                   "
-                                  "(define n 43)      "
-                                  "(hello n)          ");
-        Cell expr = parser.read(stream);
         Cell proc = scm.eval(env, expr);
         cout << proc << endl;
-
-        cout << scm.eval(env, parser.read(stream)) << endl;
-        cout << scm.eval(env, parser.read(stream)) << endl;
-
-        GCollector gc;
-        gc.logging(true);
-        gc.dump(scm);
-        gc.collect(scm, env);
-        gc.dump(scm);
+        return 0;
 
     } catch (std::bad_variant_access& e) {
         cout << e.what() << endl;

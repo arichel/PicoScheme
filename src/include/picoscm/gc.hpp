@@ -13,9 +13,8 @@ class Scheme;
 class GCollector {
 public:
     void collect(Scheme& scm, const SymenvPtr& env);
-    void logging(bool);
-
     void dump(const Scheme& scm, std::ostream& os = std::cerr);
+    void logging(bool);
 
 private:
     bool is_marked(const Cons&) const noexcept;

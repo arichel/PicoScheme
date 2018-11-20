@@ -257,21 +257,6 @@ static Cell numstr(const varg& args)
 }
 
 /**
- * Scheme output @em display function.
- */
-static Cell display(const varg& args)
-{
-    if (args.size() > 1) {
-        Port& port = get<Port>(const_cast<Cell&>(args.at(1)));
-
-        port.stream() << pscm::display(args[0]);
-    } else
-        std::cout << pscm::display(args.at(0));
-
-    return none;
-}
-
-/**
  * Scheme list @em append function.
  * @verbatim (append [list_0 list_1 ... expr]) => nil | expr | (list_0 . list_1 ... . expr) @endverbatim
  */
@@ -1417,6 +1402,21 @@ static Cell open_outfile(const StringPtr& filnam)
         throw std::ios_base::failure("couldn't open output file: '"s + *filnam + "'"s);
 
     return port;
+}
+
+/**
+ * Scheme output @em display function.
+ */
+static Cell display(const varg& args)
+{
+    if (args.size() > 1) {
+        Port& port = get<Port>(const_cast<Cell&>(args.at(1)));
+
+        port.stream() << pscm::display(args[0]);
+    } else
+        std::cout << pscm::display(args.at(0));
+
+    return none;
 }
 
 /**

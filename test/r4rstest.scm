@@ -82,6 +82,7 @@
               (write x)
               (newline))  disjoint-type-functions))
 
+
 (define type-matrix
   (map (lambda (x)
          (let ((t (map (lambda (f) (f x)) disjoint-type-functions)))
@@ -316,7 +317,10 @@
 (test 5 foo)
 
 (test 34 'define x)
-(define (foo x) ((lambda () (define x 5) x)) x)
+
+(define (foo x)
+  ((lambda () (define x 5) x)) x)
+
 (test 88 foo 88)
 (test 4 foo 4)
 (test 34 'define x)
@@ -409,7 +413,6 @@
 (test #t equal? 'a 'a)
 (test #t equal? '(a) '(a))
 (test #t equal? '(a (b) c) '(a (b) c))
-
 (test #t equal? "abc" "abc")
 (test #t equal? 2 2)
 (test #t equal? (make-vector 5 'a) (make-vector 5 'a))
@@ -465,7 +468,6 @@
 
 (test '(c b a) reverse '(a b c))
 (test '((e (f)) d (b c) a) reverse '(a (b c) d (e (f))))
-
 (test 'c list-ref '(a b c d) 2)
 
 (test '(a b c) memq 'a '(a b c))

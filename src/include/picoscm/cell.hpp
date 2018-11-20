@@ -225,7 +225,7 @@ Cons* alist(Cons (&cons)[size], T&& t, Args&&... args)
     if constexpr (size > 1) {
         get<1>(cons[0]) = alist(reinterpret_cast<Cons(&)[size - 1]>(cons[1]), std::forward<Args>(args)...);
     } else
-        get<0>(cons[0]) = nil;
+        get<1>(cons[0]) = nil;
 
     return &cons[0];
 }

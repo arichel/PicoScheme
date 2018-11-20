@@ -20,8 +20,9 @@ namespace pscm {
 /**
  * Symbol table to provide unique symbols.
  *
- * A symbol table is a factory class to provide unique Symbols as a surjective mapping between
- * values of type T to symbols of type Symtab<T>::Symbol.
+ * A symbol table is a factory class to provide unique Symbols as a
+ * surjective mapping between values of type T to symbols of
+ * type Symtab<T>::Symbol.
  *
  * @tparam T     Value type of symbol, like std::string, char, int,...
  * @tparam Hash  Hash function object that implements a has function for values of type T.
@@ -118,7 +119,8 @@ public:
         return shared_type{ new SymbolEnv{ parent } };
     }
 
-    static shared_type create(std::initializer_list<std::pair<Sym, T>> args, const shared_type& parent = nullptr)
+    static shared_type create(std::initializer_list<std::pair<Sym, T>> args,
+        const shared_type& parent = nullptr)
     {
         return shared_type{ new SymbolEnv{ args, parent } };
     }
