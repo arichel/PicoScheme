@@ -5,6 +5,7 @@
 #include <string>
 #include <variant>
 
+#include "port.hpp"
 #include "symbol.hpp"
 
 namespace pscm {
@@ -13,7 +14,6 @@ namespace pscm {
 struct Cell;
 struct Function;
 struct Number;
-class  Port;
 class  Procedure;
 enum class Intern;
 
@@ -26,6 +26,7 @@ using String      = std::basic_string<Char>;
 using StringPtr   = std::shared_ptr<String>;
 using RegexPtr    = std::shared_ptr<std::regex>;
 using VectorPtr   = std::shared_ptr<std::vector<Cell>>;
+using PortPtr     = std::shared_ptr<Port<Char>>;
 using FunctionPtr = std::shared_ptr<Function>;
 using Symtab      = SymbolTable<String>;
 using Symbol      = Symtab::Symbol;
@@ -38,10 +39,10 @@ using Variant = std::variant <
     None, Nil, Intern, Bool, Char, Number,
 
     /* Compound value types: */
-    Symbol, Port, Procedure,
+    Symbol, Procedure,
 
     /* Pointer types: */
-    Cons*, StringPtr, VectorPtr, FunctionPtr, SymenvPtr,
+    Cons*, StringPtr, VectorPtr, PortPtr, FunctionPtr, SymenvPtr,
 
     /* Extensions: */
     RegexPtr

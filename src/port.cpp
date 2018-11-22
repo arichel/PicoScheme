@@ -8,14 +8,14 @@
  *************************************************************************************/
 #include <cstring>
 
+#include "port.hpp"
 #include "scheme.hpp"
-#include "stream.hpp"
 #include "utils.hpp"
 
 namespace pscm {
 
 /**
- * @brief Output stream operator for Cons type arguments.
+ * Output stream operator for Cons cell lists.
  */
 static std::ostream& operator<<(std::ostream& os, Cons* cons)
 {
@@ -43,20 +43,17 @@ static std::ostream& operator<<(std::ostream& os, Cons* cons)
     return os;
 }
 
+/**
+ * Output stream operator for Symbols.
+ */
 static std::ostream& operator<<(std::ostream& os, const Symbol& sym)
 {
-    using string_type = Symbol::value_type;
-    const string_type& name = sym.value();
+    const String& name = sym.value();
 
-    if (name.find_first_of(' ') != string_type::npos)
+    if (name.find_first_of(' ') != String::npos)
         return os << '|' << name << '|';
     else
         return os << name;
-}
-
-static std::ostream& operator<<(std::ostream& os, const StringPtr& sptr)
-{
-    return os << '"' << *sptr << '"';
 }
 
 static std::ostream& operator<<(std::ostream& os, const DisplayManip<StringPtr>& manip)
@@ -150,120 +147,44 @@ static std::ostream& operator<<(std::ostream& os, Procedure proc)
 }
 
 /**
- * @brief Output stream operator for Cell type arguments.
+ * Output stream operator for Cell type arguments.
  */
 std::ostream& operator<<(std::ostream& os, const Cell& cell)
 {
-    static overloads fun{
-        [&os](None) { os << "#<none>"; },
-        [&os](Nil) { os << "()"; },
-        [&os](Bool arg) { os << (arg ? "#t" : "#f"); },
-        [&os](Char arg) { os << "#\\" << arg; },
-        [&os](const RegexPtr&) { os << "#<regex>"; },
-        [&os](const SymenvPtr& arg) { os << "#<symenv " << arg.get() << '>'; },
-        [&os](const FunctionPtr& arg) { os << "#<function " << arg->name() << '>'; },
-        [&os](const Port&) { os << "#<port>"; },
-        [&os](auto& arg) { os << arg; }
-    };
-    std::visit(fun, static_cast<const Cell::base_type&>(cell));
+    // clang-format off
+    overloads stream{
+        [&os](None)                   -> std::ostream& { return os << "#<none>"; },
+        [&os](Nil)                    -> std::ostream& { return os << "()"; },
+        [&os](Bool arg)               -> std::ostream& { return os << (arg ? "#t" : "#f"); },
+        [&os](Char arg)               -> std::ostream& { return os << "#\\" << arg; },
+        [&os](const StringPtr& arg)   -> std::ostream& { return os << '"' << *arg << '"';},
+        [&os](const RegexPtr&)        -> std::ostream& { return os << "#<regex>"; },
+        [&os](const SymenvPtr& arg)   -> std::ostream& { return os << "#<symenv " << arg.get() << '>'; },
+        [&os](const FunctionPtr& arg) -> std::ostream& { return os << "#<function " << arg->name() << '>'; },
+        [&os](const PortPtr&)         -> std::ostream& { return os << "#<port>"; },
+        [&os](auto& arg)              -> std::ostream& { return os << arg; }
+    }; // clang-format on
+
+    return std::visit(std::move(stream), static_cast<const Cell::base_type&>(cell));
+}
+
+/**
+ * Overloaded output stream operator for Cell types as scheme (display <expr>) function
+ * representation.
+ */
+std::ostream& operator<<(std::ostream& os, DisplayManip<Cell> manip)
+{
+    // clang-format off
+    overloads stream{
+        [](None)                    { },
+        [&os](Char arg)             { os << arg; },
+        [&os](const StringPtr& arg) { os << display(arg);},
+
+        // For all other types call normal cell-stream overloaded operator:
+        [&os, &manip](auto&)        { os << manip.value; }
+    }; // clang-format on
+
+    std::visit(std::move(stream), static_cast<const Cell::base_type&>(manip.value));
     return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const DisplayManip<Cell>& manip)
-{
-    return std::visit([&os, &manip](auto& val) -> std::ostream& {
-        using T = std::decay_t<decltype(val)>;
-        if constexpr (std::is_same_v<T, None>)
-            return os;
-        else if constexpr (std::is_same_v<T, Char>)
-            return os << val;
-        else if constexpr (std::is_same_v<T, StringPtr>)
-            return os << display(val);
-        else
-            return os << manip.value;
-    },
-        static_cast<const Cell::base_type&>(manip.value));
-}
-
-Port::Port()
-    : pstream{ std::make_shared<stream_variant>(std::in_place_type_t<std::iostream>(),
-          std::cout.rdbuf()) }
-    , mode{ std::ios_base::out }
-{
-    is_open() || (throw std::invalid_argument("could open standard port"), 0);
-}
-
-bool Port::is_strport() const noexcept { return is_type<std::stringstream>(); }
-
-bool Port::is_fileport() const noexcept { return is_type<std::fstream>(); }
-
-bool Port::is_input() const noexcept { return mode & std::ios_base::in; }
-
-bool Port::is_output() const noexcept { return mode & std::ios_base::out; }
-
-bool Port::is_binary() const noexcept { return mode & std::ios_base::binary; }
-
-bool Port::is_open() const noexcept
-{
-    return std::visit([](auto& os) {
-        using S = std::decay_t<decltype(os)>;
-
-        if constexpr (std::is_same_v<S, std::ofstream>)
-            return os.is_open();
-        else
-            return os.good();
-    },
-        *pstream);
-}
-
-void Port::close() const
-{
-    std::visit([](auto& os) {
-        using S = std::decay_t<decltype(os)>;
-        os.flush();
-        os.clear();
-        if constexpr (std::is_same_v<S, std::fstream>) {
-            if (os.is_open())
-                os.close();
-        } else
-            os.setstate(std::ios_base::eofbit);
-    },
-        *pstream);
-}
-
-bool Port::open(const std::string& path, std::ios_base::openmode mode)
-{
-    close();
-    this->mode = mode;
-    *pstream = std::fstream{ path, mode };
-    return is_open();
-}
-
-bool Port::open_str(const std::string& str, std::ios_base::openmode mode)
-{
-    close();
-    this->mode = mode;
-    *pstream = std::stringstream{ str, mode };
-    return is_open();
-}
-
-std::string Port::str() const
-{
-    return std::get<std::stringstream>(*pstream).str();
-}
-
-std::iostream& Port::stream()
-{
-    return std::visit([](auto& os) -> std::iostream& { return os; }, *pstream);
-}
-
-bool Port::operator!=(const Port& stream) const noexcept
-{
-    return pstream.get() != stream.pstream.get();
-}
-
-bool Port::operator==(const Port& stream) const noexcept
-{
-    return !(*this != stream);
 }
 } // namespace pscm

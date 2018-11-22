@@ -42,13 +42,13 @@ private:
         UnquoteSplice,
         True,
         False,
-        Char, //
+        Char,
 
         String, // "([^"]*)"
         Number, // (+|-)[0-9]+(\.[0-9]+)
         Symbol, // [a-zA-Z_%:+-][a-zA-Z_%:+-]*
         Vector,
-        Regex, // #re/12343434/
+        Regex, // #re"12343434"
 
         Eof,
         Error
@@ -76,7 +76,6 @@ private:
     std::string strtok;
     Number numtok;
     Char chrtok;
-
     Scheme& scm;
 
     const Symbol s_quote = scm.mksym("quote"), s_quasiquote = scm.mksym("quasiquote"),

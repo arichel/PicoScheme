@@ -5,10 +5,7 @@
 #include <assert.h>
 #include <iostream>
 #include <memory>
-#include <regex>
 
-#include <picoscm/gc.hpp>
-#include <picoscm/parser.hpp>
 #include <picoscm/scheme.hpp>
 
 using namespace std;

@@ -16,7 +16,7 @@ namespace pscm {
 
 bool is_integer(const Number& num)
 {
-    static overloads fun{
+    static overloads number{
         [](Int) -> bool { return true; },
         [](Float x) -> bool {
             return !(x > floor(x)
@@ -27,17 +27,17 @@ bool is_integer(const Number& num)
             return imag(z) < 0 || imag(z) > 0 ? false : is_integer(real(z));
         },
     };
-    return visit(fun, static_cast<const Number::base_type&>(num));
+    return visit(number, static_cast<const Number::base_type&>(num));
 }
 
 bool is_odd(const Number& num)
 {
-    static overloads fun{
+    static overloads number{
         [](Int i) -> bool { return std::abs(i) % Int{ 2 }; },
         [](Float x) -> bool { return fmod(x, 2.); },
         [](const Complex& z) -> bool { return imag(z) < 0 || imag(z) > 0 ? true : fmod(real(z), 2.); },
     };
-    return visit(fun, static_cast<const Number::base_type&>(num));
+    return visit(number, static_cast<const Number::base_type&>(num));
 }
 
 /**
@@ -366,7 +366,7 @@ static T round_even(T x)
  */
 Number round(const Number& x)
 {
-    static overloads fun{
+    static overloads num{
         [](Int i) -> Number {
             return i;
         },
@@ -377,7 +377,7 @@ Number round(const Number& x)
             return { round_even(z.real()), round_even(z.imag()) };
         }
     };
-    return visit(fun, static_cast<const Number::base_type&>(x));
+    return visit(num, static_cast<const Number::base_type&>(x));
 }
 
 /**
@@ -562,8 +562,13 @@ Number log10(const Number& x)
  */
 Number sqrt(const Number& x)
 {
-    return is_complex(x) || x < Number{ 0 } ? std::sqrt(static_cast<Complex>(x))
-                                            : std::sqrt(static_cast<Float>(x));
+    Number res = is_complex(x) || x < Number{ 0 } ? std::sqrt(static_cast<Complex>(x))
+                                                  : std::sqrt(static_cast<Float>(x));
+
+    if (is_int(x) && is_float(res) && !(res != trunc(res)))
+        return static_cast<Int>(res);
+
+    return res;
 }
 
 /**

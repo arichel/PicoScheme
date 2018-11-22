@@ -985,6 +985,7 @@
 (SECTION 6 5 9)
 (test "0" number->string 0)
 (test "100" number->string 100)
+;; Todo
 (test "100" number->string 256 16)
 (test 100 string->number "100")
 (test 256 string->number "100" 16)
@@ -1000,6 +1001,7 @@
 (test #f string->number "33I")
 (test #f string->number "3.3i")
 (test #f string->number "3.3I")
+;; Todo
 (test #f string->number "-")
 (test #f string->number "+")
 (test #t 'string->number (or (not (string->number "80000000" 16))

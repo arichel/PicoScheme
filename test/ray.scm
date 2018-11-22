@@ -124,10 +124,10 @@
         (newline        p)
 
         (do ((y 0 (+ y 1)))
-            ((= y extent) *none*)
+            ((= y extent))
 
           (do ((x 0 (+ x 1)))
-              ((= x extent) *none*)
+              ((= x extent))
 
             (write (color-at
                      (+ -50.0 (/ (exact->inexact x) (exact->inexact res)))

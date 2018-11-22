@@ -115,7 +115,7 @@
 
     `(letrec ((,loop (lambda ,variables
                        (if ,test
-                           ,(if (null? result) #t
+                           ,(if (not (null? result))
                                 `(begin . ,result))
                            (begin
                              ,@body

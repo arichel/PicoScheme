@@ -21,6 +21,7 @@ using namespace std::string_literals;
 static_assert(std::is_same_v<Char, String::value_type>);
 static_assert(std::is_same_v<String, StringPtr::element_type>);
 static_assert(std::is_same_v<String, Symbol::value_type>);
+static_assert(std::is_same_v<Port<Char>, PortPtr::element_type>);
 static_assert(std::is_same_v<Symbol, Symtab::Symbol>);
 static_assert(std::is_same_v<Symenv, SymenvPtr::element_type>);
 static_assert(std::is_same_v<Function, FunctionPtr::element_type>);
@@ -195,7 +196,7 @@ Cell Scheme::syntax_cond(const SymenvPtr& env, Cell args)
 {
     Cell test = false, expr = nil;
 
-    // for each clause evaluate <test> condition
+    // For each clause evaluate <test> condition
     for (/* */; is_pair(args); args = cdr(args)) {
         is_pair(car(args)) || (void(throw std::invalid_argument("invalid cond syntax")), 0);
 
@@ -216,14 +217,16 @@ Cell Scheme::syntax_cond(const SymenvPtr& env, Cell args)
         if (is_arrow(first) || (is_symbol(first) && is_arrow(eval(env, first)))) {
             !is_else(test) || (void(throw std::invalid_argument("invalid cond syntax")), 0);
 
-            Cons cell[4], argv[2];
-            Cell apply_expr = alist(cell, Intern::_apply, none,
-                alist(argv, Intern::_quote, test), nil);
+            Cons cons[4], argv[2];
+            Cell apply_expr = pscm::list(cons, Intern::_apply, none,
+                pscm::list(argv, Intern::_quote, test), nil);
 
+            // For each expression, first replace none in apply_expr and then call eval:
             for (expr = cdr(expr); is_pair(cdr(expr)); expr = cdr(expr)) {
                 set_car(cdr(apply_expr), car(expr));
                 eval(env, apply_expr);
             }
+            // Return last expression to evaluated at the call site to maintain unbound tail-recursion:
             return list(Intern::_apply, car(expr), list(Intern::_quote, test), nil);
         } else
             return syntax_begin(env, expr);
