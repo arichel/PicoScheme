@@ -47,6 +47,9 @@ public:
     Symbol mksym(const String& name);
     Symbol mksym();
 
+    PortPtr stdin() { return m_stdin; }
+    PortPtr stdout() { return m_stdout; }
+
     /**
      * Interactive scheme read eval print loop.
      *
@@ -57,7 +60,7 @@ public:
      * @param in  Optional, an input stream or use default std::cin.
      * @param out Optional, an output stream or use default std::cout.
      */
-    void repl(const SymenvPtr& env = nullptr, std::istream& in = std::cin, std::ostream& out = std::cout);
+    void repl(const SymenvPtr& env = nullptr);
 
     void load(const std::string& filnam, const SymenvPtr& env = nullptr);
 
@@ -146,8 +149,11 @@ private:
 
     static constexpr size_t dflt_bucket_count = 1024; //<! Initial default hash table bucket count.
     Symtab symtab{ dflt_bucket_count };
-
     std::list<Cons> store;
+
+    using standard_port = StandardPort<Char>;
+    PortPtr m_stdin = std::make_shared<standard_port>(standard_port::in);
+    PortPtr m_stdout = std::make_shared<standard_port>(standard_port::out);
 
     SymenvPtr topenv = Symenv::create(
         {

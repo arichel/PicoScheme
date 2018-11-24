@@ -1,8 +1,9 @@
 (define port (open-output-file "test.txt"))
-(display "hallo" port)
-
+(write "hallo" port)
 (newline port)
-(write "Paul" port)
+(display "Paul" port)
+
+(flush-output-port port)
 (close-output-port port)
 
 (call-with-output-file "test.txt"
@@ -14,5 +15,5 @@
 (do ((i 0 (+ i 1)))
     ((= i 100))
   (write "hallo paul: " port)
-  (write i port)
+;  (write i port)
   (newline port))

@@ -82,5 +82,19 @@ private:
                  s_unquote = scm.mksym("unquote"), s_unquotesplice = scm.mksym("unquote-splicing");
 };
 
+struct parse_error : public std::exception {
+    parse_error(const String& str)
+        : reason{ str }
+    {
+    }
+    const Char* what() const noexcept override
+    {
+        return reason.c_str();
+    }
+
+private:
+    String reason;
+};
+
 } // namespace pscm
 #endif // PARSER_HPP

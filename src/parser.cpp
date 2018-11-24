@@ -189,6 +189,7 @@ Parser::Token Parser::lex_char(const std::string& str, Char& c, std::istream& in
         { "#\\return", '\r' },
         { "#\\space", ' ' },
         { "#\\tab", '\t' },
+        { "#\\eof", EOF }
 
     };
     constexpr size_t ntab = sizeof(stab) / sizeof(*stab);
@@ -449,7 +450,7 @@ Cell Parser::read(std::istream& in)
 
         case Token::Error:
         default:
-            throw std::invalid_argument("parse error");
+            throw parse_error("invalid token");
         }
 }
 
@@ -474,7 +475,7 @@ Cell Parser::parse_vector(std::istream& in)
             }
         }
 error:
-    throw std::invalid_argument("error while reading vector");
+    throw parse_error("error while reading vector");
 }
 
 Cell Parser::parse_list(std::istream& in)
@@ -518,6 +519,6 @@ Cell Parser::parse_list(std::istream& in)
         }
     }
 error:
-    throw std::invalid_argument("error parsing list");
+    throw parse_error("error while reading list");
 }
 } // namespace pscm
