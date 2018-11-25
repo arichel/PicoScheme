@@ -92,7 +92,7 @@ protected:
         : m_stream{ stream }
         , mode{ mode }
     {
-        stream.exceptions(stream_type::badbit); // | stream_type::eofbit);
+        stream.exceptions(stream_type::badbit);
     }
 
 private:

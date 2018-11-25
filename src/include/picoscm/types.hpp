@@ -17,6 +17,12 @@ struct Number;
 class  Procedure;
 enum class Intern;
 
+template<typename... Types>
+using Celli = std::variant<Types...>;
+
+template<typename... Types>
+using Consi = std::tuple<std::variant<Types...>, std::variant<Types...>, bool>;
+
 using None        = std::monostate;
 using Nil         = std::nullptr_t;
 using Bool        = bool;

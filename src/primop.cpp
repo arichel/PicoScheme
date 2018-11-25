@@ -1590,14 +1590,14 @@ static Cell readline(const varg& args)
         getline(std::cin, str);
     } else {
         auto& port = *get<PortPtr>(args[0]);
+        if (!port.isInput())
+            throw input_port_exception(port);
 
         try {
             if (getline(port.getStream(), str).eof() && str.empty())
                 return Char{ EOF };
 
         } catch (std::ios_base::failure& e) {
-            if (port.isInput() && port.eof())
-                return Char{ EOF };
             throw input_port_exception(port);
         }
     }

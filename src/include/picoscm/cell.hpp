@@ -15,6 +15,11 @@ namespace pscm {
 struct Cell : Variant {
     using base_type = Variant;
     using Variant::Variant;
+    using Variant::operator=;
+    using Variant::emplace;
+    using Variant::index;
+    using Variant::swap;
+    using Variant::valueless_by_exception;
 };
 
 template <typename CellType>
