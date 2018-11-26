@@ -118,10 +118,7 @@ void Scheme::repl(const SymenvPtr& env)
     Parser parser(*this);
     Cell expr;
 
-    std::ostream& out = std::cout;
-    std::istream& in = std::cin;
-
-    //Port in{ Port::in };
+    Port in{ Port::in }, out{ Port::out };
     for (;;)
         try {
             for (;;) {

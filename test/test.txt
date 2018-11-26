@@ -1,4 +1,4 @@
 (define (sq x)
   (* x x))
 
-(sq 10)
+(sq 10

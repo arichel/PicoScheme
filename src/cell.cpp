@@ -12,7 +12,7 @@ Int use_count(const Cell& cell)
         [](const FunctionPtr& p) -> Int { return p.use_count(); },
         [](auto&) -> Int { return 0; },
     };
-    return visit(pointer, static_cast<const Cell::base_type&>(cell));
+    return std::visit(pointer, static_cast<const Cell::base_type&>(cell));
 }
 
 //! Predicate returns true if each list item from both lists is equal according to @ref pscm::is_equal.

@@ -17,12 +17,6 @@ struct Number;
 class  Procedure;
 enum class Intern;
 
-template<typename... Types>
-using Celli = std::variant<Types...>;
-
-template<typename... Types>
-using Consi = std::tuple<std::variant<Types...>, std::variant<Types...>, bool>;
-
 using None        = std::monostate;
 using Nil         = std::nullptr_t;
 using Bool        = bool;
@@ -275,11 +269,12 @@ enum class Intern {
     op_vecforeach,
     op_callcc,
     op_values,
-    op_callwithval,
+    op_callwval,
     op_dynwind,
 
     /* Section 6.11: Exceptions */
     op_error,
+    op_with_exception,
 
     /* Section 6.12: Environments and evaluation */
     op_exit,

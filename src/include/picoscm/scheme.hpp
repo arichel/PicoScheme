@@ -368,9 +368,11 @@ private:
             { mksym("for-each"), Intern::op_foreach },
             { mksym("call/cc"), Intern::op_callcc },
             { mksym("call-with-current-continuation"), Intern::op_callcc },
+            { mksym("call-with-values"), Intern::op_callwval },
 
             /* Section 6.11: Exceptions */
             { mksym("error"), Intern::op_error },
+            { mksym("with-exception-handler"), Intern::op_with_exception },
             { mksym("exit"), Intern::op_exit },
 
             /* Section 6.12: Environments and evaluation */

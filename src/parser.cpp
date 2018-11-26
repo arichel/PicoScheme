@@ -446,7 +446,7 @@ Cell Parser::read(std::istream& in)
             return parse_list(in);
 
         case Token::Eof:
-            return none;
+            return Char{ EOF };
 
         case Token::Error:
         default:

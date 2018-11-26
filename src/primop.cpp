@@ -426,7 +426,7 @@ static Cell is_proc(const varg& args)
         || (is_intern(cell) && get<Intern>(cell) >= Intern::_apply);
 }
 
-static Cell apply(Scheme& scm, const SymenvPtr& senv, const Cell& proc, const varg& args)
+static Cell apply(Scheme& scm, const SymenvPtr& senv, const Cell& proc, const varg& args = varg{})
 {
     if (pscm::is_proc(proc)) {
         Cons arg[2], cns[4];
@@ -434,7 +434,7 @@ static Cell apply(Scheme& scm, const SymenvPtr& senv, const Cell& proc, const va
         Cell expr = pscm::list(cns, Intern::_apply, proc, argv, nil);
 
         if (args.empty()) {
-            set_cdr(cddr(expr), nil);
+            set_cdr(cddr(expr), nil); // terminate expr-list after proc
             return scm.eval(senv, expr);
 
         } else if (args.size() == 1) {
@@ -472,13 +472,7 @@ static Cell apply(Scheme& scm, const SymenvPtr& senv, const varg& args)
     return apply(scm, senv, args.at(0), arg);
 }
 
-struct continuation_exception {
-    continuation_exception(const Cell& cell)
-        : continuation{ cell }
-    {
-    }
-    Cell continuation;
-};
+static Cell vec2list(Scheme& scm, const varg& args);
 
 /**
  * Call with current continuation.
@@ -487,18 +481,143 @@ struct continuation_exception {
  */
 static Cell callcc(Scheme& scm, const SymenvPtr& senv, const varg& args)
 {
-    std::function<Cell(Scheme&, const SymenvPtr&, const std::vector<Cell>&)>
-        lambda = [](Scheme&, const SymenvPtr&, const varg& args) -> Cell {
-        throw continuation_exception{ args.at(0) };
+    struct continuation_exception {
+        continuation_exception(Scheme& scm, const varg& args)
+        {
+            if (args.empty())
+                return;
+
+            continuation = args.size() != 1 ? primop::list(scm, args) : args[0];
+        }
+        Cell continuation = none;
+    };
+    auto lambda = [](Scheme& scm, const SymenvPtr&, const varg& args) -> Cell {
+        throw continuation_exception{ scm, args };
         return none;
     };
 
-    varg arg{ scm.mkfun(std::move(lambda)) };
     try {
-        return apply(scm, senv, args.at(0), arg);
+        return primop::apply(scm, senv, args.at(0), varg{ scm.mkfun(std::move(lambda)) });
     } catch (const continuation_exception& e) {
         return e.continuation;
     }
+}
+
+static Cell callwval(Scheme& scm, const SymenvPtr& senv, const varg& args)
+{
+    struct callwval_exception : std::exception {
+        callwval_exception(Scheme& scm, const SymenvPtr& senv, varg args = varg{})
+            : senv{ senv }
+            , args{ std::move(args) }
+        {
+            auto values = [this](Scheme& scm, const SymenvPtr&, const varg& args) -> Cell {
+                if (this->args.empty())
+                    throw callwval_exception{ scm, this->senv, args };
+
+                return primop::list(scm, args);
+            };
+            scm.mkfun("values", std::move(values), senv);
+        }
+        SymenvPtr senv;
+        varg args;
+    };
+
+    try {
+        callwval_exception exc{ scm, senv };
+        return primop::apply(scm, senv, args.at(0));
+    } catch (const callwval_exception& e) {
+        return primop::apply(scm, senv, args.at(1), e.args);
+    }
+}
+
+struct scheme_exception : std::exception {
+    scheme_exception(Scheme& scm, SymenvPtr senv, varg args)
+        : senv{ std::move(senv) }
+        , args{ std::move(args) }
+    {
+        auto raise = [](Scheme& scm, const SymenvPtr& senv, const varg& args) -> Cell {
+            if (args.size() != 1)
+                throw std::invalid_argument("raise requires exact one argument");
+
+            throw scheme_exception{ scm, senv, args };
+            return none;
+        };
+        auto raisecont = [this](Scheme& scm, const SymenvPtr& senv, const varg& args) -> Cell {
+            if (args.size() != 1)
+                throw std::invalid_argument("raise requires exact one argument");
+
+            auto& proc = get<Procedure>(this->args.at(0));
+            return primop::apply(scm, senv, proc, args);
+        };
+        auto error = [](Scheme& scm, const SymenvPtr& senv, const varg& args) -> Cell {
+            if (args.size() < 2)
+                throw std::invalid_argument("error requires at least two arguments");
+
+            if (!is_string(args[0]))
+                throw std::invalid_argument("error requires a message string as first argument");
+
+            throw scheme_exception{ scm, senv, args };
+            return none;
+        };
+        auto is_error = [](Scheme&, const SymenvPtr&, const varg& args) -> Cell {
+            return is_pair(args.at(0)) && is_string(car(args[0])) && is_pair(cdr(args[0]));
+        };
+        auto errmsg = [is_error](Scheme& scm, const SymenvPtr& env, const varg& args) -> Cell {
+            if (!get<Bool>(is_error(scm, env, args)))
+                throw std::invalid_argument("argument is not an error object");
+
+            return car(args[0]);
+        };
+        auto errirr = [is_error](Scheme& scm, const SymenvPtr& env, const varg& args) -> Cell {
+            if (!get<Bool>(is_error(scm, env, args)))
+                throw std::invalid_argument("argument is not an error object");
+            return cdr(args[0]);
+        };
+        scm.mkfun("raise", std::move(raise), senv);
+        scm.mkfun("raise-continuable", std::move(raisecont), senv);
+        scm.mkfun("error", std::move(error), senv);
+        scm.mkfun("error-object?", std::move(is_error), senv);
+        scm.mkfun("error-object-message", std::move(errmsg), senv);
+        scm.mkfun("error-object-irritants", std::move(errirr), senv);
+    }
+    Cell apply(Scheme& scm, const SymenvPtr&, const Cell& proc) const
+    {
+        // handle exception by (error <msg> <obj0> [<obj1> ...])
+        return args.size() != 1 ? primop::apply(scm, this->senv, proc, varg{ primop::list(scm, args) })
+                                // handle exception by (raise obj)
+                                : primop::apply(scm, this->senv, proc, args);
+    }
+    SymenvPtr senv;
+    varg args;
+};
+/**
+ * Scheme function @em with-exception-handler
+ * (with-exception-handler <handler> <thunk>)
+ * (handler <obj>)
+ *
+ * Example:
+ * @verbatim
+ * (with-exception-handler ...
+ * @endverbatim
+ */
+static Cell withexcept(Scheme& scm, const SymenvPtr& senv, const varg& args)
+{
+    try {
+        scheme_exception exc{ scm, senv, args };
+        return primop::apply(scm, senv, args.at(1));
+
+    } catch (const scheme_exception& e) {
+        return e.apply(scm, senv, args.at(0));
+    }
+}
+
+static Cell error(Scheme& scm, const SymenvPtr& senv, const varg& args)
+{
+    if (args.size() < 2 || !is_string(args[0]))
+        throw std::invalid_argument("invalid number of arguments or not a message string");
+
+    throw scheme_exception{ scm, senv, args };
+    return none;
 }
 
 /**
@@ -1607,20 +1726,18 @@ static Cell readline(const varg& args)
 static Cell read(Scheme& scm, const varg& args)
 {
     Parser parser(scm);
-    if (args.empty()) {
-        return parser.read(std::cin);
-    } else {
-        auto& port = *get<PortPtr>(args[0]);
+    PortPtr port = scm.stdout();
 
-        try {
-            return parser.read(port.getStream());
+    if (!args.empty()) {
+        port = get<PortPtr>(args[0]);
+        if (!port->isInput())
+            throw input_port_exception(*port);
+    }
+    try {
+        return parser.read(port->getStream());
 
-        } catch (std::ios_base::failure&) {
-            if (port.isInput() && port.eof())
-                return Char{ EOF };
-
-            throw input_port_exception(port);
-        }
+    } catch (std::ios_base::failure&) {
+        throw input_port_exception(*port);
     }
 }
 
@@ -1701,15 +1818,6 @@ static Cell macroexp(Scheme& scm, const SymenvPtr& senv, const varg& args)
         return expr;
 
     return get<Procedure>(proc).expand(scm, expr);
-}
-
-static Cell error(const varg& args)
-{
-    std::string msg{ "error: " };
-    msg.append(*get<StringPtr>(args.at(0)));
-
-    throw std::invalid_argument(msg.c_str());
-    return none;
 }
 
 static Cell foreach (Scheme& scm, const SymenvPtr& senv, const varg& args)
@@ -2235,6 +2343,8 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
         return primop::is_proc(args);
     case Intern::op_callcc:
         return primop::callcc(scm, senv, args);
+    case Intern::op_callwval:
+        return primop::callwval(scm, senv, args);
     case Intern::op_map:
         return primop::map(scm, senv, args);
     case Intern::op_foreach:
@@ -2242,7 +2352,9 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
 
     /* Section 6.11: Exceptions */
     case Intern::op_error:
-        return primop::error(args);
+        return primop::error(scm, senv, args);
+    case Intern::op_with_exception:
+        return primop::withexcept(scm, senv, args);
     case Intern::op_exit:
         return Intern::op_exit;
 
