@@ -559,24 +559,24 @@ struct scheme_exception : std::exception {
             throw scheme_exception{ scm, senv, args };
             return none;
         };
-        auto is_error = [](Scheme&, const SymenvPtr&, const varg& args) -> Cell {
+        auto is_errobj = [](Scheme&, const SymenvPtr&, const varg& args) -> Cell {
             return is_pair(args.at(0)) && is_string(car(args[0])) && is_pair(cdr(args[0]));
         };
-        auto errmsg = [is_error](Scheme& scm, const SymenvPtr& env, const varg& args) -> Cell {
-            if (!get<Bool>(is_error(scm, env, args)))
+        auto errmsg = [is_errobj](Scheme& scm, const SymenvPtr& env, const varg& args) -> Cell {
+            if (!get<Bool>(is_errobj(scm, env, args)))
                 throw std::invalid_argument("argument is not an error object");
 
             return car(args[0]);
         };
-        auto errirr = [is_error](Scheme& scm, const SymenvPtr& env, const varg& args) -> Cell {
-            if (!get<Bool>(is_error(scm, env, args)))
+        auto errirr = [is_errobj](Scheme& scm, const SymenvPtr& env, const varg& args) -> Cell {
+            if (!get<Bool>(is_errobj(scm, env, args)))
                 throw std::invalid_argument("argument is not an error object");
             return cdr(args[0]);
         };
         scm.mkfun("raise", std::move(raise), senv);
         scm.mkfun("raise-continuable", std::move(raisecont), senv);
         scm.mkfun("error", std::move(error), senv);
-        scm.mkfun("error-object?", std::move(is_error), senv);
+        scm.mkfun("error-object?", std::move(is_errobj), senv);
         scm.mkfun("error-object-message", std::move(errmsg), senv);
         scm.mkfun("error-object-irritants", std::move(errirr), senv);
     }
