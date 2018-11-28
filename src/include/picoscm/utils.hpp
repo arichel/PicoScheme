@@ -1,6 +1,8 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include <codecvt>
+#include <locale>
 #include <utility>
 #include <variant>
 

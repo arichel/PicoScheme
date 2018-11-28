@@ -14,6 +14,10 @@ RegexPtr mkregex(const String& str);
 
 class Scheme {
 public:
+    Scheme(const SymenvPtr& env = nullptr)
+    {
+        add_contants(*this, topenv);
+    }
     /**
      * Construct a new cons cell-pair from the global cell store and
      * return a pointer to it.
@@ -146,6 +150,25 @@ protected:
 
 private:
     friend class GCollector;
+
+    // clang-format off
+    static void add_contants (Scheme& scm, const SymenvPtr& env);
+//    static void add_syntax   (Scheme& scm, const SymenvPtr& env) const;
+//    static void add_numeric  (Scheme& scm, const SymenvPtr& env) const;
+//    static void add_char     (Scheme& scm, const SymenvPtr& env) const;
+//    static void add_boolean  (Scheme& scm, const SymenvPtr& env) const;
+//    static void add_symbol   (Scheme& scm, const SymenvPtr& env) const;
+//    static void add_list     (Scheme& scm, const SymenvPtr& env) const;
+//    static void add_string   (Scheme& scm, const SymenvPtr& env) const;
+//    static void add_vector   (Scheme& scm, const SymenvPtr& env) const;
+//    static void add_bytevec  (Scheme& scm, const SymenvPtr& env) const;
+//    static void add_control  (Scheme& scm, const SymenvPtr& env) const;
+//    static void add_except   (Scheme& scm, const SymenvPtr& env) const;
+//    static void add_evalenv  (Scheme& scm, const SymenvPtr& env) const;
+//    static void add_port     (Scheme& scm, const SymenvPtr& env) const;
+    // clang-format on
+
+    //void make_environment(const SymenvPtr& parent = nullptr);
 
     static constexpr size_t dflt_bucket_count = 1024; //<! Initial default hash table bucket count.
     Symtab symtab{ dflt_bucket_count };

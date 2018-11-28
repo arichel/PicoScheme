@@ -134,6 +134,14 @@ public:
     }
 
     /**
+     * Insert zero or more Symbol, Value pairs into this environment.
+     */
+    void add(std::initializer_list<std::pair<Sym, T>> args)
+    {
+        for (auto& [sym, val] : args)
+            add(sym, val);
+    }
+    /**
      * Reassign a bound value of the first found symbol in this or any
      * reachable parent environment.
      * @throw std::invalid_argument exception for an unknown or unreachable symbols.

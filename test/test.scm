@@ -10,17 +10,15 @@
 (call-with-output-file "test.txt"
   (lambda (port)
     (write "Hello Mr. tally man,\ntally me banana...\n" port)
-   ))
-
+    ))
 
 (with-exception-handler
  (lambda (obj)
    (display obj)(newline)
    (display (error-object? obj))(newline)
-;;   (display (error-object-message obj))(newline)
-;;   (display (error-object-irritants obj)) (newline)
-   obj)
-
+   ;;   (display (error-object-message obj))(newline)
+   ;;   (display (error-object-irritants obj)) (newline)
+   (raise obj))
  (lambda ()
    (+  (error "hallo" 100) 1 2 3 4 5)))
 
@@ -32,18 +30,17 @@
 
 (values 1 2 3)
 
-
 (call-with-values
     (lambda ()
-      (when (> 3 4)
-      (values 1 2 3)))
+      (when (> 3 2)
+        (values 1 2 3))
+      19999)
   (lambda (x y z)
-    (+ x y z)))
-
-
+    (+ x y z)
+    (values x y z 100 200)))
 
 (do ((i 0 (+ i 1)))
     ((= i 100))
   (write "hallo paul: " port)
-;  (write i port)
+                                        ;  (write i port)
   (newline port))

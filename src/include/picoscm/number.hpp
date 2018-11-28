@@ -22,6 +22,39 @@ using Float = double;
 using Complex = std::complex<double>;
 
 template <typename T>
+constexpr T pi = 3.141592653589793238462643383279502884197169399375105820974944592307;
+
+template <typename T>
+constexpr T e = 2.718281828459045235360287471352662497757247093699959574966967627724;
+
+template <typename T> // Gravitational constant [m^3/(kg s^2)]
+constexpr T G = 6.67408e-11;
+
+template <typename T> // Speed of light [s]
+constexpr T c = 299792458;
+
+template <typename T> // Planck's constant [Js]
+constexpr T h = 6.62607015081e-34;
+
+template <typename T> // Elementary electric charge [C]
+constexpr T q_e = 1.602176620898e-19;
+
+template <typename T> //  Avogadro number [1/mol]
+constexpr T N_A = 6.02214076e23;
+
+template <typename T> // Gas constant [J/(mol K)]
+constexpr T R = 8.314459848;
+
+template <typename T> // Vacuum permeability [C^2 / (N m^2)]
+constexpr T mu_0 = pi<T> * 4 * 1e-7;
+
+template <typename T> // Vacuum permittivity [(N m^2)/C^2]
+constexpr T epsilon_0 = 1 / (mu_0<T> * c<T> * c<T>);
+
+template <typename T> // Stefan-Boltzmann constant [W/(m^2 K^4)]
+constexpr T sigma = 2 * pi<T>* pow(R<T>, 4) / (15 * pow(h<T>, 3) * c<T> * c<T> * pow(N_A<T>, 4));
+
+template <typename T>
 struct Type;
 
 /**
