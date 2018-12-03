@@ -17,19 +17,22 @@
 namespace pscm {
 
 class Parser {
+    using istream_type = std::basic_istream<Char>;
 
 public:
     Parser(Scheme& scm)
         : scm(scm)
     {
     }
+    //! Read the next scheme expression from the argument input stream.
+    Cell read(istream_type& in);
 
-    Cell read(std::istream& in);
-
-    static Cell strnum(const std::string& mkstr);
+    //! Try to convert the argument string into a scheme number or
+    //! return #false for an unsuccessful conversion.
+    static Cell strnum(const String&);
 
 private:
-    enum class Token : int {
+    enum class Token {
         None,
         OBrace, // (
         CBrace, // )
@@ -54,46 +57,47 @@ private:
         Error
     };
 
-    Cell parse_list(std::istream& in);
-    Cell parse_vector(std::istream& in);
-    Token get_token(std::istream& in);
+    Cell parse_list(istream_type&);
+    Cell parse_vector(istream_type&);
+    Token get_token(istream_type&);
 
     static bool is_alpha(int c);
     static bool is_special(int c);
-    static bool is_digit(const std::string&, size_t n = 0);
+    static bool is_digit(const String&, size_t n = 0);
 
-    static Token lex_number(const std::string&, Number&);
-    static Token lex_string(std::string&, std::istream& in);
-    static Token lex_regex(std::string&, std::istream& in);
-    static Token lex_symbol(const std::string&);
-    static Token lex_unquote(const std::string&, std::istream& in);
-    static Token lex_char(const std::string&, Char& c, std::istream& in);
+    static Token lex_number(const String&, Number&);
+    static Token lex_string(String&, istream_type&);
+    static Token lex_regex(String&, istream_type&);
+    static Token lex_symbol(const String&);
+    static Token lex_unquote(const String&, istream_type&);
+    static Token lex_char(const String&, Char& c, istream_type&);
 
-    Token lex_special(std::string&, std::istream& in);
-    Token skip_comment(std::istream& in) const;
+    Token lex_special(String&, istream_type& in);
+    Token skip_comment(istream_type& in) const;
 
     Token put_back = Token::None;
-    std::string strtok;
+    String strtok;
     Number numtok;
     Char chrtok;
     Scheme& scm;
 
-    const Symbol s_quote = scm.mksym("quote"), s_quasiquote = scm.mksym("quasiquote"),
-                 s_unquote = scm.mksym("unquote"), s_unquotesplice = scm.mksym("unquote-splicing");
+    const Symbol s_quote = scm.symbol("quote"), s_quasiquote = scm.symbol("quasiquote"),
+                 s_unquote = scm.symbol("unquote"), s_unquotesplice = scm.symbol("unquote-splicing"),
+                 s_expr = scm.symbol();
 };
 
 struct parse_error : public std::exception {
-    parse_error(const String& str)
+    parse_error(const std::string& str)
         : reason{ str }
     {
     }
-    const Char* what() const noexcept override
+    const char* what() const noexcept override
     {
         return reason.c_str();
     }
 
 private:
-    String reason;
+    std::string reason;
 };
 
 } // namespace pscm

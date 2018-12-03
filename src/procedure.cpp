@@ -89,7 +89,7 @@ bool Procedure::operator==(const Procedure& proc) const noexcept
 std::pair<SymenvPtr, Cell> Procedure::apply(Scheme& scm, const SymenvPtr& env, Cell args, bool is_list) const
 {
     // Create a new child environment and set the closure environment as father:
-    SymenvPtr newenv = scm.mkenv(impl->senv);
+    SymenvPtr newenv = scm.newenv(impl->senv);
 
     Cell iter = impl->args; // closure formal parameter symbol list
 
@@ -132,7 +132,7 @@ Cell Procedure::expand(Scheme& scm, Cell& expr) const
     Cell args = cdr(expr), iter = impl->args; // macro formal parameter symbol list
 
     // Create a new child environment and set the closure environment as father:
-    SymenvPtr newenv = scm.mkenv(impl->senv);
+    SymenvPtr newenv = scm.newenv(impl->senv);
 
     // Add unevaluated macro parameters to new environment:
     for (/* */; is_pair(iter) && is_pair(args); iter = cdr(iter), args = cdr(args))
@@ -148,16 +148,16 @@ Cell Procedure::expand(Scheme& scm, Cell& expr) const
     return args;
 }
 
-Function::Function(const Symbol& sym, const function_type& fun)
-    : function_type{ fun }
-    , sym{ sym }
-{
-}
+//Function::Function(const Symbol& sym, const function_type& fun)
+//    : function_type{ fun }
+//    , sym{ sym }
+//{
+//}
 
-Function::Function(const Symbol& sym, function_type&& fun)
-    : function_type{ std::move(fun) }
-    , sym{ sym }
-{
-}
+//Function::Function(const Symbol& sym, function_type&& fun)
+//    : function_type{ std::move(fun) }
+//    , sym{ sym }
+//{
+//}
 
 } // namespace pscm

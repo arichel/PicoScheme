@@ -263,7 +263,7 @@ static Cell inex2ex(const Cell& cell)
 
 static Cell numstr(const varg& args)
 {
-    std::ostringstream buf;
+    std::basic_ostringstream<Char> buf;
     buf << get<Number>(args.at(0));
     return std::make_shared<StringPtr::element_type>(buf.str());
 }
@@ -497,7 +497,7 @@ static Cell callcc(Scheme& scm, const SymenvPtr& senv, const varg& args)
     };
 
     try {
-        return primop::apply(scm, senv, args.at(0), varg{ scm.mkfun(std::move(lambda)) });
+        return primop::apply(scm, senv, args.at(0), varg{ scm.function(senv, std::move(lambda)) });
     } catch (const continuation_exception& e) {
         return e.continuation;
     }
@@ -513,10 +513,9 @@ static Cell callwval(Scheme& scm, const SymenvPtr& senv, const varg& args)
             auto values = [this](Scheme& scm, const SymenvPtr&, const varg& args) -> Cell {
                 if (this->args.empty())
                     throw callwval_exception{ scm, this->senv, args };
-
                 return primop::list(scm, args);
             };
-            scm.mkfun("values", std::move(values), senv);
+            scm.function(senv, "values", std::move(values));
         }
         SymenvPtr senv;
         varg args;
@@ -573,12 +572,14 @@ struct scheme_exception : std::exception {
                 throw std::invalid_argument("argument is not an error object");
             return cdr(args[0]);
         };
-        scm.mkfun("raise", std::move(raise), senv);
-        scm.mkfun("raise-continuable", std::move(raisecont), senv);
-        scm.mkfun("error", std::move(error), senv);
-        scm.mkfun("error-object?", std::move(is_errobj), senv);
-        scm.mkfun("error-object-message", std::move(errmsg), senv);
-        scm.mkfun("error-object-irritants", std::move(errirr), senv);
+        // clang-format off
+        scm.function(senv, "raise",                  std::move(raise));
+        scm.function(senv, "raise-continuable",      std::move(raisecont));
+        scm.function(senv, "error",                  std::move(error));
+        scm.function(senv, "error-object?",          std::move(is_errobj));
+        scm.function(senv, "error-object-message",   std::move(errmsg));
+        scm.function(senv, "error-object-irritants", std::move(errirr));
+        // clang-format on
     }
     Cell apply(Scheme& scm, const SymenvPtr&, const Cell& proc) const
     {
@@ -1333,8 +1334,17 @@ static Cell strfillb(const varg& args)
     return pstr;
 }
 
+static Cell make_vector(const varg& args)
+{
+    auto size = get<Int>(get<Number>(args.at(0)));
+    size >= 0 || ((void)(throw std::invalid_argument("vector length must be a non-negative integer")), 0);
+
+    Cell val{ args.size() > 1 ? args[1] : none };
+    return pscm::vec(size, val);
+}
+
 /**
- * @brief Scheme @em vector-ref function.
+ * Scheme @em vector-ref function.
  * @verbatim (vector-ref #(x0 x1 x2 ... xn) 2) => x2) @endverbatim
  */
 static Cell vector_ref(const varg& args)
@@ -1345,7 +1355,7 @@ static Cell vector_ref(const varg& args)
 }
 
 /**
- * @brief Scheme @em vector-set! function.
+ * Scheme @em vector-set! function.
  * @verbatim (vector-set! #(x0 x1 x2 ... xn) 2 'z2) => #(x0 x1 z2 ... xn) @endverbatim
  */
 static Cell vector_setb(const varg& args)
@@ -1517,10 +1527,11 @@ static Cell callw_port(Scheme& scm, const SymenvPtr& senv, const PortPtr& port, 
 static Cell callw_infile(Scheme& scm, const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
 {
     using port_type = FilePort<Char>;
-    auto port = std::make_shared<port_type>(*filnam, port_type::stream_type::in);
+    auto port = std::make_shared<port_type>(ws2s(*filnam), port_type::stream_type::in);
 
     if (!port->is_open())
-        throw port_type::stream_type::failure("couldn't open input file: '"s + *filnam + "'"s);
+        throw port_type::stream_type::failure("couldn't open input file: '"s
+            + ws2s(*filnam) + "'"s);
 
     Cons cons[4];
     Cell cell = scm.eval(senv, pscm::list(cons, Intern::_apply, proc, port, nil));
@@ -1531,10 +1542,11 @@ static Cell callw_infile(Scheme& scm, const SymenvPtr& senv, const StringPtr& fi
 static Cell callw_outfile(Scheme& scm, const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
 {
     using port_type = FilePort<Char>;
-    auto port = std::make_shared<port_type>(*filnam, port_type::out);
+    auto port = std::make_shared<port_type>(ws2s(*filnam), port_type::out);
 
     if (!port->is_open())
-        throw std::ios_base::failure("couldn't open output file: '"s + *filnam + "'"s);
+        throw std::ios_base::failure("couldn't open output file: '"s
+            + ws2s(*filnam) + "'"s);
 
     Cons cons[4];
     Cell cell = scm.eval(senv, pscm::list(cons, Intern::_apply, proc, port, nil));
@@ -1545,10 +1557,11 @@ static Cell callw_outfile(Scheme& scm, const SymenvPtr& senv, const StringPtr& f
 static Cell open_infile(const StringPtr& filnam)
 {
     using port_type = FilePort<Char>;
-    auto port = std::make_shared<port_type>(*filnam, port_type::in);
+    auto port = std::make_shared<port_type>(ws2s(*filnam), port_type::in);
 
     if (!port->is_open())
-        throw std::ios_base::failure("couldn't open input file: '"s + *filnam + "'"s);
+        throw std::ios_base::failure("couldn't open input file: '"s
+            + ws2s(*filnam) + "'"s);
 
     return port;
 }
@@ -1569,8 +1582,7 @@ static Cell open_outfile(const varg& args)
     if (args.size() > 1 && !is_false(args[1]))
         mode |= port_type::app;
 
-    auto& filnam = *get<StringPtr>(args.at(0));
-
+    auto filnam = ws2s(*get<StringPtr>(args.at(0)));
     auto port = std::make_shared<port_type>(filnam, mode);
 
     if (!port->is_open())
@@ -1602,7 +1614,7 @@ static Cell display(const varg& args)
         if (args.size() > 1)
             *get<PortPtr>(args[1]) << pscm::display(args[0]);
         else
-            std::cout << pscm::display(args.at(0));
+            std::wcout << pscm::display(args.at(0));
 
     } catch (std::ios_base::failure&) {
         throw output_port_exception(*get<PortPtr>(args.at(1)));
@@ -1619,7 +1631,7 @@ static Cell write(const varg& args)
         if (args.size() > 1)
             *get<PortPtr>(args[1]) << args[0];
         else
-            std::cout << args.at(0);
+            std::wcout << args.at(0);
 
     } catch (std::ios_base::failure&) {
         throw output_port_exception(*get<PortPtr>(args.at(1)));
@@ -1706,7 +1718,7 @@ static Cell readline(const varg& args)
 {
     String str;
     if (args.empty()) {
-        getline(std::cin, str);
+        getline(std::wcin, str);
     } else {
         auto& port = *get<PortPtr>(args[0]);
         if (!port.isInput())
@@ -1950,7 +1962,7 @@ static Cell regex_match(const varg& args)
             vres->reserve(smatch.size());
 
             for (auto& m : smatch)
-                vres->push_back(pscm::mkstr(m.str()));
+                vres->push_back(pscm::str(m.str()));
 
             return vres;
         } else
@@ -1980,7 +1992,7 @@ static Cell regex_search(const varg& args)
     auto vres{ std::make_shared<vector>(0) };
 
     while (std::regex_search(str, smatch, *pregex)) {
-        vres->push_back(pscm::mkstr(smatch.str()));
+        vres->push_back(pscm::str(smatch.str()));
         str = smatch.suffix();
     }
     return vres->size() ? Cell{ vres } : Cell{ false };
@@ -2200,9 +2212,9 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_symstr:
         return std::make_shared<StringPtr::element_type>(get<Symbol>(args.at(0)).value());
     case Intern::op_strsym:
-        return scm.mksym(get<StringPtr>(args.at(0))->c_str());
+        return scm.symbol(get<StringPtr>(args.at(0))->c_str());
     case Intern::op_gensym:
-        return scm.mksym();
+        return scm.symbol();
 
     /* Section 6.6: Characters */
     case Intern::op_ischar:
@@ -2311,8 +2323,7 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_isvec:
         return is_type<VectorPtr>(args.at(0));
     case Intern::op_mkvec:
-        return args.size() > 1 ? mkvec(get<Number>(args[0]), args[1])
-                               : mkvec(get<Number>(args.at(0)), none);
+        return primop::make_vector(args);
     case Intern::op_vec:
         return std::make_shared<VectorPtr::element_type>(args);
     case Intern::op_veclen:

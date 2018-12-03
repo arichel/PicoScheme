@@ -160,8 +160,8 @@ public:
 
         } while ((senv = senv->next.get()));
 
-        throw std::invalid_argument(std::string{ "unknown symbol " }
-            + static_cast<std::string>(sym.value()));
+        throw std::invalid_argument("unknown symbol ");
+        //+ static_cast<std::string>(sym.value()));
     }
 
     /**
@@ -182,8 +182,8 @@ public:
 
         } while ((senv = senv->next.get()));
 
-        throw std::invalid_argument(std::string{ "unknown symbol " }
-            + static_cast<std::string>(sym.value()));
+        throw std::invalid_argument("unknown symbol ");
+        //+ static_cast<std::string>(sym.value()));
     }
 
     struct Cursor {

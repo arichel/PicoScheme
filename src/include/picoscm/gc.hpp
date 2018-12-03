@@ -13,7 +13,7 @@ class Scheme;
 class GCollector {
 public:
     void collect(Scheme& scm, const SymenvPtr& env);
-    void dump(const Scheme& scm, std::ostream& os = std::cerr);
+    void dump(const Scheme& scm, std::wostream& os = std::wcerr);
     void logging(bool);
 
 private:

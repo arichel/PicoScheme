@@ -13,8 +13,10 @@
 #ifndef PORT_HPP
 #define PORT_HPP
 
+#include <codecvt>
 #include <fstream>
 #include <iostream>
+#include <locale>
 #include <memory>
 #include <sstream>
 #include <variant>
@@ -39,18 +41,18 @@ DisplayManip<T> display(const T& val) { return { val }; }
 /**
  * Output stream operator for scheme (display <expr>) output.
  */
-std::ostream& operator<<(std::ostream& os, DisplayManip<Cell> cell);
+std::wostream& operator<<(std::wostream& os, DisplayManip<Cell> cell);
 
 /**
  * Default output stream operator for scheme (write <expr>) output.
  */
-std::ostream& operator<<(std::ostream& os, const Cell& cell);
+std::wostream& operator<<(std::wostream& os, const Cell& cell);
 
 /**
  * Output stream operator to write essential opcodes
  * with their descriptive scheme symbol name.
  */
-std::ostream& operator<<(std::ostream& os, Intern opcode);
+std::wostream& operator<<(std::wostream& os, Intern opcode);
 
 /**
  * Scheme io-port fascade to represent either an std::iostream,
@@ -93,6 +95,14 @@ protected:
         , mode{ mode }
     {
         stream.exceptions(stream_type::badbit);
+
+        auto locale_str = std::setlocale(LC_ALL, "en_US.utf8");
+        stream.imbue(std::locale(locale_str));
+    }
+
+    virtual ~Port()
+    {
+        std::ios_base::sync_with_stdio(true);
     }
 
 private:
@@ -106,18 +116,25 @@ class StandardPort : virtual public std::basic_iostream<Char, std::char_traits<C
 public:
     using stream_type = std::basic_iostream<Char, std::char_traits<Char>>;
     using openmode = typename Port<Char>::openmode;
+    using stream_type::flush;
 
     explicit StandardPort(openmode mode = stream_type::out)
-        : stream_type{ std::cout.rdbuf() }
+        : stream_type{ std::wcin.rdbuf() }
         , Port<Char>{ *this, mode }
     {
-        stream_type::copyfmt(std::cout);
-        stream_type::clear(std::cout.rdstate());
+        auto locale_str = std::setlocale(LC_ALL, nullptr);
+        std::wcout.imbue(std::locale(locale_str));
+        std::wcin.imbue(std::locale(locale_str));
 
+        if (mode & stream_type::out) {
+            stream_type::set_rdbuf(std::wcout.rdbuf());
+            stream_type::copyfmt(std::wcout);
+            stream_type::clear(std::wcout.rdstate());
+        }
         if (mode & stream_type::in) {
-            stream_type::set_rdbuf(std::cin.rdbuf());
-            stream_type::copyfmt(std::cin);
-            stream_type::clear(std::cin.rdstate());
+            stream_type::set_rdbuf(std::wcin.rdbuf());
+            stream_type::copyfmt(std::wcin);
+            stream_type::clear(std::wcin.rdstate());
         }
     }
     bool isStandardPort() const final { return true; }

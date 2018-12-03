@@ -4,52 +4,92 @@
 #include <list>
 
 #include "cell.hpp"
+#include "gc.hpp"
 
 namespace pscm {
 
-VectorPtr mkvec(Number size, const Cell& val);
-StringPtr mkstr(const String& s);
-StringPtr mkstr(const Char*);
-RegexPtr mkregex(const String& str);
-
 class Scheme {
 public:
-    Scheme(const SymenvPtr& env = nullptr)
+    Scheme(/*const SymenvPtr& env = nullptr*/)
     {
         add_contants(*this, topenv);
     }
     /**
-     * Construct a new cons cell-pair from the global cell store and
-     * return a pointer to it.
-     *
-     * Pointer life time is managed by the garbage collector.
+     * Construct a new cons cell-pair from the internal cell store and
+     * return a pointer to it. Pointer lifetime is managed by the
+     * garbage collector.
      *
      * @param  car Cell to assign to Cons->first.
      * @param  cdr Cell to assign to Cons->second.
      * @return Pointer to a new Cons pair.
      */
-    Cons* cons(Cell&& car, Cell&& cdr);
-    Cons* cons(Cell&& car, const Cell& cdr);
-    Cons* cons(const Cell& car, Cell&& cdr);
-    Cons* cons(const Cell& car, const Cell& cdr);
-
-    //! Recursion base case
-    Cell list() { return nil; }
+    template <typename CAR, typename CDR>
+    Cons* cons(CAR&& car, CDR&& cdr)
+    {
+        if (store_size < store.size() && !(store.size() % dflt_gc_cycle)) {
+            gc.collect(*this, topenv);
+            store_size = store.size();
+        }
+        return pscm::cons(store, std::forward<CAR>(car), std::forward<CDR>(cdr));
+    }
 
     //! Build a cons list of all arguments
     template <typename T, typename... Args>
     Cons* list(T&& t, Args&&... args)
     {
-        return cons(std::forward<T>(t), list(std::forward<Args>(args)...));
+        return pscm::list(store, std::forward<T>(t), std::forward<Args>(args)...);
     }
 
-    SymenvPtr mkenv(const SymenvPtr& env = nullptr);
-    FunctionPtr mkfun(Function::function_type&&);
-    FunctionPtr mkfun(const String& name, Function::function_type&&, const SymenvPtr& env = nullptr);
+    //! Return a
+    template <typename StringT>
+    Symbol symbol(const StringT& str)
+    {
+        return symtab[string_convert<Char>(str)];
+    }
 
-    Symbol mksym(const Char* name);
-    Symbol mksym(const String& name);
-    Symbol mksym();
+    Symbol symbol()
+    {
+        return symbol(std::string{ "symbol " }.append(std::to_string(symtab.size())));
+    }
+
+    /**
+     * Create a new Function object and add it to the argument environment bound
+     * to a symbol of argument name.
+     *
+     * External function signature:
+     *   func(Scheme& scm, const SymenvPtr& env, const std::vector<Cell>& argv) -> Cell
+     *
+     * @param env  Environment pointer, where to add this function. If null-pointer,
+     *             add to top-environment.
+     * @param name Symbol name of this function.
+     * @param fun  External function or functor.
+     */
+    template <typename StringT, typename FunctionT>
+    FunctionPtr function(const SymenvPtr& env, const StringT& name, FunctionT&& fun)
+    {
+        auto sym = symbol(name);
+        auto funptr = Function::create(sym, std::forward<FunctionT>(fun));
+
+        if (env)
+            env->add(sym, funptr);
+        else
+            topenv->add(sym, funptr);
+
+        return funptr;
+    }
+
+    template <typename FunctionT>
+    FunctionPtr function(const SymenvPtr& env, FunctionT&& fun)
+    {
+        return function(env, String{ L"λ" }, std::forward<FunctionT>(fun));
+    }
+
+    void addenv(const Symbol& sym, const Cell& cell) { topenv->add(sym, cell); }
+
+    SymenvPtr newenv(const SymenvPtr& env = nullptr)
+    {
+        return Symenv::create(env ? env : topenv);
+    }
 
     PortPtr stdin() { return m_stdin; }
     PortPtr stdout() { return m_stdout; }
@@ -66,7 +106,7 @@ public:
      */
     void repl(const SymenvPtr& env = nullptr);
 
-    void load(const std::string& filnam, const SymenvPtr& env = nullptr);
+    void load(const String& filename, const SymenvPtr& env = nullptr);
 
     /**
      * Evaluate a scheme expression at the argument symbol environment.
@@ -171,8 +211,12 @@ private:
     //void make_environment(const SymenvPtr& parent = nullptr);
 
     static constexpr size_t dflt_bucket_count = 1024; //<! Initial default hash table bucket count.
+    static constexpr size_t dflt_gc_cycle = 10000;
+
+    GCollector gc;
     Symtab symtab{ dflt_bucket_count };
     std::list<Cons> store;
+    size_t store_size = 0;
 
     using standard_port = StandardPort<Char>;
     PortPtr m_stdin = std::make_shared<standard_port>(standard_port::in);
@@ -180,273 +224,318 @@ private:
 
     SymenvPtr topenv = Symenv::create(
         {
-            { mksym("#t"), true },
-            { mksym("#true"), true },
-            { mksym("#f"), false },
-            { mksym("#false"), false },
-            { mksym("or"), Intern::_or },
-            { mksym("and"), Intern::_and },
-            { mksym("if"), Intern::_if },
-            { mksym("cond"), Intern::_cond },
-            { mksym("else"), Intern::_else },
-            { mksym("=>"), Intern::_arrow },
-            { mksym("when"), Intern::_when },
-            { mksym("unless"), Intern::_unless },
-            { mksym("begin"), Intern::_begin },
-            { mksym("define"), Intern::_define },
-            { mksym("set!"), Intern::_setb },
-            { mksym("lambda"), Intern::_lambda },
-            { mksym("define-macro"), Intern::_macro },
-            { mksym("quote"), Intern::_quote },
-            { mksym("quasiquote"), Intern::_quasiquote },
-            { mksym("unquote"), Intern::_unquote },
-            { mksym("unquote-splicing"), Intern::_unquotesplice },
-            { mksym("apply"), Intern::_apply },
+            { symbol("#true"), true },
+            { symbol("#t"), true },
+            { symbol("#f"), false },
+            { symbol("#false"), false },
+            { symbol("or"), Intern::_or },
+            { symbol("and"), Intern::_and },
+            { symbol("if"), Intern::_if },
+            { symbol("cond"), Intern::_cond },
+            { symbol("else"), Intern::_else },
+            { symbol("=>"), Intern::_arrow },
+            { symbol("when"), Intern::_when },
+            { symbol("unless"), Intern::_unless },
+            { symbol("begin"), Intern::_begin },
+            { symbol("define"), Intern::_define },
+            { symbol("set!"), Intern::_setb },
+            { symbol("lambda"), Intern::_lambda },
+            { symbol("define-macro"), Intern::_macro },
+            { symbol("quote"), Intern::_quote },
+            { symbol("quasiquote"), Intern::_quasiquote },
+            { symbol("unquote"), Intern::_unquote },
+            { symbol("unquote-splicing"), Intern::_unquotesplice },
+            { symbol("apply"), Intern::_apply },
 
             /* Section 6.1: Equivalence predicates */
-            { mksym("eq?"), Intern::op_eq },
-            { mksym("eqv?"), Intern::op_eqv },
-            { mksym("equal?"), Intern::op_equal },
+            { symbol("eq?"), Intern::op_eq },
+            { symbol("eqv?"), Intern::op_eqv },
+            { symbol("equal?"), Intern::op_equal },
 
             /* Section 6.2: Numbers */
-            { mksym("number?"), Intern::op_isnum },
-            { mksym("complex?"), Intern::op_iscpx },
-            { mksym("real?"), Intern::op_isreal },
-            { mksym("rational?"), Intern::op_israt },
-            { mksym("integer?"), Intern::op_isint },
-            { mksym("exact?"), Intern::op_isexact },
-            { mksym("inexact?"), Intern::op_isinexact },
-            { mksym("exact-integer?"), Intern::op_isexactint },
-            { mksym("exact->inexact"), Intern::op_ex2inex },
-            { mksym("inexact->exact"), Intern::op_inex2ex },
-            { mksym("even?"), Intern::op_iseven },
-            { mksym("odd?"), Intern::op_isodd },
-            { mksym("="), Intern::op_numeq },
-            { mksym("<"), Intern::op_numlt },
-            { mksym(">"), Intern::op_numgt },
-            { mksym("<="), Intern::op_numle },
-            { mksym(">="), Intern::op_numge },
-            { mksym("+"), Intern::op_add },
-            { mksym("-"), Intern::op_sub },
-            { mksym("*"), Intern::op_mul },
-            { mksym("/"), Intern::op_div },
-            { mksym("min"), Intern::op_min },
-            { mksym("max"), Intern::op_max },
-            { mksym("positive?"), Intern::op_ispos },
-            { mksym("negative?"), Intern::op_isneg },
-            { mksym("zero?"), Intern::op_zero },
-            { mksym("modulo"), Intern::op_mod },
-            { mksym("remainder"), Intern::op_rem },
-            { mksym("quotient"), Intern::op_quotient },
-            { mksym("floor"), Intern::op_floor },
-            { mksym("ceil"), Intern::op_ceil },
-            { mksym("trunc"), Intern::op_trunc },
-            { mksym("round"), Intern::op_round },
-            { mksym("sin"), Intern::op_sin },
-            { mksym("cos"), Intern::op_cos },
-            { mksym("tan"), Intern::op_tan },
-            { mksym("asin"), Intern::op_asin },
-            { mksym("acos"), Intern::op_acos },
-            { mksym("atan"), Intern::op_atan },
-            { mksym("sinh"), Intern::op_sinh },
-            { mksym("cosh"), Intern::op_cosh },
-            { mksym("tanh"), Intern::op_tanh },
-            { mksym("asinh"), Intern::op_asinh },
-            { mksym("acosh"), Intern::op_acosh },
-            { mksym("atanh"), Intern::op_atanh },
-            { mksym("sqrt"), Intern::op_sqrt },
-            { mksym("cbrt"), Intern::op_cbrt },
-            { mksym("exp"), Intern::op_exp },
-            { mksym("expt"), Intern::op_pow },
-            { mksym("log"), Intern::op_log },
-            { mksym("log10"), Intern::op_log10 },
-            { mksym("square"), Intern::op_square },
-            { mksym("real-part"), Intern::op_real },
-            { mksym("imag-part"), Intern::op_imag },
-            { mksym("magnitude"), Intern::op_abs },
-            { mksym("abs"), Intern::op_abs },
-            { mksym("angle"), Intern::op_arg },
-            { mksym("make-rectangular"), Intern::op_rect },
-            { mksym("make-polar"), Intern::op_polar },
-            { mksym("conjugate"), Intern::op_conj },
-            { mksym("hypot"), Intern::op_hypot },
-            { mksym("string->number"), Intern::op_strnum },
-            { mksym("number->string"), Intern::op_numstr },
+            { symbol("number?"), Intern::op_isnum },
+            { symbol("complex?"), Intern::op_iscpx },
+            { symbol("real?"), Intern::op_isreal },
+            { symbol("rational?"), Intern::op_israt },
+            { symbol("integer?"), Intern::op_isint },
+            { symbol("exact?"), Intern::op_isexact },
+            { symbol("inexact?"), Intern::op_isinexact },
+            { symbol("exact-integer?"), Intern::op_isexactint },
+            { symbol("exact->inexact"), Intern::op_ex2inex },
+            { symbol("inexact->exact"), Intern::op_inex2ex },
+            { symbol("even?"), Intern::op_iseven },
+            { symbol("odd?"), Intern::op_isodd },
+            { symbol("="), Intern::op_numeq },
+            { symbol("<"), Intern::op_numlt },
+            { symbol(">"), Intern::op_numgt },
+            { symbol("<="), Intern::op_numle },
+            { symbol(">="), Intern::op_numge },
+            { symbol("+"), Intern::op_add },
+            { symbol("-"), Intern::op_sub },
+            { symbol("*"), Intern::op_mul },
+            { symbol("/"), Intern::op_div },
+            { symbol("min"), Intern::op_min },
+            { symbol("max"), Intern::op_max },
+            { symbol("positive?"), Intern::op_ispos },
+            { symbol("negative?"), Intern::op_isneg },
+            { symbol("zero?"), Intern::op_zero },
+            { symbol("modulo"), Intern::op_mod },
+            { symbol("remainder"), Intern::op_rem },
+            { symbol("quotient"), Intern::op_quotient },
+            { symbol("floor"), Intern::op_floor },
+            { symbol("ceil"), Intern::op_ceil },
+            { symbol("trunc"), Intern::op_trunc },
+            { symbol("round"), Intern::op_round },
+            { symbol("sin"), Intern::op_sin },
+            { symbol("cos"), Intern::op_cos },
+            { symbol("tan"), Intern::op_tan },
+            { symbol("asin"), Intern::op_asin },
+            { symbol("acos"), Intern::op_acos },
+            { symbol("atan"), Intern::op_atan },
+            { symbol("sinh"), Intern::op_sinh },
+            { symbol("cosh"), Intern::op_cosh },
+            { symbol("tanh"), Intern::op_tanh },
+            { symbol("asinh"), Intern::op_asinh },
+            { symbol("acosh"), Intern::op_acosh },
+            { symbol("atanh"), Intern::op_atanh },
+            { symbol("sqrt"), Intern::op_sqrt },
+            { symbol("cbrt"), Intern::op_cbrt },
+            { symbol("exp"), Intern::op_exp },
+            { symbol("expt"), Intern::op_pow },
+            { symbol("log"), Intern::op_log },
+            { symbol("log10"), Intern::op_log10 },
+            { symbol("square"), Intern::op_square },
+            { symbol("real-part"), Intern::op_real },
+            { symbol("imag-part"), Intern::op_imag },
+            { symbol("magnitude"), Intern::op_abs },
+            { symbol("abs"), Intern::op_abs },
+            { symbol("angle"), Intern::op_arg },
+            { symbol("make-rectangular"), Intern::op_rect },
+            { symbol("make-polar"), Intern::op_polar },
+            { symbol("conjugate"), Intern::op_conj },
+            { symbol("hypot"), Intern::op_hypot },
+            { symbol("string->number"), Intern::op_strnum },
+            { symbol("number->string"), Intern::op_numstr },
 
             /* Section 6.3: Booleans */
-            { mksym("not"), Intern::op_not },
-            { mksym("boolean?"), Intern::op_isbool },
-            { mksym("boolean=?"), Intern::op_isbooleq },
+            { symbol("not"), Intern::op_not },
+            { symbol("boolean?"), Intern::op_isbool },
+            { symbol("boolean=?"), Intern::op_isbooleq },
 
             /* Section 6.4: Pair and lists */
-            { mksym("cons"), Intern::op_cons },
-            { mksym("car"), Intern::op_car },
-            { mksym("cdr"), Intern::op_cdr },
-            { mksym("caar"), Intern::op_caar },
-            { mksym("cddr"), Intern::op_cddr },
-            { mksym("cadr"), Intern::op_cadr },
-            { mksym("cdar"), Intern::op_cdar },
-            { mksym("caddr"), Intern::op_caddr },
-            { mksym("set-car!"), Intern::op_setcar },
-            { mksym("set-cdr!"), Intern::op_setcdr },
-            { mksym("list"), Intern::op_list },
-            { mksym("null?"), Intern::op_isnil },
-            { mksym("pair?"), Intern::op_ispair },
-            { mksym("list?"), Intern::op_islist },
-            { mksym("make-list"), Intern::op_mklist },
-            { mksym("append"), Intern::op_append },
-            { mksym("length"), Intern::op_length },
-            { mksym("list-ref"), Intern::op_listref },
-            { mksym("list-set!"), Intern::op_listsetb },
-            { mksym("list-copy"), Intern::op_listcopy },
-            { mksym("reverse"), Intern::op_reverse },
-            { mksym("reverse!"), Intern::op_reverseb },
-            { mksym("memq"), Intern::op_memq },
-            { mksym("memv"), Intern::op_memv },
-            { mksym("member"), Intern::op_member },
-            { mksym("assq"), Intern::op_assq },
-            { mksym("assv"), Intern::op_assv },
-            { mksym("assoc"), Intern::op_assoc },
+            { symbol("cons"), Intern::op_cons },
+            { symbol("car"), Intern::op_car },
+            { symbol("cdr"), Intern::op_cdr },
+            { symbol("caar"), Intern::op_caar },
+            { symbol("cddr"), Intern::op_cddr },
+            { symbol("cadr"), Intern::op_cadr },
+            { symbol("cdar"), Intern::op_cdar },
+            { symbol("caddr"), Intern::op_caddr },
+            { symbol("set-car!"), Intern::op_setcar },
+            { symbol("set-cdr!"), Intern::op_setcdr },
+            { symbol("list"), Intern::op_list },
+            { symbol("null?"), Intern::op_isnil },
+            { symbol("pair?"), Intern::op_ispair },
+            { symbol("list?"), Intern::op_islist },
+            { symbol("make-list"), Intern::op_mklist },
+            { symbol("append"), Intern::op_append },
+            { symbol("length"), Intern::op_length },
+            { symbol("list-ref"), Intern::op_listref },
+            { symbol("list-set!"), Intern::op_listsetb },
+            { symbol("list-copy"), Intern::op_listcopy },
+            { symbol("reverse"), Intern::op_reverse },
+            { symbol("reverse!"), Intern::op_reverseb },
+            { symbol("memq"), Intern::op_memq },
+            { symbol("memv"), Intern::op_memv },
+            { symbol("member"), Intern::op_member },
+            { symbol("assq"), Intern::op_assq },
+            { symbol("assv"), Intern::op_assv },
+            { symbol("assoc"), Intern::op_assoc },
 
             /* Section 6.5: Symbols */
-            { mksym("symbol?"), Intern::op_issym },
-            { mksym("symbol->string"), Intern::op_symstr },
-            { mksym("string->symbol"), Intern::op_strsym },
-            { mksym("gensym"), Intern::op_gensym },
+            { symbol("symbol?"), Intern::op_issym },
+            { symbol("symbol->string"), Intern::op_symstr },
+            { symbol("string->symbol"), Intern::op_strsym },
+            { symbol("gensym"), Intern::op_gensym },
 
             /* Section 6.6: Characters */
-            { mksym("char?"), Intern::op_ischar },
-            { mksym("char->integer"), Intern::op_charint },
-            { mksym("integer->char"), Intern::op_intchar },
-            { mksym("char=?"), Intern::op_ischareq },
-            { mksym("char<?"), Intern::op_ischarlt },
-            { mksym("char>?"), Intern::op_ischargt },
-            { mksym("char<=?"), Intern::op_ischarle },
-            { mksym("char>=?"), Intern::op_ischarge },
-            { mksym("char-ci=?"), Intern::op_ischcieq },
-            { mksym("char-ci<?"), Intern::op_ischcilt },
-            { mksym("char-ci>?"), Intern::op_ischcigt },
-            { mksym("char-ci<=?"), Intern::op_ischcile },
-            { mksym("char-ci>=?"), Intern::op_ischcige },
-            { mksym("char-alphabetic?"), Intern::op_isalpha },
-            { mksym("char-numeric?"), Intern::op_isdigit },
-            { mksym("char-whitespace?"), Intern::op_iswspace },
-            { mksym("char-upper-case?"), Intern::op_isupper },
-            { mksym("char-lower-case?"), Intern::op_islower },
-            { mksym("digit-value"), Intern::op_digitval },
-            { mksym("char-upcase"), Intern::op_upcase },
-            { mksym("char-downcase"), Intern::op_downcase },
+            { symbol("char?"), Intern::op_ischar },
+            { symbol("char->integer"), Intern::op_charint },
+            { symbol("integer->char"), Intern::op_intchar },
+            { symbol("char=?"), Intern::op_ischareq },
+            { symbol("char<?"), Intern::op_ischarlt },
+            { symbol("char>?"), Intern::op_ischargt },
+            { symbol("char<=?"), Intern::op_ischarle },
+            { symbol("char>=?"), Intern::op_ischarge },
+            { symbol("char-ci=?"), Intern::op_ischcieq },
+            { symbol("char-ci<?"), Intern::op_ischcilt },
+            { symbol("char-ci>?"), Intern::op_ischcigt },
+            { symbol("char-ci<=?"), Intern::op_ischcile },
+            { symbol("char-ci>=?"), Intern::op_ischcige },
+            { symbol("char-alphabetic?"), Intern::op_isalpha },
+            { symbol("char-numeric?"), Intern::op_isdigit },
+            { symbol("char-whitespace?"), Intern::op_iswspace },
+            { symbol("char-upper-case?"), Intern::op_isupper },
+            { symbol("char-lower-case?"), Intern::op_islower },
+            { symbol("digit-value"), Intern::op_digitval },
+            { symbol("char-upcase"), Intern::op_upcase },
+            { symbol("char-downcase"), Intern::op_downcase },
 
-            /* Section 6.7: Strings */
-            { mksym("string?"), Intern::op_isstr },
-            { mksym("string"), Intern::op_str },
-            { mksym("make-string"), Intern::op_mkstr },
-            { mksym("string-ref"), Intern::op_strref },
-            { mksym("string-set!"), Intern::op_strsetb },
-            { mksym("string-length"), Intern::op_strlen },
-            { mksym("string=?"), Intern::op_isstreq },
-            { mksym("string<?"), Intern::op_isstrlt },
-            { mksym("string>?"), Intern::op_isstrgt },
-            { mksym("string<=?"), Intern::op_isstrle },
-            { mksym("string>=?"), Intern::op_isstrge },
-            { mksym("string-ci=?"), Intern::op_isstrcieq },
-            { mksym("string-ci=?"), Intern::op_isstrcieq },
-            { mksym("string-ci<?"), Intern::op_isstrcilt },
-            { mksym("string-ci>?"), Intern::op_isstrcigt },
-            { mksym("string-ci<=?"), Intern::op_isstrcile },
-            { mksym("string-ci>=?"), Intern::op_isstrcige },
-            { mksym("string-upcase"), Intern::op_strupcase },
-            { mksym("string-downcase"), Intern::op_strdowncase },
-            { mksym("string-upcase!"), Intern::op_strupcaseb },
-            { mksym("string-downcase!"), Intern::op_strdowncaseb },
-            { mksym("string-append"), Intern::op_strappend },
-            { mksym("string-append!"), Intern::op_strappendb },
-            { mksym("string->list"), Intern::op_strlist },
-            { mksym("list->string"), Intern::op_liststr },
-            { mksym("substring"), Intern::op_substr },
-            { mksym("string-copy"), Intern::op_strcopy },
-            { mksym("string-copy!"), Intern::op_strcopyb },
-            { mksym("string-fill!"), Intern::op_strfillb },
+            /* Section 6.7:using namespace std::string_literals; Strings */
+            { symbol("string?"), Intern::op_isstr },
+            { symbol("string"), Intern::op_str },
+            { symbol("make-string"), Intern::op_mkstr },
+            { symbol("string-ref"), Intern::op_strref },
+            { symbol("string-set!"), Intern::op_strsetb },
+            { symbol("string-length"), Intern::op_strlen },
+            { symbol("string=?"), Intern::op_isstreq },
+            { symbol("string<?"), Intern::op_isstrlt },
+            { symbol("string>?"), Intern::op_isstrgt },
+            { symbol("string<=?"), Intern::op_isstrle },
+            { symbol("string>=?"), Intern::op_isstrge },
+            { symbol("string-ci=?"), Intern::op_isstrcieq },
+            { symbol("string-ci=?"), Intern::op_isstrcieq },
+            { symbol("string-ci<?"), Intern::op_isstrcilt },
+            { symbol("string-ci>?"), Intern::op_isstrcigt },
+            { symbol("string-ci<=?"), Intern::op_isstrcile },
+            { symbol("string-ci>=?"), Intern::op_isstrcige },
+            { symbol("string-upcase"), Intern::op_strupcase },
+            { symbol("string-downcase"), Intern::op_strdowncase },
+            { symbol("string-upcase!"), Intern::op_strupcaseb },
+            { symbol("string-downcase!"), Intern::op_strdowncaseb },
+            { symbol("string-append"), Intern::op_strappend },
+            { symbol("string-append!"), Intern::op_strappendb },
+            { symbol("string->list"), Intern::op_strlist },
+            { symbol("list->string"), Intern::op_liststr },
+            { symbol("substring"), Intern::op_substr },
+            { symbol("string-copy"), Intern::op_strcopy },
+            { symbol("string-copy!"), Intern::op_strcopyb },
+            { symbol("string-fill!"), Intern::op_strfillb },
 
             /* Section 6.8: Vectors */
-            { mksym("vector?"), Intern::op_isvec },
-            { mksym("make-vector"), Intern::op_mkvec },
-            { mksym("vector"), Intern::op_vec },
-            { mksym("vector-length"), Intern::op_veclen },
-            { mksym("vector-ref"), Intern::op_vecref },
-            { mksym("vector-set!"), Intern::op_vecsetb },
-            { mksym("vector->list"), Intern::op_veclist },
-            { mksym("list->vector"), Intern::op_listvec },
-            { mksym("vector-copy"), Intern::op_veccopy },
-            { mksym("vector-copy!"), Intern::op_veccopyb },
-            { mksym("vector-append"), Intern::op_vecappend },
-            { mksym("vector-append!"), Intern::op_vecappendb },
-            { mksym("vector-fill!"), Intern::op_vecfillb },
+            { symbol("vector?"), Intern::op_isvec },
+            { symbol("make-vector"), Intern::op_mkvec },
+            { symbol("vector"), Intern::op_vec },
+            { symbol("vector-length"), Intern::op_veclen },
+            { symbol("vector-ref"), Intern::op_vecref },
+            { symbol("vector-set!"), Intern::op_vecsetb },
+            { symbol("vector->list"), Intern::op_veclist },
+            { symbol("list->vector"), Intern::op_listvec },
+            { symbol("vector-copy"), Intern::op_veccopy },
+            { symbol("vector-copy!"), Intern::op_veccopyb },
+            { symbol("vector-append"), Intern::op_vecappend },
+            { symbol("vector-append!"), Intern::op_vecappendb },
+            { symbol("vector-fill!"), Intern::op_vecfillb },
 
             /* Section 6.9: Bytevectors */
 
             /* Section 6.10: Control features */
-            { mksym("procedure?"), Intern::op_isproc },
-            { mksym("map"), Intern::op_map },
-            { mksym("for-each"), Intern::op_foreach },
-            { mksym("call/cc"), Intern::op_callcc },
-            { mksym("call-with-current-continuation"), Intern::op_callcc },
-            { mksym("call-with-values"), Intern::op_callwval },
+            { symbol("procedure?"), Intern::op_isproc },
+            { symbol("map"), Intern::op_map },
+            { symbol("for-each"), Intern::op_foreach },
+            { symbol("call/cc"), Intern::op_callcc },
+            { symbol("call-with-current-continuation"), Intern::op_callcc },
+            { symbol("call-with-values"), Intern::op_callwval },
 
             /* Section 6.11: Exceptions */
-            { mksym("error"), Intern::op_error },
-            { mksym("with-exception-handler"), Intern::op_with_exception },
-            { mksym("exit"), Intern::op_exit },
+            { symbol("error"), Intern::op_error },
+            { symbol("with-exception-handler"), Intern::op_with_exception },
+            { symbol("exit"), Intern::op_exit },
 
             /* Section 6.12: Environments and evaluation */
-            { mksym("interaction-environment"), Intern::op_replenv },
-            { mksym("eval"), Intern::op_eval },
-            { mksym("repl"), Intern::op_repl },
-            { mksym("gc"), Intern::op_gc },
-            { mksym("gc-dump"), Intern::op_gcdump },
-            { mksym("macro-expand"), Intern::op_macroexp },
+            { symbol("interaction-environment"), Intern::op_replenv },
+            { symbol("eval"), Intern::op_eval },
+            { symbol("repl"), Intern::op_repl },
+            { symbol("gc"), Intern::op_gc },
+            { symbol("gc-dump"), Intern::op_gcdump },
+            { symbol("macro-expand"), Intern::op_macroexp },
 
             /* Section 6.13: Input and output */
             // input-port-open?
             // output-port-open?
 
-            { mksym("port?"), Intern::op_isport },
-            { mksym("input-port?"), Intern::op_isinport },
-            { mksym("output-port?"), Intern::op_isoutport },
-            { mksym("textual-port?"), Intern::op_istxtport },
-            { mksym("binary-port?"), Intern::op_isbinport },
-            { mksym("call-with-input-file"), Intern::op_callw_infile },
-            { mksym("call-with-output-file"), Intern::op_callw_outfile },
-            { mksym("open-input-file"), Intern::op_open_infile },
-            { mksym("open-output-file"), Intern::op_open_outfile },
-            { mksym("close-port"), Intern::op_close_port },
-            { mksym("close-input-port"), Intern::op_close_inport },
-            { mksym("close-output-port"), Intern::op_close_outport },
-            { mksym("eof-object?"), Intern::op_iseof },
-            { mksym("eof-object"), Intern::op_eof },
-            { mksym("flush-output-port"), Intern::op_flush },
-            { mksym("read-line"), Intern::op_readline },
-            { mksym("read-char"), Intern::op_read_char },
-            { mksym("peek-char"), Intern::op_peek_char },
-            { mksym("read-string"), Intern::op_read_str },
-            { mksym("write"), Intern::op_write },
-            { mksym("read"), Intern::op_read },
-            { mksym("display"), Intern::op_display },
-            { mksym("newline"), Intern::op_newline },
-            { mksym("write-char"), Intern::op_write_char },
-            { mksym("write-str"), Intern::op_write_str },
+            { symbol("port?"), Intern::op_isport },
+            { symbol("input-port?"), Intern::op_isinport },
+            { symbol("output-port?"), Intern::op_isoutport },
+            { symbol("textual-port?"), Intern::op_istxtport },
+            { symbol("binary-port?"), Intern::op_isbinport },
+            { symbol("call-with-input-file"), Intern::op_callw_infile },
+            { symbol("call-with-output-file"), Intern::op_callw_outfile },
+            { symbol("open-input-file"), Intern::op_open_infile },
+            { symbol("open-output-file"), Intern::op_open_outfile },
+            { symbol("close-port"), Intern::op_close_port },
+            { symbol("close-input-port"), Intern::op_close_inport },
+            { symbol("close-output-port"), Intern::op_close_outport },
+            { symbol("eof-object?"), Intern::op_iseof },
+            { symbol("eof-object"), Intern::op_eof },
+            { symbol("flush-output-port"), Intern::op_flush },
+            { symbol("read-line"), Intern::op_readline },
+            { symbol("read-char"), Intern::op_read_char },
+            { symbol("peek-char"), Intern::op_peek_char },
+            { symbol("read-string"), Intern::op_read_str },
+            { symbol("write"), Intern::op_write },
+            { symbol("read"), Intern::op_read },
+            { symbol("display"), Intern::op_display },
+            { symbol("newline"), Intern::op_newline },
+            { symbol("write-char"), Intern::op_write_char },
+            { symbol("write-str"), Intern::op_write_str },
 
             /* Section 6.14: System interface */
-            { mksym("load"), Intern::op_load },
+            { symbol("load"), Intern::op_load },
 
             /* Extension: regular expressions */
-            { mksym("regex"), Intern::op_regex },
-            { mksym("regex-match"), Intern::op_regex_match },
-            { mksym("regex-search"), Intern::op_regex_search },
+            { symbol("regex"), Intern::op_regex },
+            { symbol("regex-match"), Intern::op_regex_match },
+            { symbol("regex-search"), Intern::op_regex_search },
 
-            { mksym("use-count"), Intern::op_usecount },
+            { symbol("use-count"), Intern::op_usecount },
         });
 };
+
+template <typename T>
+void load(Scheme& scm, const T& filename, const SymenvPtr& env = nullptr)
+{
+    scm.load(string_convert<Char>(filename), env);
+}
+
+template <typename CharT>
+StringPtr str(const CharT* str)
+{
+    return std::make_shared<String>(string_convert<Char>(str));
+}
+
+template <typename StringT, typename = std::enable_if<!std::is_pointer_v<StringT>>>
+StringPtr str(const StringT& str)
+{
+    return std::make_shared<String>(string_convert<Char>(str));
+}
+
+template <typename StringT, typename FunctionT>
+FunctionPtr fun(Scheme& scm, const SymenvPtr& env, const StringT& name, FunctionT&& fun)
+{
+    return scm.function(env, name, std::forward<FunctionT>(fun));
+}
+
+template <typename StringT, typename FunctionT>
+FunctionPtr fun(Scheme& scm, const StringT& name, FunctionT&& fun)
+{
+    return scm.function(/*env*/ nullptr, name, std::forward<FunctionT>(fun));
+}
+
+template <typename T>
+VectorPtr vec(size_t size, T&& val)
+{
+    return std::make_shared<VectorPtr::element_type>(size, std::forward<T>(val));
+}
+
+template <typename StringT>
+RegexPtr regex(const StringT& str)
+{
+    using regex = RegexPtr::element_type;
+    regex::flag_type flags = regex::ECMAScript | regex::icase;
+    return std::make_shared<RegexPtr::element_type>(string_convert<Char>(str), flags);
+}
+
 } // namespace pscm
 
 #endif // SCHEME_HPP

@@ -9,22 +9,22 @@
 #include "symbol.hpp"
 
 namespace pscm {
-// clang-format off
 
+// clang-format off
 struct Cell;
-struct Function;
 struct Number;
 class  Procedure;
+class  Function;
 enum class Intern;
 
 using None        = std::monostate;
 using Nil         = std::nullptr_t;
 using Bool        = bool;
-using Char        = char;
+using Char        = wchar_t;
 using Cons        = std::tuple<Cell, Cell, bool>;
 using String      = std::basic_string<Char>;
 using StringPtr   = std::shared_ptr<String>;
-using RegexPtr    = std::shared_ptr<std::regex>;
+using RegexPtr    = std::shared_ptr<std::basic_regex<Char>>;
 using VectorPtr   = std::shared_ptr<std::vector<Cell>>;
 using PortPtr     = std::shared_ptr<Port<Char>>;
 using FunctionPtr = std::shared_ptr<Function>;

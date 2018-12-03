@@ -26,62 +26,6 @@ static_assert(std::is_same_v<Symbol, Symtab::Symbol>);
 static_assert(std::is_same_v<Symenv, SymenvPtr::element_type>);
 static_assert(std::is_same_v<Function, FunctionPtr::element_type>);
 
-StringPtr mkstr(const String& s) { return std::make_shared<String>(s); }
-StringPtr mkstr(const Char* s) { return std::make_shared<String>(s); }
-
-RegexPtr mkregex(const String& str)
-{
-    using regex = RegexPtr::element_type;
-    regex::flag_type flags = regex::ECMAScript | regex::icase;
-    return std::make_shared<RegexPtr::element_type>(str, flags);
-}
-
-VectorPtr mkvec(Number size, const Cell& val)
-{
-    using size_type = VectorPtr::element_type::size_type;
-
-    (is_int(size) && get<Int>(size) >= 0)
-        || ((void)(throw std::invalid_argument("vector length must be a non-negative integer")), 0);
-
-    return std::make_shared<VectorPtr::element_type>(static_cast<size_type>(get<Int>(size)), val);
-}
-
-Symbol Scheme::mksym(const String& name) { return this->symtab[name]; }
-Symbol Scheme::mksym(const Char* name) { return this->symtab[name]; }
-
-Symbol Scheme::mksym()
-{
-    return symtab[String{ "symbol " }.append(std::to_string(symtab.size()))];
-}
-
-SymenvPtr Scheme::mkenv(const SymenvPtr& env)
-{
-    return Symenv::create(env ? env : topenv);
-}
-
-FunctionPtr Scheme::mkfun(Function::function_type&& fn)
-{
-    return std::make_shared<Function>(mksym("lambda"), std::move(fn));
-}
-
-FunctionPtr Scheme::mkfun(const String& name, Function::function_type&& fn, const SymenvPtr& env)
-{
-    auto sym = mksym(name);
-    auto fptr = std::make_shared<Function>(sym, std::move(fn));
-
-    if (env)
-        env->add(sym, fptr);
-    else
-        topenv->add(sym, fptr);
-
-    return fptr;
-}
-
-Cons* Scheme::cons(Cell&& car, Cell&& cdr) { return pscm::cons(store, std::move(car), std::move(cdr)); }
-Cons* Scheme::cons(Cell&& car, const Cell& cdr) { return pscm::cons(store, std::move(car), cdr); }
-Cons* Scheme::cons(const Cell& car, Cell&& cdr) { return pscm::cons(store, car, std::move(cdr)); }
-Cons* Scheme::cons(const Cell& car, const Cell& cdr) { return pscm::cons(store, car, cdr); }
-
 Cell Scheme::apply(const SymenvPtr& env, Intern opcode, const std::vector<Cell>& args)
 {
     return pscm::call(*this, env, opcode, args);
@@ -114,7 +58,7 @@ void Scheme::repl(const SymenvPtr& env)
 {
     using Port = StandardPort<Char>;
 
-    SymenvPtr senv = mkenv(env ? env : topenv);
+    SymenvPtr senv = newenv(env ? env : topenv);
     Parser parser(*this);
     Cell expr;
 
@@ -143,16 +87,16 @@ void Scheme::repl(const SymenvPtr& env)
         }
 }
 
-void Scheme::load(const std::string& filnam, const SymenvPtr& symenv)
+void Scheme::load(const String& filename, const SymenvPtr& symenv)
 {
     using file_port = FilePort<Char>;
 
     const SymenvPtr& env = symenv ? symenv : topenv;
-
     Parser parser(*this);
     Cell expr = none;
 
     try {
+        std::string filnam{ string_convert<char>(filename) };
         file_port in{ filnam, file_port::in };
         if (!in.is_open())
             throw std::ios_base::failure("couldn't open input file: '"s + filnam + "'"s);
@@ -166,7 +110,7 @@ void Scheme::load(const std::string& filnam, const SymenvPtr& symenv)
         if (is_none(expr))
             std::cerr << e.what() << '\n';
         else
-            std::cerr << e.what() << ": " << expr << '\n';
+            std::wcerr << e.what() << L": " << expr << '\n';
     }
 }
 
@@ -174,18 +118,18 @@ void Scheme::add_contants(Scheme& scm, const SymenvPtr& env)
 {
     // clang-format off
     env->add(
-        { { scm.mksym(u8"π"),    mknum(pi<Float>)       },
-          { scm.mksym("%pi"),    mknum(pi<Float>)       },
-          { scm.mksym("%e"),     mknum(e<Float>)        },
-          { scm.mksym("%G"),     mknum(G<Float>)        },
-          { scm.mksym("%c"),     mknum(c<Float>)        },
-          { scm.mksym("%h"),     mknum(h<Float>)        },
-          { scm.mksym("%qe"),    mknum(q_e<Float>)      },
-          { scm.mksym("%NA"),    mknum(N_A<Float>)      },
-          { scm.mksym("%R"),     mknum(R<Float>)        },
-          { scm.mksym("%mu0"),   mknum(mu_0<Float>)     },
-          { scm.mksym("%eps0"),  mknum(epsilon_0<Float>)},
-          { scm.mksym("%sigma"), mknum(sigma<Float>)    },
+        { { scm.symbol(L"π"),      mknum(pi<Float>)       },
+          { scm.symbol(L"%pi"),    mknum(pi<Float>)       },
+          { scm.symbol(L"%e"),     mknum(e<Float>)        },
+          { scm.symbol(L"%G"),     mknum(G<Float>)        },
+          { scm.symbol(L"%c"),     mknum(c<Float>)        },
+          { scm.symbol(L"%h"),     mknum(h<Float>)        },
+          { scm.symbol(L"%qe"),    mknum(q_e<Float>)      },
+          { scm.symbol(L"%NA"),    mknum(N_A<Float>)      },
+          { scm.symbol(L"%R"),     mknum(R<Float>)        },
+          { scm.symbol(L"%mu0"),   mknum(mu_0<Float>)     },
+          { scm.symbol(L"%eps0"),  mknum(epsilon_0<Float>)},
+          { scm.symbol(L"%sigma"), mknum(sigma<Float>)    },
          });
     // clang-format on
 }

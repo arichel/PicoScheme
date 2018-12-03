@@ -72,20 +72,35 @@ private:
 /**
  * Functor wrapper for external function objects.
  *
- * External function signature:  func(Scheme& scm, SymenvPtr& env, std::vector<Cell> argv) -> Cell
+ * External function signature:
+ *   func(Scheme& scm, const SymenvPtr& env, const std::vector<Cell>& argv) -> Cell
  */
-struct Function : public std::function<Cell(Scheme&, const SymenvPtr&, const std::vector<Cell>&)> {
+class Function : public std::function<Cell(Scheme&, const SymenvPtr&, const std::vector<Cell>&)> {
 
     using function_type = std::function<Cell(Scheme&, const SymenvPtr&, const std::vector<Cell>&)>;
+
+public:
+    template <typename FunctionT>
+    static FunctionPtr create(const Symbol& sym, FunctionT&& fun)
+    {
+        return std::shared_ptr<Function>{
+            new Function{ sym, function_type{ std::forward<FunctionT>(fun) } }
+        };
+    }
+
+    const String& name() const { return sym.value(); };
+
+protected:
     /**
      * Function object constructor
      * @param sym Symbol bound to this function.
      * @param fun External procedure.
      */
-    Function(const Symbol&, const function_type&);
-    Function(const Symbol&, function_type&&);
-
-    const Symbol::value_type& name() const { return sym.value(); };
+    Function(const Symbol& sym, function_type&& fun)
+        : function_type{ std::move(fun) }
+        , sym{ sym }
+    {
+    }
 
 private:
     Symbol sym;

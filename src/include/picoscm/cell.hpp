@@ -118,7 +118,7 @@ inline bool is_true   (const Cell& cell) { return !is_type<Bool>(cell) || get<Bo
 inline bool is_else   (const Cell& cell) { return is_intern(cell) && get<Intern>(cell) == Intern::_else; }
 inline bool is_arrow  (const Cell& cell) { return is_intern(cell) && get<Intern>(cell) == Intern::_arrow; }
 inline bool is_exit   (const Cell& cell) { return is_intern(cell) && get<Intern>(cell) == Intern::op_exit; }
-// clang-format-on
+// clang-format on
 
 /**
  * Scheme equal? predicate to test two cells for same content.
@@ -162,8 +162,8 @@ Cell list_ref(Cell list, Int k);
  * Store must be a container, like std::deque or std::list, that on update doesn't
  * invalidate pointers to previously inserted elements.
  */
-template <typename Store, typename CAR, typename CDR>
-Cons* cons(Store& store, CAR&& car, CDR&& cdr)
+template <typename StoreT, typename CAR, typename CDR>
+Cons* cons(StoreT& store, CAR&& car, CDR&& cdr)
 {
     return &store.emplace_back(std::forward<CAR>(car), std::forward<CDR>(cdr), false);
 }
@@ -230,14 +230,16 @@ struct bad_cell_access : public std::bad_variant_access {
     }
     bad_cell_access(const Cell& cell)
     {
-        std::ostringstream os;
-        os << "argument " << cell << " must be of type " << type_name();
-        _reason = os.str();
+        using Port = StringPort<Char>;
+
+        Port os{ Port::out };
+        os << cell;
+
+        _reason = std::string{ "argument " }
+                      .append(string_convert<char>(os.str()))
+                      .append(type_name());
     }
-    const char* what() const noexcept override
-    {
-        return _reason.c_str();
-    }
+    const char* what() const noexcept override { return _reason.c_str(); }
 
 private:
     std::string _reason;

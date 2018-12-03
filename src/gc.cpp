@@ -34,12 +34,12 @@ void GCollector::collect(Scheme& scm, const SymenvPtr& env)
 
 void GCollector::logging(bool ok) { logon = ok; }
 
-void GCollector::dump(const Scheme& scm, std::ostream& os)
+void GCollector::dump(const Scheme& scm, std::wostream& os)
 {
-    os << "Store size: " << scm.store.size() << '\n';
+    os << L"Store size: " << scm.store.size() << '\n';
     size_t ic = 0;
     for (auto& cons : scm.store) {
-        os << ic++ << " | mark: " << mrk(cons) << " | "
+        os << ic++ << L" | mark: " << mrk(cons) << L" | "
            << std::left << std::setw(25)
            << car(cons) << " : " << cdr(cons) << '\n';
     }
