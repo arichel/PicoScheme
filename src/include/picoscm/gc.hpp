@@ -1,7 +1,14 @@
+/********************************************************************************/ /**
+ * @file gc.hpp
+ *
+ * @version   0.1
+ * @date      2018-
+ * @author    Paul Pudewills
+ * @copyright MIT License
+ *************************************************************************************/
 #ifndef GC_HPP
 #define GC_HPP
 
-#include <iostream>
 #include <set>
 
 #include "types.hpp"
@@ -10,10 +17,13 @@ namespace pscm {
 
 class Scheme;
 
+/**
+ * Rudimentary mark-sweep garbage collector.
+ */
 class GCollector {
 public:
     void collect(Scheme& scm, const SymenvPtr& env);
-    void dump(const Scheme& scm, std::wostream& os = std::wcerr);
+    void dump(const Scheme& scm, const Port<Char>& port = StandardPort<Char>{});
     void logging(bool);
 
 private:

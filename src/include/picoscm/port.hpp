@@ -83,7 +83,7 @@ public:
     }
 
     operator stream_type&() { return m_stream; }
-    stream_type& getStream() { return m_stream; }
+    stream_type& getStream() const { return m_stream; }
 
     bool isInput() const { return mode & stream_type::in; }
     bool isOutput() const { return mode & stream_type::out; }

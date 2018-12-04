@@ -15,20 +15,6 @@
 using namespace std;
 using namespace pscm;
 
-//std::string ws2s(const std::wstring& wstr)
-//{
-//    using convert_type = std::codecvt_utf8<wchar_t>;
-//    std::wstring_convert<convert_type, wchar_t> converter;
-//    return converter.to_bytes(wstr);
-//}
-
-//std::string wc2s(wchar_t wc)
-//{
-//    using convert_type = std::codecvt_utf8<wchar_t>;
-//    std::wstring_convert<convert_type, wchar_t> converter;
-//    return converter.to_bytes(std::wstring{ wc });
-//}
-
 /**
  * Enable locale globally and set all standard io-ports accordingly.
  * @param name Name of the locale.
@@ -53,26 +39,19 @@ void enable_locale(const char* name = "en_US.utf8")
 
 int main(int argn, char* argv[])
 {
-    using pscm::Intern, pscm::Cell, pscm::mknum, pscm::str, pscm::nil;
+    using pscm::Intern, pscm::Cell, pscm::str, pscm::nil;
 
     enable_locale();
     pscm::Scheme scm;
 
-    pscm::fun(scm, "greet", [cntr = 0](Scheme& scm, const SymenvPtr&, const std::vector<Cell>&) mutable -> Cell {
-        return scm.list(pscm::str("hello world"), mknum(cntr++));
+    scm.function("greet", [cntr = 0](Scheme& scm, const SymenvPtr&, const std::vector<Cell>&) mutable -> Cell {
+        return scm.list(pscm::str("hello world"), pscm::num(cntr++));
     });
 
-    //    using T = decltype(argv[0]);
-
-    //    TDEF<pscm::char_traits<T>::char_type> t0;
-
-    //using C = typename pscm::char_traits<std::decay_t<T>>::char_type;
-    //TDEF<C> t;
-
     if (argn > 1)
-        load(scm, argv[0]);
+        scm.load(argv[0]);
     else
-        load(scm, "picoscmrc.scm"s);
+        scm.load("picoscmrc.scm");
 
     scm.repl();
     return 0;

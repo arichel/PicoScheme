@@ -11,6 +11,7 @@ namespace pscm {
 
 void GCollector::collect(Scheme& scm, const SymenvPtr& env)
 {
+    // Mark phase: mark all reacheable cons-cells
     vset.clear();
     eset.clear();
 
@@ -18,13 +19,15 @@ void GCollector::collect(Scheme& scm, const SymenvPtr& env)
 
     vset.clear();
     eset.clear();
-
     size_t size = scm.store.size();
 
+    // Sweep phase: remove all unmarked cons-cells
     scm.store.remove_if([](Cons& cons) {
         mrk(cons) = !mrk(cons);
         return mrk(cons);
     });
+
+    // Optional log number of released cells
     if (logon) {
         size_t dlta = size - scm.store.size();
         std::cerr << "msg> garbage collector released " << dlta
@@ -34,19 +37,23 @@ void GCollector::collect(Scheme& scm, const SymenvPtr& env)
 
 void GCollector::logging(bool ok) { logon = ok; }
 
-void GCollector::dump(const Scheme& scm, std::wostream& os)
+void GCollector::dump(const Scheme& scm, const Port<Char>& port)
 {
-    os << L"Store size: " << scm.store.size() << '\n';
+    auto& os = port.getStream();
+
+    os << "Store size: " << scm.store.size() << '\n';
     size_t ic = 0;
     for (auto& cons : scm.store) {
-        os << ic++ << L" | mark: " << mrk(cons) << L" | "
+        os << ic++ << " | mark: " << mrk(cons) << " | "
            << std::left << std::setw(25)
            << car(cons) << " : " << cdr(cons) << '\n';
     }
 }
 
+//! Return true if a Cons-cell is marked.
 bool GCollector::is_marked(const Cons& cons) const noexcept { return mrk(cons); }
 
+//! Visit a scheme cell and mark.
 void GCollector::mark(const Cell& cell)
 {
     // clang-format off
@@ -60,6 +67,7 @@ void GCollector::mark(const Cell& cell)
     // clang-format on
 }
 
+//! Mark cells reacheable from the argument symbol environment.
 void GCollector::mark(const SymenvPtr& env)
 {
     using Cursor = SymenvPtr::element_type::Cursor;
@@ -80,6 +88,7 @@ void GCollector::mark(const SymenvPtr& env)
     } while (next.has_value());
 }
 
+//! Mark code and argument list and closure environment of a scheme procedure.
 void GCollector::mark(const Procedure& proc)
 {
     const Cons& code = *get<Cons*>(proc.code());
@@ -93,6 +102,7 @@ void GCollector::mark(const Procedure& proc)
     return;
 }
 
+//! Mark all cons-cells if any, contained in a scheme vector.
 void GCollector::mark(const VectorPtr& vec)
 {
     auto [pos, ok] = vset.insert(vec.get());
@@ -104,6 +114,7 @@ void GCollector::mark(const VectorPtr& vec)
     }
 }
 
+//! Mark all Cons-cells in a list.
 void GCollector::mark(Cons& cons)
 {
     Cell cell{ &cons };

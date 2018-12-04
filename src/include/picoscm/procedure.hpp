@@ -1,3 +1,11 @@
+/********************************************************************************/ /**
+ * @file procedure.hpp
+ *
+ * @version   0.1
+ * @date      2018-
+ * @author    Paul Pudewills
+ * @copyright MIT License
+ *************************************************************************************/
 #ifndef PROCEDURE_HPP
 #define PROCEDURE_HPP
 

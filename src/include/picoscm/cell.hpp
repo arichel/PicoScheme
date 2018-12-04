@@ -1,3 +1,11 @@
+/**
+ * @file cell.hpp
+ *
+ * @version   0.1
+ * @date      2018-
+ * @author    Paul Pudewills
+ * @copyright MIT License
+ */
 #ifndef CELL_HPP
 #define CELL_HPP
 
@@ -5,13 +13,10 @@
 #include "port.hpp"
 #include "procedure.hpp"
 #include "types.hpp"
-//#include "utils.hpp"
 
 namespace pscm {
 
-/**
- * A scheme Cell is a Variant type of all supported scheme types.
- */
+//! A scheme Cell is a Variant type of all supported scheme types.
 struct Cell : Variant {
     using base_type = Variant;
     using Variant::Variant;
@@ -20,11 +25,9 @@ struct Cell : Variant {
 template <typename CellType>
 struct bad_cell_access;
 
-/**
- * Wrappers around std::get to access the Variant type and rethrow
- * a more descriptive pscm::bad_cell_access exception in case of
- * an invalid type access atempt.
- */
+//! Wrappers around std::get to access the Variant type and rethrow
+//! a more descriptive pscm::bad_cell_access exception in case of
+//! an invalid type access atempt.
 template <typename T>
 T& get(Cell& cell)
 {
@@ -68,27 +71,6 @@ const T&& get(const Cell&& cell)
         throw bad_cell_access<T>(cell);
     }
 }
-
-//template <typename T>
-//T&& get(Cell&& cell)
-//{
-//    try {
-//        return std::get<T>(static_cast<Variant&&>(std::forward<Cell>(cell)));
-//    } catch (std::bad_variant_access&) {
-//        throw bad_cell_access<T>(cell);
-//    }
-//}
-
-//template <typename T>
-//const T& get(const Cell& cell)
-//{
-//    try {
-//        return std::get<T>(static_cast<Variant&>(const_cast<Cell&>(cell)));
-
-//    } catch (std::bad_variant_access&) {
-//        throw bad_cell_access<T>(cell);
-//    }
-//}
 
 //! Return the use count of a shared pointer cell or zero for a value type cell;
 Int use_count(const Cell&);
@@ -156,22 +138,21 @@ Int list_length(Cell list);
 Cell list_ref(Cell list, Int k);
 
 /**
- * Create a new cons-cell, directly in the provided cons-store container and
- * return a pointer to this Cons-cell.
+ * Create a new Cons-cell, directly at the provided cons-store container and
+ * return a pointer to this new cons-cell.
  *
- * Store must be a container, like std::deque or std::list, that on update doesn't
- * invalidate pointers to previously inserted elements.
+ * This new Cons-cell is initialized with car and cdr argument values.
+ * Store must be a container like std::deque or std::list, where mutating update
+ * operations don't invalidate pointers to previously inserted elements.
  */
 template <typename StoreT, typename CAR, typename CDR>
 Cons* cons(StoreT& store, CAR&& car, CDR&& cdr)
 {
-    return &store.emplace_back(std::forward<CAR>(car), std::forward<CDR>(cdr), false);
+    return &store.emplace_back(std::forward<CAR>(car), std::forward<CDR>(cdr), /*gc-flag*/ false);
 }
 
-/**
- * Build a Cons-list of all arguments in the provided Cons-cell store and
- * return a pointer to the list head.
- */
+//! Build an embedded cons-list of all arguments on the provided Cons-cell store
+//! container and return a pointer to the list head.
 template <typename Store, typename T, typename... Args>
 Cons* list(Store& store, T&& t, Args&&... args)
 {
@@ -183,7 +164,7 @@ template <typename Store>
 Cell list(Store&) { return nil; }
 
 /**
- * Build a cons-list of all arguments directly in
+ * Build an array embedded cons-list of all arguments directly in
  * in the provided cons-cell array.
  *
  * This array embedded cons-list is used for short temporary
@@ -218,9 +199,31 @@ Nil list(Cons (&)[1], T1&&, T2&&, Args&&...)
     return nil;
 }
 
-/**
- * Exception class to throw an invalid cell variant access error.
- */
+//! Create a new scheme string and initialize it with a copy of the argument string.
+template <typename StringT>
+StringPtr str(const StringT& str)
+{
+    return std::make_shared<String>(string_convert<Char>(str));
+}
+
+//! Create a new scheme vector of argument size and initial value.
+template <typename T>
+VectorPtr vec(size_t size, T&& val)
+{
+    return std::make_shared<VectorPtr::element_type>(size, std::forward<T>(val));
+}
+
+//! Create a new scheme regular-expression object.
+template <typename StringT>
+RegexPtr regex(const StringT& str)
+{
+    using regex = RegexPtr::element_type;
+    regex::flag_type flags = regex::ECMAScript | regex::icase;
+    return std::make_shared<RegexPtr::element_type>(string_convert<Char>(str), flags);
+}
+
+//! Exception class to throw an invalid cell variant access error with
+//! descriptive error message.
 template <typename CellType>
 struct bad_cell_access : public std::bad_variant_access {
     bad_cell_access() noexcept
@@ -237,6 +240,7 @@ struct bad_cell_access : public std::bad_variant_access {
 
         _reason = std::string{ "argument " }
                       .append(string_convert<char>(os.str()))
+                      .append(" is not a ")
                       .append(type_name());
     }
     const char* what() const noexcept override { return _reason.c_str(); }
@@ -244,9 +248,7 @@ struct bad_cell_access : public std::bad_variant_access {
 private:
     std::string _reason;
 
-    /**
-     * Return a textual representation of template argument type.
-     */
+    //! Return a textual representation of the template argument type.
     constexpr const char* type_name()
     {
         using T = std::decay_t<CellType>;

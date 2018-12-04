@@ -26,5 +26,8 @@ namespace pscm {
  */
 Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const std::vector<Cell>& args);
 
+//! Install scheme opcodes, standard symbols and common mathematical and physical constants.
+void add_environment_defaults(Scheme& scm);
+
 } // namespace pscm
 #endif // PRIMOP_HPP

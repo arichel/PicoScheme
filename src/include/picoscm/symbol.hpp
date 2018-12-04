@@ -124,18 +124,15 @@ public:
     {
         return shared_type{ new SymbolEnv{ args, parent } };
     }
-    /**
-     * Insert a new symbol and value or reassign a bound value of an existing symbol
-     * in this environment only.
-     */
+
+    //! Insert a new symbol and value or reassign a bound value of an existing symbol
+    //! in this environment only.
     void add(const Sym& sym, const T& val)
     {
         table.insert_or_assign(sym, val);
     }
 
-    /**
-     * Insert zero or more Symbol, Value pairs into this environment.
-     */
+    //! Insert or reassign zero or more symbol, value pairs into this environment.
     void add(std::initializer_list<std::pair<Sym, T>> args)
     {
         for (auto& [sym, val] : args)

@@ -146,10 +146,10 @@ struct Number : std::variant<Int, Float, Complex> {
 };
 
 template <typename T>
-Number mknum(const T& x) { return { x }; }
+Number num(const T& x) { return { x }; }
 
 template <typename RE, typename IM>
-Number mknum(const RE& x, const IM& y) { return { x, y }; }
+Number num(const RE& x, const IM& y) { return { x, y }; }
 
 inline bool is_int(const Number& num) { return is_type<Int>(num); }
 inline bool is_float(const Number& num) { return is_type<Float>(num); }

@@ -1814,7 +1814,7 @@ static Cell gcdump(Scheme& scm, const varg& args)
     auto port = args.size() > 0 ? get<PortPtr>(args[0])
                                 : std::make_shared<StandardPort<Char>>(std::ios_base::out);
     GCollector gc;
-    gc.dump(scm, port->getStream());
+    gc.dump(scm, *port);
     return none;
 }
 
@@ -1832,7 +1832,7 @@ static Cell macroexp(Scheme& scm, const SymenvPtr& senv, const varg& args)
     return get<Procedure>(proc).expand(scm, expr);
 }
 
-static Cell foreach (Scheme& scm, const SymenvPtr& senv, const varg& args)
+static Cell for_each(Scheme& scm, const SymenvPtr& senv, const varg& args)
 {
     args.size() > 1
         || ((void)(throw std::invalid_argument("for-each - not enough arguments")), 0);
@@ -1998,7 +1998,7 @@ static Cell regex_search(const varg& args)
     return vres->size() ? Cell{ vres } : Cell{ false };
 }
 
-} // namespace primop
+} // namespace pscm::primop
 
 namespace pscm {
 
@@ -2220,7 +2220,7 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_ischar:
         return is_type<Char>(args.at(0));
     case Intern::op_charint:
-        return mknum(get<Char>(args.at(0)));
+        return num(get<Char>(args.at(0)));
     case Intern::op_intchar:
         return static_cast<Char>((get<Int>(get<Number>(args.at(0)))));
     case Intern::op_ischareq:
@@ -2359,7 +2359,7 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_map:
         return primop::map(scm, senv, args);
     case Intern::op_foreach:
-        return primop::foreach (scm, senv, args);
+        return primop::for_each(scm, senv, args);
 
     /* Section 6.11: Exceptions */
     case Intern::op_error:
@@ -2462,5 +2462,291 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
     default:
         throw std::invalid_argument("invalid primary opcode");
     }
+}
+
+void add_environment_defaults(Scheme& scm)
+{
+    // clang-format off
+    scm.addenv(
+       {  { scm.symbol("#t"),               true },
+          { scm.symbol("#f"),               false },
+          { scm.symbol("#true"),            true },
+          { scm.symbol("#false"),           false },
+          { scm.symbol("π"),                num(pi<Float>) },
+          { scm.symbol("%pi"),              num(pi<Float>) },
+          { scm.symbol("%e"),               num(e<Float>) },
+          { scm.symbol("%G"),               num(G<Float>) },
+          { scm.symbol("%c"),               num(c<Float>) },
+          { scm.symbol("%h"),               num(h<Float>) },
+          { scm.symbol("%qe"),              num(q_e<Float>) },
+          { scm.symbol("%NA"),              num(N_A<Float>) },
+          { scm.symbol("%R"),               num(R<Float>) },
+          { scm.symbol("%mu0"),             num(mu_0<Float>) },
+          { scm.symbol("%eps0"),            num(epsilon_0<Float>) },
+          { scm.symbol("%sigma"),           num(sigma<Float>) },
+
+          /* Basic scheme syntax opcodes */
+          { scm.symbol("or"),               Intern::_or },
+          { scm.symbol("and"),              Intern::_and },
+          { scm.symbol("if"),               Intern::_if },
+          { scm.symbol("cond"),             Intern::_cond },
+          { scm.symbol("else"),             Intern::_else },
+          { scm.symbol("=>"),               Intern::_arrow },
+          { scm.symbol("when"),             Intern::_when },
+          { scm.symbol("unless"),           Intern::_unless },
+          { scm.symbol("begin"),            Intern::_begin },
+          { scm.symbol("define"),           Intern::_define },
+          { scm.symbol("set!"),             Intern::_setb },
+          { scm.symbol("lambda"),           Intern::_lambda },
+          { scm.symbol("define-macro"),     Intern::_macro },
+          { scm.symbol("quote"),            Intern::_quote },
+          { scm.symbol("quasiquote"),       Intern::_quasiquote },
+          { scm.symbol("unquote"),          Intern::_unquote },
+          { scm.symbol("unquote-splicing"), Intern::_unquotesplice },
+          { scm.symbol("apply"),            Intern::_apply },
+
+          /* Section 6.1: Equivalence predicates */
+          { scm.symbol("eq?"),              Intern::op_eq },
+          { scm.symbol("eqv?"),             Intern::op_eqv },
+          { scm.symbol("equal?"),           Intern::op_equal },
+
+          /* Section 6.2: Numbers */
+          { scm.symbol("number?"),          Intern::op_isnum },
+          { scm.symbol("complex?"),         Intern::op_iscpx },
+          { scm.symbol("real?"),            Intern::op_isreal },
+          { scm.symbol("rational?"),        Intern::op_israt },
+          { scm.symbol("integer?"),         Intern::op_isint },
+          { scm.symbol("exact?"),           Intern::op_isexact },
+          { scm.symbol("inexact?"),         Intern::op_isinexact },
+          { scm.symbol("exact-integer?"),   Intern::op_isexactint },
+          { scm.symbol("exact->inexact"),   Intern::op_ex2inex },
+          { scm.symbol("inexact->exact"),   Intern::op_inex2ex },
+          { scm.symbol("even?"),            Intern::op_iseven },
+          { scm.symbol("odd?"),             Intern::op_isodd },
+          { scm.symbol("="),                Intern::op_numeq },
+          { scm.symbol("<"),                Intern::op_numlt },
+          { scm.symbol(">"),                Intern::op_numgt },
+          { scm.symbol("<="),               Intern::op_numle },
+          { scm.symbol(">="),               Intern::op_numge },
+          { scm.symbol("+"),                Intern::op_add },
+          { scm.symbol("-"),                Intern::op_sub },
+          { scm.symbol("*"),                Intern::op_mul },
+          { scm.symbol("/"),                Intern::op_div },
+          { scm.symbol("min"),              Intern::op_min },
+          { scm.symbol("max"),              Intern::op_max },
+          { scm.symbol("positive?"),        Intern::op_ispos },
+          { scm.symbol("negative?"),        Intern::op_isneg },
+          { scm.symbol("zero?"),            Intern::op_zero },
+          { scm.symbol("modulo"),           Intern::op_mod },
+          { scm.symbol("remainder"),        Intern::op_rem },
+          { scm.symbol("quotient"),         Intern::op_quotient },
+          { scm.symbol("floor"),            Intern::op_floor },
+          { scm.symbol("ceil"),             Intern::op_ceil },
+          { scm.symbol("trunc"),            Intern::op_trunc },
+          { scm.symbol("round"),            Intern::op_round },
+          { scm.symbol("sin"),              Intern::op_sin },
+          { scm.symbol("cos"),              Intern::op_cos },
+          { scm.symbol("tan"),              Intern::op_tan },
+          { scm.symbol("asin"),             Intern::op_asin },
+          { scm.symbol("acos"),             Intern::op_acos },
+          { scm.symbol("atan"),             Intern::op_atan },
+          { scm.symbol("sinh"),             Intern::op_sinh },
+          { scm.symbol("cosh"),             Intern::op_cosh },
+          { scm.symbol("tanh"),             Intern::op_tanh },
+          { scm.symbol("asinh"),            Intern::op_asinh },
+          { scm.symbol("acosh"),            Intern::op_acosh },
+          { scm.symbol("atanh"),            Intern::op_atanh },
+          { scm.symbol("sqrt"),             Intern::op_sqrt },
+          { scm.symbol("cbrt"),             Intern::op_cbrt },
+          { scm.symbol("exp"),              Intern::op_exp },
+          { scm.symbol("expt"),             Intern::op_pow },
+          { scm.symbol("log"),              Intern::op_log },
+          { scm.symbol("log10"),            Intern::op_log10 },
+          { scm.symbol("square"),           Intern::op_square },
+          { scm.symbol("real-part"),        Intern::op_real },
+          { scm.symbol("imag-part"),        Intern::op_imag },
+          { scm.symbol("magnitude"),        Intern::op_abs },
+          { scm.symbol("abs"),              Intern::op_abs },
+          { scm.symbol("angle"),            Intern::op_arg },
+          { scm.symbol("make-rectangular"), Intern::op_rect },
+          { scm.symbol("make-polar"),       Intern::op_polar },
+          { scm.symbol("conjugate"),        Intern::op_conj },
+          { scm.symbol("hypot"),            Intern::op_hypot },
+          { scm.symbol("string->number"),   Intern::op_strnum },
+          { scm.symbol("number->string"),   Intern::op_numstr },
+
+          /* Section 6.3: Booleans */
+          { scm.symbol("not"),              Intern::op_not },
+          { scm.symbol("boolean?"),         Intern::op_isbool },
+          { scm.symbol("boolean=?"),        Intern::op_isbooleq },
+
+          /* Section 6.4: Pair and lists */
+          { scm.symbol("cons"),             Intern::op_cons },
+          { scm.symbol("car"),              Intern::op_car },
+          { scm.symbol("cdr"),              Intern::op_cdr },
+          { scm.symbol("caarI"),            Intern::op_caar },
+          { scm.symbol("cddr"),             Intern::op_cddr },
+          { scm.symbol("cadr"),             Intern::op_cadr },
+          { scm.symbol("cdar"),             Intern::op_cdar },
+          { scm.symbol("caddr"),            Intern::op_caddr },
+          { scm.symbol("set-car!"),         Intern::op_setcar },
+          { scm.symbol("set-cdr!"),         Intern::op_setcdr },
+          { scm.symbol("list"),             Intern::op_list },
+          { scm.symbol("null?"),            Intern::op_isnil },
+          { scm.symbol("pair?"),            Intern::op_ispair },
+          { scm.symbol("list?"),            Intern::op_islist },
+          { scm.symbol("make-list"),        Intern::op_mklist },
+          { scm.symbol("append"),           Intern::op_append },
+          { scm.symbol("length"),           Intern::op_length },
+          { scm.symbol("list-ref"),         Intern::op_listref },
+          { scm.symbol("list-set!"),        Intern::op_listsetb },
+          { scm.symbol("list-copy"),        Intern::op_listcopy },
+          { scm.symbol("reverse"),          Intern::op_reverse },
+          { scm.symbol("reverse!"),         Intern::op_reverseb },
+          { scm.symbol("memq"),             Intern::op_memq },
+          { scm.symbol("memv"),             Intern::op_memv },
+          { scm.symbol("member"),           Intern::op_member },
+          { scm.symbol("assq"),             Intern::op_assq },
+          { scm.symbol("assv"),             Intern::op_assv },
+          { scm.symbol("assoc"),            Intern::op_assoc },
+
+          /* Section 6.5: Symbols */
+          { scm.symbol("symbol?"),          Intern::op_issym },
+          { scm.symbol("symbol->string"),   Intern::op_symstr },
+          { scm.symbol("string->symbol"),   Intern::op_strsym },
+          { scm.symbol("gensym"),           Intern::op_gensym },
+
+          /* Section 6.6: Characters */
+          { scm.symbol("char?"), Intern::op_ischar },
+          { scm.symbol("char->integer"), Intern::op_charint },
+          { scm.symbol("integer->char"), Intern::op_intchar },
+          { scm.symbol("char=?"), Intern::op_ischareq },
+          { scm.symbol("char<?"), Intern::op_ischarlt },
+          { scm.symbol("char>?"), Intern::op_ischargt },
+          { scm.symbol("char<=?"), Intern::op_ischarle },
+          { scm.symbol("char>=?"), Intern::op_ischarge },
+          { scm.symbol("char-ci=?"), Intern::op_ischcieq },
+          { scm.symbol("char-ci<?"), Intern::op_ischcilt },
+          { scm.symbol("char-ci>?"), Intern::op_ischcigt },
+          { scm.symbol("char-ci<=?"), Intern::op_ischcile },
+          { scm.symbol("char-ci>=?"), Intern::op_ischcige },
+          { scm.symbol("char-alphabetic?"), Intern::op_isalpha },
+          { scm.symbol("char-numeric?"), Intern::op_isdigit },
+          { scm.symbol("char-whitespace?"), Intern::op_iswspace },
+          { scm.symbol("char-upper-case?"), Intern::op_isupper },
+          { scm.symbol("char-lower-case?"), Intern::op_islower },
+          { scm.symbol("digit-value"), Intern::op_digitval },
+          { scm.symbol("char-upcase"), Intern::op_upcase },
+          { scm.symbol("char-downcase"), Intern::op_downcase },
+
+          /* Section 6.7:using namespace std::string_literals; Strings */
+          { scm.symbol("string?"), Intern::op_isstr },
+          { scm.symbol("string"), Intern::op_str },
+          { scm.symbol("make-string"), Intern::op_mkstr },
+          { scm.symbol("string-ref"), Intern::op_strref },
+          { scm.symbol("string-set!"), Intern::op_strsetb },
+          { scm.symbol("string-length"), Intern::op_strlen },
+          { scm.symbol("string=?"), Intern::op_isstreq },
+          { scm.symbol("string<?"), Intern::op_isstrlt },
+          { scm.symbol("string>?"), Intern::op_isstrgt },
+          { scm.symbol("string<=?"), Intern::op_isstrle },
+          { scm.symbol("string>=?"), Intern::op_isstrge },
+          { scm.symbol("string-ci=?"), Intern::op_isstrcieq },
+          { scm.symbol("string-ci=?"), Intern::op_isstrcieq },
+          { scm.symbol("string-ci<?"), Intern::op_isstrcilt },
+          { scm.symbol("string-ci>?"), Intern::op_isstrcigt },
+          { scm.symbol("string-ci<=?"), Intern::op_isstrcile },
+          { scm.symbol("string-ci>=?"), Intern::op_isstrcige },
+          { scm.symbol("string-upcase"), Intern::op_strupcase },
+          { scm.symbol("string-downcase"), Intern::op_strdowncase },
+          { scm.symbol("string-upcase!"), Intern::op_strupcaseb },
+          { scm.symbol("string-downcase!"), Intern::op_strdowncaseb },
+          { scm.symbol("string-append"), Intern::op_strappend },
+          { scm.symbol("string-append!"), Intern::op_strappendb },
+          { scm.symbol("string->list"), Intern::op_strlist },
+          { scm.symbol("list->string"), Intern::op_liststr },
+          { scm.symbol("substring"), Intern::op_substr },
+          { scm.symbol("string-copy"), Intern::op_strcopy },
+          { scm.symbol("string-copy!"), Intern::op_strcopyb },
+          { scm.symbol("string-fill!"), Intern::op_strfillb },
+
+          /* Section 6.8: Vectors */
+          { scm.symbol("vector?"), Intern::op_isvec },
+          { scm.symbol("make-vector"), Intern::op_mkvec },
+          { scm.symbol("vector"), Intern::op_vec },
+          { scm.symbol("vector-length"), Intern::op_veclen },
+          { scm.symbol("vector-ref"), Intern::op_vecref },
+          { scm.symbol("vector-set!"), Intern::op_vecsetb },
+          { scm.symbol("vector->list"), Intern::op_veclist },
+          { scm.symbol("list->vector"), Intern::op_listvec },
+          { scm.symbol("vector-copy"), Intern::op_veccopy },
+          { scm.symbol("vector-copy!"), Intern::op_veccopyb },
+          { scm.symbol("vector-append"), Intern::op_vecappend },
+          { scm.symbol("vector-append!"), Intern::op_vecappendb },
+          { scm.symbol("vector-fill!"), Intern::op_vecfillb },
+
+          /* Section 6.9: Bytevectors */
+
+          /* Section 6.10: Control features */
+          { scm.symbol("procedure?"), Intern::op_isproc },
+          { scm.symbol("map"), Intern::op_map },
+          { scm.symbol("for-each"), Intern::op_foreach },
+          { scm.symbol("call/cc"), Intern::op_callcc },
+          { scm.symbol("call-with-current-continuation"), Intern::op_callcc },
+          { scm.symbol("call-with-values"), Intern::op_callwval },
+
+          /* Section 6.11: Exceptions */
+          { scm.symbol("error"), Intern::op_error },
+          { scm.symbol("with-exception-handler"), Intern::op_with_exception },
+          { scm.symbol("exit"), Intern::op_exit },
+
+          /* Section 6.12: Environments and evaluation */
+          { scm.symbol("interaction-environment"), Intern::op_replenv },
+          { scm.symbol("eval"), Intern::op_eval },
+          { scm.symbol("repl"), Intern::op_repl },
+          { scm.symbol("gc"), Intern::op_gc },
+          { scm.symbol("gc-dump"), Intern::op_gcdump },
+          { scm.symbol("macro-expand"), Intern::op_macroexp },
+
+          /* Section 6.13: Input and output */
+          // input-port-open?
+          // output-port-open?
+
+          { scm.symbol("port?"), Intern::op_isport },
+          { scm.symbol("input-port?"), Intern::op_isinport },
+          { scm.symbol("output-port?"), Intern::op_isoutport },
+          { scm.symbol("textual-port?"), Intern::op_istxtport },
+          { scm.symbol("binary-port?"), Intern::op_isbinport },
+          { scm.symbol("call-with-input-file"), Intern::op_callw_infile },
+          { scm.symbol("call-with-output-file"), Intern::op_callw_outfile },
+          { scm.symbol("open-input-file"), Intern::op_open_infile },
+          { scm.symbol("open-output-file"), Intern::op_open_outfile },
+          { scm.symbol("close-port"), Intern::op_close_port },
+          { scm.symbol("close-input-port"), Intern::op_close_inport },
+          { scm.symbol("close-output-port"), Intern::op_close_outport },
+          { scm.symbol("eof-object?"), Intern::op_iseof },
+          { scm.symbol("eof-object"), Intern::op_eof },
+          { scm.symbol("flush-output-port"), Intern::op_flush },
+          { scm.symbol("read-line"), Intern::op_readline },
+          { scm.symbol("read-char"), Intern::op_read_char },
+          { scm.symbol("peek-char"), Intern::op_peek_char },
+          { scm.symbol("read-string"), Intern::op_read_str },
+          { scm.symbol("write"), Intern::op_write },
+          { scm.symbol("read"), Intern::op_read },
+          { scm.symbol("display"), Intern::op_display },
+          { scm.symbol("newline"), Intern::op_newline },
+          { scm.symbol("write-char"), Intern::op_write_char },
+          { scm.symbol("write-str"), Intern::op_write_str },
+
+          /* Section 6.14: System interface */
+          { scm.symbol("load"), Intern::op_load },
+
+          /* Extension: regular expressions */
+          { scm.symbol("regex"), Intern::op_regex },
+          { scm.symbol("regex-match"), Intern::op_regex_match },
+          { scm.symbol("regex-search"), Intern::op_regex_search },
+          { scm.symbol("use-count"), Intern::op_usecount },
+       });
+    // clang-format on
 }
 } // namespace pscm

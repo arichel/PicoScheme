@@ -1,3 +1,11 @@
+/********************************************************************************/ /**
+ * @file procedure.hpp
+ *
+ * @version   0.1
+ * @date      2018-
+ * @author    Paul Pudewills
+ * @copyright MIT License
+ *************************************************************************************/
 #include <set>
 
 #include "scheme.hpp"
@@ -30,8 +38,8 @@ static bool is_unique_symbol_list(Cell args)
 }
 
 /**
- * @brief Closure to capture an environment pointer, a formal
- *        argument list and a code list of one or more scheme expressions.
+ * Closure to capture an environment pointer, a formal
+ * argument list and a code list of one or more scheme expressions.
  */
 struct Procedure::Closure {
 

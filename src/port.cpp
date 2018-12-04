@@ -21,24 +21,24 @@ static std::wostream& operator<<(std::wostream& os, Cons* cons)
 {
     Cell iter{ cons };
 
-    os << L'(' << car(iter);
+    os << '(' << car(iter);
     iter = cdr(iter);
 
     for (Cell slow{ iter }; is_pair(iter); iter = cdr(iter), slow = cdr(slow)) {
-        os << L' ' << car(iter);
+        os << ' ' << car(iter);
 
         if (!is_pair(iter = cdr(iter)) || slow == iter) {
             if (slow == iter)
-                return os << L" ...)"; // circular list detected
+                return os << " ...)"; // circular list detected
 
             break;
         }
-        os << L' ' << car(iter);
+        os << ' ' << car(iter);
     }
     if (is_nil(iter))
-        os << L')'; // list end
+        os << ')'; // list end
     else
-        os << L" . " << iter << L')'; // dotted pair end
+        os << " . " << iter << ')'; // dotted pair end
 
     return os;
 }
@@ -51,7 +51,7 @@ static std::wostream& operator<<(std::wostream& os, const Symbol& sym)
     const String& name = sym.value();
 
     if (name.find_first_of(' ') != String::npos)
-        return os << L'|' << name << L'|';
+        return os << '|' << name << '|';
     else
         return os << name;
 }
@@ -61,22 +61,22 @@ static std::wostream& operator<<(std::wostream& os, const DisplayManip<StringPtr
     const StringPtr::element_type& str = *manip.value;
 
     for (auto cp = str.begin(), end = str.end(); cp != end; ++cp)
-        if (*cp == L'\\' && cp + 1 < end)
+        if (*cp == '\\' && cp + 1 < end)
             switch (*(++cp)) {
-            case L'a':
-                os << L'\a';
+            case 'a':
+                os << '\a';
                 break;
-            case L'b':
-                os << L'\b';
+            case 'b':
+                os << '\b';
                 break;
-            case L'n':
-                os << L'\n';
+            case 'n':
+                os << '\n';
                 break;
-            case L'r':
-                os << L'\r';
+            case 'r':
+                os << '\r';
                 break;
-            case L't':
-                os << L'\t';
+            case 't':
+                os << '\t';
                 break;
             default:
                 os << *cp;
@@ -89,61 +89,61 @@ static std::wostream& operator<<(std::wostream& os, const DisplayManip<StringPtr
 static std::wostream& operator<<(std::wostream& os, const VectorPtr& vptr)
 {
     if (vptr->size()) {
-        os << L"#(" << vptr->front();
+        os << "#(" << vptr->front();
         for (auto ip = vptr->begin() + 1, ie = vptr->end(); ip != ie; ++ip)
-            os << L' ' << *ip;
-        return os << L')';
+            os << ' ' << *ip;
+        return os << ')';
     } else
-        return os << L"#()";
+        return os << "#()";
 }
 
 std::wostream& operator<<(std::wostream& os, Intern opcode)
 {
     switch (opcode) {
     case Intern::_or:
-        return os << L"or";
+        return os << "or";
     case Intern::_and:
-        return os << L"and";
+        return os << "and";
     case Intern::_if:
-        return os << L"if";
+        return os << "if";
     case Intern::_cond:
-        return os << L"cond";
+        return os << "cond";
     case Intern::_else:
-        return os << L"else";
+        return os << "else";
     case Intern::_arrow:
-        return os << L"=>";
+        return os << "=>";
     case Intern::_when:
-        return os << L"when";
+        return os << "when";
     case Intern::_unless:
-        return os << L"unless";
+        return os << "unless";
     case Intern::_define:
-        return os << L"define";
+        return os << "define";
     case Intern::_setb:
-        return os << L"set!";
+        return os << "set!";
     case Intern::_begin:
-        return os << L"begin";
+        return os << "begin";
     case Intern::_lambda:
-        return os << L"lambda";
+        return os << "lambda";
     case Intern::_macro:
-        return os << L"define-macro";
+        return os << "define-macro";
     case Intern::_apply:
-        return os << L"apply";
+        return os << "apply";
     case Intern::_quote:
-        return os << L"quote";
+        return os << "quote";
     case Intern::_quasiquote:
-        return os << L"quasiquote";
+        return os << "quasiquote";
     case Intern::_unquote:
-        return os << L"unquote";
+        return os << "unquote";
     case Intern::_unquotesplice:
-        return os << L"unquote-splicing";
+        return os << "unquote-splicing";
     default:
-        return os << L"#<primop>";
+        return os << "#<primop>";
     }
 }
 
 static std::wostream& operator<<(std::wostream& os, const Procedure& proc)
 {
-    return proc.is_macro() ? os << L"#<macro>" : os << L"#<clojure>";
+    return proc.is_macro() ? os << "#<macro>" : os << "#<clojure>";
 }
 
 /**
@@ -153,15 +153,15 @@ std::wostream& operator<<(std::wostream& os, const Cell& cell)
 {
     // clang-format off
     overloads stream{
-        [&os](None)                   -> std::wostream& { return os << L"#<none>"; },
-        [&os](Nil)                    -> std::wostream& { return os << L"()"; },
-        [&os](Bool arg)               -> std::wostream& { return os << (arg ? L"#t" : L"#f"); },
-        [&os](Char arg)               -> std::wostream& { return os << L"#\\" << arg; },
-        [&os](const StringPtr& arg)   -> std::wostream& { return os << L'"' << *arg << L'"';},
-        [&os](const RegexPtr&)        -> std::wostream& { return os << L"#<regex>"; },
-        [&os](const SymenvPtr& arg)   -> std::wostream& { return os << L"#<symenv " << arg.get() << '>'; },
-        [&os](const FunctionPtr& arg) -> std::wostream& { return os << L"#<function " << arg->name() << '>'; },
-        [&os](const PortPtr&)         -> std::wostream& { return os << L"#<port>"; },
+        [&os](None)                   -> std::wostream& { return os << "#<none>"; },
+        [&os](Nil)                    -> std::wostream& { return os << "()"; },
+        [&os](Bool arg)               -> std::wostream& { return os << (arg ? "#t" : "#f"); },
+        [&os](Char arg)               -> std::wostream& { return os << "#\\" << arg; },
+        [&os](const StringPtr& arg)   -> std::wostream& { return os << '"' << *arg << L'"';},
+        [&os](const RegexPtr&)        -> std::wostream& { return os << "#<regex>"; },
+        [&os](const SymenvPtr& arg)   -> std::wostream& { return os << "#<symenv " << arg.get() << '>'; },
+        [&os](const FunctionPtr& arg) -> std::wostream& { return os << "#<function " << arg->name() << '>'; },
+        [&os](const PortPtr&)         -> std::wostream& { return os << "#<port>"; },
         [&os](auto& arg)              -> std::wostream& { return os << arg; }
     }; // clang-format on
 

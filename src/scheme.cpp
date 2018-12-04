@@ -26,6 +26,12 @@ static_assert(std::is_same_v<Symbol, Symtab::Symbol>);
 static_assert(std::is_same_v<Symenv, SymenvPtr::element_type>);
 static_assert(std::is_same_v<Function, FunctionPtr::element_type>);
 
+Scheme::Scheme(const SymenvPtr& env)
+    : topenv{ Symenv::create(env) }
+{
+    pscm::add_environment_defaults(*this);
+}
+
 Cell Scheme::apply(const SymenvPtr& env, Intern opcode, const std::vector<Cell>& args)
 {
     return pscm::call(*this, env, opcode, args);
@@ -56,13 +62,13 @@ Cell Scheme::expand(const Cell& macro, Cell& args)
 
 void Scheme::repl(const SymenvPtr& env)
 {
-    using Port = StandardPort<Char>;
-
-    SymenvPtr senv = newenv(env ? env : topenv);
+    SymenvPtr senv = env ? env : topenv;
     Parser parser(*this);
     Cell expr;
 
-    Port in{ Port::in }, out{ Port::out };
+    auto &in = stdin()->getStream(),
+         &out = stdout()->getStream();
+
     for (;;)
         try {
             for (;;) {
@@ -95,9 +101,12 @@ void Scheme::load(const String& filename, const SymenvPtr& symenv)
     Parser parser(*this);
     Cell expr = none;
 
+    auto& errout = stdout()->getStream();
+
     try {
         std::string filnam{ string_convert<char>(filename) };
         file_port in{ filnam, file_port::in };
+
         if (!in.is_open())
             throw std::ios_base::failure("couldn't open input file: '"s + filnam + "'"s);
 
@@ -108,30 +117,10 @@ void Scheme::load(const String& filename, const SymenvPtr& symenv)
         }
     } catch (const std::exception& e) {
         if (is_none(expr))
-            std::cerr << e.what() << '\n';
+            errout << e.what() << '\n';
         else
-            std::wcerr << e.what() << L": " << expr << '\n';
+            errout << e.what() << ": " << expr << '\n';
     }
-}
-
-void Scheme::add_contants(Scheme& scm, const SymenvPtr& env)
-{
-    // clang-format off
-    env->add(
-        { { scm.symbol(L"π"),      mknum(pi<Float>)       },
-          { scm.symbol(L"%pi"),    mknum(pi<Float>)       },
-          { scm.symbol(L"%e"),     mknum(e<Float>)        },
-          { scm.symbol(L"%G"),     mknum(G<Float>)        },
-          { scm.symbol(L"%c"),     mknum(c<Float>)        },
-          { scm.symbol(L"%h"),     mknum(h<Float>)        },
-          { scm.symbol(L"%qe"),    mknum(q_e<Float>)      },
-          { scm.symbol(L"%NA"),    mknum(N_A<Float>)      },
-          { scm.symbol(L"%R"),     mknum(R<Float>)        },
-          { scm.symbol(L"%mu0"),   mknum(mu_0<Float>)     },
-          { scm.symbol(L"%eps0"),  mknum(epsilon_0<Float>)},
-          { scm.symbol(L"%sigma"), mknum(sigma<Float>)    },
-         });
-    // clang-format on
 }
 
 Cell Scheme::syntax_begin(const SymenvPtr& env, Cell args)
