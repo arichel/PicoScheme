@@ -15,33 +15,10 @@
 using namespace std;
 using namespace pscm;
 
-/**
- * Enable locale globally and set all standard io-ports accordingly.
- * @param name Name of the locale.
- */
-void enable_locale(const char* name = "en_US.utf8")
-{
-    std::ios_base::sync_with_stdio(false);
-
-    std::setlocale(LC_ALL, name);
-    std::locale loc{ name };
-    std::locale::global(loc);
-
-    cout.imbue(loc);
-    cerr.imbue(loc);
-    clog.imbue(loc);
-    wcout.imbue(loc);
-    wcerr.imbue(loc);
-    wclog.imbue(loc);
-    cin.imbue(loc);
-    wcin.imbue(loc);
-}
-
 int main(int argn, char* argv[])
 {
     using pscm::Intern, pscm::Cell, pscm::str, pscm::nil;
 
-    enable_locale();
     pscm::Scheme scm;
 
     scm.function("greet", [cntr = 0](Scheme& scm, const SymenvPtr&, const std::vector<Cell>&) mutable -> Cell {

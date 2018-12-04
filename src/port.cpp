@@ -14,6 +14,27 @@
 
 namespace pscm {
 
+void enable_locale(const char* name)
+{
+    std::ios_base::sync_with_stdio(false);
+    std::setlocale(LC_ALL, name);
+
+    auto loc = std::locale{ name }
+                   .combine<std::numpunct<wchar_t>>(std::locale("C"))
+                   .combine<std::numpunct<char>>(std::locale("C"));
+
+    std::locale::global(loc);
+
+    std::cout.imbue(loc);
+    std::cerr.imbue(loc);
+    std::clog.imbue(loc);
+    std::wcout.imbue(loc);
+    std::wcerr.imbue(loc);
+    std::wclog.imbue(loc);
+    std::cin.imbue(loc);
+    std::wcin.imbue(loc);
+}
+
 /**
  * Output stream operator for Cons cell lists.
  */

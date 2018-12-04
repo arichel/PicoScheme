@@ -1608,13 +1608,12 @@ static Cell close_outport(PortPtr port)
 /**
  * Scheme output @em display function.
  */
-static Cell display(const varg& args)
+static Cell display(Scheme& scm, const varg& args)
 {
+    auto& port = args.size() > 1 ? get<PortPtr>(args[1])
+                                 : scm.outPort();
     try {
-        if (args.size() > 1)
-            *get<PortPtr>(args[1]) << pscm::display(args[0]);
-        else
-            std::wcout << pscm::display(args.at(0));
+        port->stream() << pscm::display(args.at(0));
 
     } catch (std::ios_base::failure&) {
         throw output_port_exception(*get<PortPtr>(args.at(1)));
@@ -1625,16 +1624,15 @@ static Cell display(const varg& args)
 /**
  * Scheme output @em write function.
  */
-static Cell write(const varg& args)
+static Cell write(Scheme& scm, const varg& args)
 {
+    auto& port = args.size() > 1 ? get<PortPtr>(args[1])
+                                 : scm.outPort();
     try {
-        if (args.size() > 1)
-            *get<PortPtr>(args[1]) << args[0];
-        else
-            std::wcout << args.at(0);
+        port->stream() << args.at(0);
 
     } catch (std::ios_base::failure&) {
-        throw output_port_exception(*get<PortPtr>(args.at(1)));
+        throw output_port_exception(*port);
     }
     return none;
 }
@@ -1642,16 +1640,14 @@ static Cell write(const varg& args)
 /**
  * Scheme output @em newline function.
  */
-static Cell newline(const varg& args)
+static Cell newline(Scheme& scm, const varg& args)
 {
+    auto& port = args.empty() ? scm.outPort()
+                              : get<PortPtr>(args[0]);
     try {
-        if (args.empty())
-            std::cout << '\n';
-        else
-            get<PortPtr>(args[0])->getStream() << '\n';
-
+        port->stream() << '\n';
     } catch (std::ios_base::failure&) {
-        throw output_port_exception(*get<PortPtr>(args.at(0)));
+        throw output_port_exception(*port);
     }
     return none;
 }
@@ -1679,7 +1675,7 @@ static Cell write_char(const varg& args)
 {
     try {
         if (args.size() > 1)
-            get<PortPtr>(args[1])->getStream() << get<Char>(args[0]);
+            get<PortPtr>(args[1])->stream() << get<Char>(args[0]);
         else
             std::cout << get<Char>(args.at(0));
 
@@ -1704,9 +1700,9 @@ static Cell write_str(const varg& args)
         size_type ie = args.size() > 3 ? get<Int>(get<Number>(args[3])) : str.size();
 
         if (ip || ie != str.size())
-            port->getStream() << str.substr(ip, ie);
+            port->stream() << str.substr(ip, ie);
         else
-            port->getStream() << str;
+            port->stream() << str;
 
     } catch (std::ios_base::failure&) {
         throw output_port_exception(*port);
@@ -1725,7 +1721,7 @@ static Cell readline(const varg& args)
             throw input_port_exception(port);
 
         try {
-            if (getline(port.getStream(), str).eof() && str.empty())
+            if (getline(port.stream(), str).eof() && str.empty())
                 return Char{ EOF };
 
         } catch (std::ios_base::failure& e) {
@@ -1738,7 +1734,7 @@ static Cell readline(const varg& args)
 static Cell read(Scheme& scm, const varg& args)
 {
     Parser parser(scm);
-    PortPtr port = scm.stdout();
+    PortPtr port = scm.outPort();
 
     if (!args.empty()) {
         port = get<PortPtr>(args[0]);
@@ -1746,7 +1742,7 @@ static Cell read(Scheme& scm, const varg& args)
             throw input_port_exception(*port);
     }
     try {
-        return parser.read(port->getStream());
+        return parser.read(port->stream());
 
     } catch (std::ios_base::failure&) {
         throw input_port_exception(*port);
@@ -1762,7 +1758,7 @@ static Cell read_char(const varg& args)
     } else {
         auto& port = *get<PortPtr>(args[0]);
         try {
-            return static_cast<Char>(port.getStream().get());
+            return static_cast<Char>(port.stream().get());
 
         } catch (std::ios_base::failure& e) {
             if (port.isInput() && port.eof())
@@ -1779,7 +1775,7 @@ static Cell peek_char(const varg& args)
         StandardPort<Char> port{ std::ios_base::in };
         return static_cast<Char>(port.peek());
     } else
-        return static_cast<Char>(get<PortPtr>(args[0])->getStream().peek());
+        return static_cast<Char>(get<PortPtr>(args[0])->stream().peek());
 }
 
 /**
@@ -1796,7 +1792,7 @@ static Cell read_str(Scheme& scm, const varg& args)
     auto port = args.size() > 1 ? get<PortPtr>(args[1])
                                 : std::make_shared<StandardPort<Char>>(std::ios_base::in);
     Parser parser(scm);
-    return parser.read(port->getStream());
+    return parser.read(port->stream());
 }
 
 static Cell gcollect(Scheme& scm, const SymenvPtr& senv, const varg& args)
@@ -2434,11 +2430,11 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_flush:
         return primop::flush(args);
     case Intern::op_write:
-        return primop::write(args);
+        return primop::write(scm, args);
     case Intern::op_display:
-        return primop::display(args);
+        return primop::display(scm, args);
     case Intern::op_newline:
-        return primop::newline(args);
+        return primop::newline(scm, args);
     case Intern::op_write_char:
         return primop::write_char(args);
     case Intern::op_write_str:

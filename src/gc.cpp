@@ -12,13 +12,10 @@ namespace pscm {
 void GCollector::collect(Scheme& scm, const SymenvPtr& env)
 {
     // Mark phase: mark all reacheable cons-cells
-    vset.clear();
-    eset.clear();
+    end = scm.getenv();
+    mark(env ? env : end);
+    mset.clear();
 
-    mark(env);
-
-    vset.clear();
-    eset.clear();
     size_t size = scm.store.size();
 
     // Sweep phase: remove all unmarked cons-cells
@@ -39,7 +36,7 @@ void GCollector::logging(bool ok) { logon = ok; }
 
 void GCollector::dump(const Scheme& scm, const Port<Char>& port)
 {
-    auto& os = port.getStream();
+    auto& os = port.stream();
 
     os << "Store size: " << scm.store.size() << '\n';
     size_t ic = 0;
@@ -68,24 +65,24 @@ void GCollector::mark(const Cell& cell)
 }
 
 //! Mark cells reacheable from the argument symbol environment.
-void GCollector::mark(const SymenvPtr& env)
+void GCollector::mark(SymenvPtr env)
 {
     using Cursor = SymenvPtr::element_type::Cursor;
     std::optional<Cursor> next = env->cursor();
 
     do {
         Cursor cursor{ next.value() };
-        auto env = cursor.symenv();
+        env = cursor.symenv();
 
-        auto [pos, ok] = eset.insert(env.get());
+        auto [pos, ok] = mset.insert(reinterpret_cast<size_t>(env.get()));
         if (!ok)
-            return;
+            return; // environment already visited
 
         for (auto& [sym, cell] : cursor) {
             mark(cell);
         }
         next = cursor.next();
-    } while (next.has_value());
+    } while (env != end && next.has_value());
 }
 
 //! Mark code and argument list and closure environment of a scheme procedure.
@@ -105,13 +102,12 @@ void GCollector::mark(const Procedure& proc)
 //! Mark all cons-cells if any, contained in a scheme vector.
 void GCollector::mark(const VectorPtr& vec)
 {
-    auto [pos, ok] = vset.insert(vec.get());
+    auto [pos, ok] = mset.insert(reinterpret_cast<size_t>(vec.get()));
     if (!ok)
-        return;
+        return; // vector already visited
 
-    for (auto& cell : *vec) {
+    for (auto& cell : *vec)
         mark(cell);
-    }
 }
 
 //! Mark all Cons-cells in a list.

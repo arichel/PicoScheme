@@ -22,9 +22,14 @@ class Scheme;
  */
 class GCollector {
 public:
-    void collect(Scheme& scm, const SymenvPtr& env);
-    void dump(const Scheme& scm, const Port<Char>& port = StandardPort<Char>{});
-    void logging(bool);
+    //! Collect unreachable cons-cells, starting from the argument environment,
+    //! or if null-pointer at the scheme interpreter top-environment.
+    void collect(Scheme& scm, const SymenvPtr& env = nullptr);
+
+    //! Dump the content of the scheme interpreter global cons-cell store.
+    static void dump(const Scheme& scm, const Port<Char>& port = StandardPort<Char>{});
+
+    void logging(bool); //! Enable/disable gc summary logging
 
 private:
     bool is_marked(const Cons&) const noexcept;
@@ -32,11 +37,11 @@ private:
     void mark(const Cell&);
     void mark(const Procedure&);
     void mark(const VectorPtr&);
-    void mark(const SymenvPtr&);
+    void mark(SymenvPtr);
     void mark(Cons&);
 
-    std::set<VectorPtr::element_type*> vset;
-    std::set<SymenvPtr::element_type*> eset;
+    std::set<size_t> mset;
+    SymenvPtr end = nullptr;
     bool logon = false;
 };
 

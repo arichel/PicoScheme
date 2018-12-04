@@ -62,14 +62,11 @@ Cell Scheme::expand(const Cell& macro, Cell& args)
 
 void Scheme::repl(const SymenvPtr& env)
 {
-    SymenvPtr senv = env ? env : topenv;
-    Parser parser(*this);
-    Cell expr;
+    const SymenvPtr& senv = env ? env : getenv();
+    Port<Char>::stream_type &out = *outPort(), &in = *inPort();
+    Parser parser{ *this };
 
-    auto &in = stdin()->getStream(),
-         &out = stdout()->getStream();
-
-    for (;;)
+    for (Cell expr;;)
         try {
             for (;;) {
                 out << "> ";
@@ -93,15 +90,15 @@ void Scheme::repl(const SymenvPtr& env)
         }
 }
 
-void Scheme::load(const String& filename, const SymenvPtr& symenv)
+void Scheme::load(const String& filename, const SymenvPtr& env)
 {
     using file_port = FilePort<Char>;
+    const SymenvPtr& senv = env ? env : getenv();
 
-    const SymenvPtr& env = symenv ? symenv : topenv;
-    Parser parser(*this);
+    Parser parser{ *this };
     Cell expr = none;
 
-    auto& errout = stdout()->getStream();
+    Port<Char>::stream_type& out = *outPort();
 
     try {
         std::string filnam{ string_convert<char>(filename) };
@@ -112,14 +109,14 @@ void Scheme::load(const String& filename, const SymenvPtr& symenv)
 
         while (!in.eof()) {
             expr = parser.read(in);
-            expr = eval(env, expr);
+            expr = eval(senv, expr);
             expr = none;
         }
     } catch (const std::exception& e) {
         if (is_none(expr))
-            errout << e.what() << '\n';
+            out << e.what() << '\n';
         else
-            errout << e.what() << ": " << expr << '\n';
+            out << e.what() << ": " << expr << '\n';
     }
 }
 

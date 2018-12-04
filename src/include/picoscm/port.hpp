@@ -26,10 +26,12 @@ namespace pscm {
 struct Cell;
 enum class Intern;
 
-/**
- * Stream manipulator type, to change the default stream output for
- * value to a scheme (display <expr>) output.
- */
+//! Enable locale globally and set all standard io-ports accordingly.
+//! @param name Name of the locale.
+void enable_locale(const char* name = "en_US.utf8");
+
+//! Stream manipulator type, to change the default stream output for
+//! value to a scheme (display <expr>) output.
 template <typename T>
 struct DisplayManip {
     const T& value;
@@ -38,20 +40,14 @@ struct DisplayManip {
 template <typename T>
 DisplayManip<T> display(const T& val) { return { val }; }
 
-/**
- * Output stream operator for scheme (display <expr>) output.
- */
+//! Output stream operator for scheme (display <expr>) output.
 std::wostream& operator<<(std::wostream& os, DisplayManip<Cell> cell);
 
-/**
- * Default output stream operator for scheme (write <expr>) output.
- */
+//! Default output stream operator for scheme (write <expr>) output.
 std::wostream& operator<<(std::wostream& os, const Cell& cell);
 
-/**
- * Output stream operator to write essential opcodes
- * with their descriptive scheme symbol name.
- */
+//! Output stream operator to write essential opcodes
+//! with their descriptive scheme symbol name.
 std::wostream& operator<<(std::wostream& os, Intern opcode);
 
 /**
@@ -83,7 +79,7 @@ public:
     }
 
     operator stream_type&() { return m_stream; }
-    stream_type& getStream() const { return m_stream; }
+    stream_type& stream() const { return m_stream; }
 
     bool isInput() const { return mode & stream_type::in; }
     bool isOutput() const { return mode & stream_type::out; }
@@ -95,9 +91,6 @@ protected:
         , mode{ mode }
     {
         stream.exceptions(stream_type::badbit);
-
-        auto locale_str = std::setlocale(LC_ALL, "en_US.utf8");
-        stream.imbue(std::locale(locale_str));
     }
 
     virtual ~Port()
@@ -122,9 +115,7 @@ public:
         : stream_type{ std::wcin.rdbuf() }
         , Port<Char>{ *this, mode }
     {
-        auto locale_str = std::setlocale(LC_ALL, nullptr);
-        std::wcout.imbue(std::locale(locale_str));
-        std::wcin.imbue(std::locale(locale_str));
+        pscm::enable_locale();
 
         if (mode & stream_type::out) {
             stream_type::set_rdbuf(std::wcout.rdbuf());
