@@ -63,9 +63,7 @@ static std::wostream& operator<<(std::wostream& os, Cons* cons)
     return os;
 }
 
-/**
- * Output stream operator for Symbols.
- */
+//! Output stream operator for Symbols.
 static std::wostream& operator<<(std::wostream& os, const Symbol& sym)
 {
     const String& name = sym.value();
@@ -176,12 +174,14 @@ std::wostream& operator<<(std::wostream& os, const Cell& cell)
         [&os](None)                   -> std::wostream& { return os << "#<none>"; },
         [&os](Nil)                    -> std::wostream& { return os << "()"; },
         [&os](Bool arg)               -> std::wostream& { return os << (arg ? "#t" : "#f"); },
-        [&os](Char arg)               -> std::wostream& { return os << "#\\" << arg; },
-        [&os](const StringPtr& arg)   -> std::wostream& { return os << '"' << *arg << L'"';},
+        [&os](Char arg)               -> std::wostream& { return arg != EOF ? (os << "#\\" << arg)
+                                                                            : (os << "#\\eof"); },
+        [&os](const StringPtr& arg)   -> std::wostream& { return os << '"' << *arg << '"';},
         [&os](const RegexPtr&)        -> std::wostream& { return os << "#<regex>"; },
         [&os](const SymenvPtr& arg)   -> std::wostream& { return os << "#<symenv " << arg.get() << '>'; },
         [&os](const FunctionPtr& arg) -> std::wostream& { return os << "#<function " << arg->name() << '>'; },
         [&os](const PortPtr&)         -> std::wostream& { return os << "#<port>"; },
+        [&os](const ClockPtr& arg)    -> std::wostream& { return os << "#<clock " << *arg << ">"; },
         [&os](auto& arg)              -> std::wostream& { return os << arg; }
     }; // clang-format on
 

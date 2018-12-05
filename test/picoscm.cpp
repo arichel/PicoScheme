@@ -30,7 +30,14 @@ int main(int argn, char* argv[])
     else
         scm.load("picoscmrc.scm");
 
+    Clock clk;
+
+    clk.tic();
     scm.repl();
+    clk.toc();
+
+    wcout << clk << std::endl;
+    wcout << sizeof(Number) << " " << sizeof(Procedure) << " " << sizeof(Cell) << endl;
     return 0;
 
     //    try {

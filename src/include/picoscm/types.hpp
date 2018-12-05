@@ -21,6 +21,7 @@ namespace pscm {
 // clang-format off
 struct Cell;
 struct Number;
+class  Clock;
 class  Procedure;
 class  Function;
 enum class Intern;
@@ -32,6 +33,7 @@ using Char        = wchar_t;
 using Cons        = std::tuple<Cell, Cell, bool>;
 using String      = std::basic_string<Char>;
 using StringPtr   = std::shared_ptr<String>;
+using ClockPtr    = std::shared_ptr<Clock>;
 using RegexPtr    = std::shared_ptr<std::basic_regex<Char>>;
 using VectorPtr   = std::shared_ptr<std::vector<Cell>>;
 using PortPtr     = std::shared_ptr<Port<Char>>;
@@ -53,7 +55,7 @@ using Variant = std::variant <
     Cons*, StringPtr, VectorPtr, PortPtr, FunctionPtr, SymenvPtr,
 
     /* Extensions: */
-    RegexPtr
+    RegexPtr, ClockPtr
 >;
 
 static const None none {}; //!< void return symbol
@@ -357,11 +359,18 @@ enum class Intern {
     op_jiffspsec,
     op_features,
 
-    /* Section extensions */
+    /* Section extensions: regular expressions */
     op_regex,
     op_regex_match,
     op_regex_search,
     op_regex_replace,
+
+    /* Section extensions: clock */
+    op_clock,
+    op_clock_tic,
+    op_clock_toc,
+    op_clock_pause,
+    op_clock_resume,
 
     op_usecount,
 };

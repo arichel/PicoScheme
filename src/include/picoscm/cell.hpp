@@ -9,6 +9,7 @@
 #ifndef CELL_HPP
 #define CELL_HPP
 
+#include "clock.hpp"
 #include "number.hpp"
 #include "port.hpp"
 #include "procedure.hpp"
@@ -88,6 +89,7 @@ inline bool is_regex  (const Cell& cell) { return is_type<RegexPtr>(cell); }
 inline bool is_pair   (const Cell& cell) { return is_type<Cons*>(cell); }
 inline bool is_intern (const Cell& cell) { return is_type<Intern>(cell); }
 inline bool is_port   (const Cell& cell) { return is_type<PortPtr>(cell); }
+inline bool is_clock  (const Cell& cell) { return is_type<ClockPtr>(cell); }
 inline bool is_number (const Cell& cell) { return is_type<Number>(cell); }
 inline bool is_symbol (const Cell& cell) { return is_type<Symbol>(cell); }
 inline bool is_symenv (const Cell& cell) { return is_type<SymenvPtr>(cell); }
@@ -268,6 +270,8 @@ private:
             return "#<cons>";
         else if constexpr (std::is_same_v<T, StringPtr>)
             return "#<string>";
+        else if constexpr (std::is_same_v<T, ClockPtr>)
+            return "#<clock>";
         else if constexpr (std::is_same_v<T, RegexPtr>)
             return "#<regex>";
         else if constexpr (std::is_same_v<T, VectorPtr>)
