@@ -63,8 +63,9 @@ Cell Scheme::expand(const Cell& macro, Cell& args)
 void Scheme::repl(const SymenvPtr& env)
 {
     const SymenvPtr& senv = env ? env : getenv();
-    Port<Char>::stream_type &out = *outPort(), &in = *inPort();
     Parser parser{ *this };
+
+    auto &out = outPort().stream(), &in = inPort().stream();
 
     for (Cell expr;;)
         try {
@@ -98,14 +99,14 @@ void Scheme::load(const String& filename, const SymenvPtr& env)
     Parser parser{ *this };
     Cell expr = none;
 
-    Port<Char>::stream_type& out = *outPort();
+    auto& out = outPort().stream();
 
     try {
-        std::string filnam{ string_convert<char>(filename) };
-        file_port in{ filnam, file_port::in };
+        file_port in{ filename, file_port::in };
 
         if (!in.is_open())
-            throw std::ios_base::failure("couldn't open input file: '"s + filnam + "'"s);
+            throw std::ios_base::failure("couldn't open input file: '"s
+                + string_convert<char>(filename) + "'"s);
 
         while (!in.eof()) {
             expr = parser.read(in);

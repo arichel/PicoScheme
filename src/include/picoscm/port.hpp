@@ -21,6 +21,8 @@
 #include <sstream>
 #include <variant>
 
+#include "utils.hpp"
+
 namespace pscm {
 
 struct Cell;
@@ -161,8 +163,8 @@ public:
     using openmode = typename Port<Char>::openmode;
     using stream_type::eof;
 
-    explicit FilePort(const std::string& filename, openmode mode)
-        : stream_type{ filename, mode }
+    explicit FilePort(const std::basic_string<Char>& filename, openmode mode)
+        : stream_type{ string_convert<char>(filename), mode }
         , Port<Char>{ *this, mode }
     {
     }

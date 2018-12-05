@@ -124,8 +124,8 @@ public:
         return function(env, String{ L"λ" }, std::forward<FunctionT>(fun));
     }
 
-    PortPtr outPort() { return m_stdout; } //!< return a shared-pointer to the default input port
-    PortPtr inPort() { return m_stdin; } //!< return a shared-pointer to the default output port
+    Port<Char>& outPort() const { return *m_stdout; } //!< return a shared-pointer to the default input port
+    Port<Char>& inPort() const { return *m_stdin; } //!< return a shared-pointer to the default output port
 
     //! Start a new read-eval-print loop and use argument environment or if null-pointer
     //! use the top-environment of this interpreter as interaction environment.

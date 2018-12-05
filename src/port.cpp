@@ -10,7 +10,6 @@
 
 #include "port.hpp"
 #include "scheme.hpp"
-#include "utils.hpp"
 
 namespace pscm {
 

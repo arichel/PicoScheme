@@ -1524,17 +1524,27 @@ static Cell callw_port(Scheme& scm, const SymenvPtr& senv, const PortPtr& port, 
     return cell;
 }
 
+/**
+ * Scheme @em call-with-input-file procedure.
+ *
+ * @param scm
+ * @param senv
+ * @param filnam
+ * @param proc
+ * @return
+ */
 static Cell callw_infile(Scheme& scm, const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
 {
     using port_type = FilePort<Char>;
-    auto port = std::make_shared<port_type>(ws2s(*filnam), port_type::stream_type::in);
+    auto port = std::make_shared<port_type>(*filnam, port_type::in);
 
     if (!port->is_open())
         throw port_type::stream_type::failure("couldn't open input file: '"s
-            + ws2s(*filnam) + "'"s);
+            + string_convert<char>(*filnam) + "'"s);
 
     Cons cons[4];
     Cell cell = scm.eval(senv, pscm::list(cons, Intern::_apply, proc, port, nil));
+
     port->close();
     return cell;
 }
@@ -1542,14 +1552,15 @@ static Cell callw_infile(Scheme& scm, const SymenvPtr& senv, const StringPtr& fi
 static Cell callw_outfile(Scheme& scm, const SymenvPtr& senv, const StringPtr& filnam, const Cell& proc)
 {
     using port_type = FilePort<Char>;
-    auto port = std::make_shared<port_type>(ws2s(*filnam), port_type::out);
+    auto port = std::make_shared<port_type>(*filnam, port_type::out);
 
     if (!port->is_open())
         throw std::ios_base::failure("couldn't open output file: '"s
-            + ws2s(*filnam) + "'"s);
+            + string_convert<char>(*filnam) + "'"s);
 
     Cons cons[4];
     Cell cell = scm.eval(senv, pscm::list(cons, Intern::_apply, proc, port, nil));
+
     port->close();
     return cell;
 }
@@ -1557,11 +1568,11 @@ static Cell callw_outfile(Scheme& scm, const SymenvPtr& senv, const StringPtr& f
 static Cell open_infile(const StringPtr& filnam)
 {
     using port_type = FilePort<Char>;
-    auto port = std::make_shared<port_type>(ws2s(*filnam), port_type::in);
+    auto port = std::make_shared<port_type>(*filnam, port_type::in);
 
     if (!port->is_open())
         throw std::ios_base::failure("couldn't open input file: '"s
-            + ws2s(*filnam) + "'"s);
+            + string_convert<char>(*filnam) + "'"s);
 
     return port;
 }
@@ -1582,11 +1593,12 @@ static Cell open_outfile(const varg& args)
     if (args.size() > 1 && !is_false(args[1]))
         mode |= port_type::app;
 
-    auto filnam = ws2s(*get<StringPtr>(args.at(0)));
+    auto& filnam = *get<StringPtr>(args.at(0));
     auto port = std::make_shared<port_type>(filnam, mode);
 
     if (!port->is_open())
-        throw std::ios_base::failure("couldn't open output file: '"s + filnam + "'"s);
+        throw std::ios_base::failure("couldn't open output file: '"s
+            + string_convert<char>(filnam) + "'"s);
 
     return port;
 }
@@ -1610,13 +1622,13 @@ static Cell close_outport(PortPtr port)
  */
 static Cell display(Scheme& scm, const varg& args)
 {
-    auto& port = args.size() > 1 ? get<PortPtr>(args[1])
+    auto& port = args.size() > 1 ? *get<PortPtr>(args[1])
                                  : scm.outPort();
     try {
-        port->stream() << pscm::display(args.at(0));
+        port.stream() << pscm::display(args.at(0));
 
     } catch (std::ios_base::failure&) {
-        throw output_port_exception(*get<PortPtr>(args.at(1)));
+        throw output_port_exception(port);
     }
     return none;
 }
@@ -1626,13 +1638,13 @@ static Cell display(Scheme& scm, const varg& args)
  */
 static Cell write(Scheme& scm, const varg& args)
 {
-    auto& port = args.size() > 1 ? get<PortPtr>(args[1])
+    auto& port = args.size() > 1 ? *get<PortPtr>(args[1])
                                  : scm.outPort();
     try {
-        port->stream() << args.at(0);
+        port.stream() << args.at(0);
 
     } catch (std::ios_base::failure&) {
-        throw output_port_exception(*port);
+        throw output_port_exception(port);
     }
     return none;
 }
@@ -1643,11 +1655,11 @@ static Cell write(Scheme& scm, const varg& args)
 static Cell newline(Scheme& scm, const varg& args)
 {
     auto& port = args.empty() ? scm.outPort()
-                              : get<PortPtr>(args[0]);
+                              : *get<PortPtr>(args[0]);
     try {
-        port->stream() << '\n';
+        port.stream() << '\n';
     } catch (std::ios_base::failure&) {
-        throw output_port_exception(*port);
+        throw output_port_exception(port);
     }
     return none;
 }
@@ -1655,15 +1667,13 @@ static Cell newline(Scheme& scm, const varg& args)
 /**
  * Scheme output @em (flush-output-port [port]) function.
  */
-static Cell flush(const varg& args)
+static Cell flush(Scheme& scm, const varg& args)
 {
-    if (args.empty()) {
-        std::cout.flush();
-    } else {
-        auto& port = *get<PortPtr>(args[0]);
-        port.isOutput() || ((void)(throw output_port_exception(port)), 0);
-        port.flush();
-    }
+    auto& port = args.empty() ? scm.outPort()
+                              : *get<PortPtr>(args[0]);
+
+    port.isOutput() || ((void)(throw output_port_exception(port)), 0);
+    port.flush();
     return none;
 }
 
@@ -1671,16 +1681,14 @@ static Cell flush(const varg& args)
  * Scheme output @em write-char function.
  * (write-char <char> [<output-port>]) function.
  */
-static Cell write_char(const varg& args)
+static Cell write_char(Scheme& scm, const varg& args)
 {
+    auto& port = args.size() > 1 ? *get<PortPtr>(args[1])
+                                 : scm.outPort();
     try {
-        if (args.size() > 1)
-            get<PortPtr>(args[1])->stream() << get<Char>(args[0]);
-        else
-            std::cout << get<Char>(args.at(0));
-
+        port.stream() << get<Char>(args.at(0));
     } catch (std::ios_base::failure&) {
-        throw output_port_exception(*get<PortPtr>(args.at(1)));
+        throw output_port_exception(port);
     }
     return none;
 }
@@ -1688,93 +1696,81 @@ static Cell write_char(const varg& args)
 /**
  * Scheme output @em write-string function.
  */
-static Cell write_str(const varg& args)
+static Cell write_str(Scheme& scm, const varg& args)
 {
-    using size_type = StringPtr::element_type::size_type;
-
-    PortPtr port = args.size() > 1 ? get<PortPtr>(args[1])
-                                   : std::make_shared<StandardPort<Char>>();
+    auto& port = args.size() > 1 ? *get<PortPtr>(args[1])
+                                 : scm.outPort();
     try {
         auto& str = *get<StringPtr>(args.at(0));
-        size_type ip = args.size() > 2 ? get<Int>(get<Number>(args[2])) : 0;
-        size_type ie = args.size() > 3 ? get<Int>(get<Number>(args[3])) : str.size();
+        size_t ip = args.size() > 2 ? get<Int>(get<Number>(args[2])) : 0;
+        size_t ie = args.size() > 3 ? get<Int>(get<Number>(args[3])) : str.size();
 
         if (ip || ie != str.size())
-            port->stream() << str.substr(ip, ie);
+            port.stream() << str.substr(ip, ie);
         else
-            port->stream() << str;
+            port.stream() << str;
 
     } catch (std::ios_base::failure&) {
-        throw output_port_exception(*port);
+        throw output_port_exception(port);
     }
     return none;
 }
 
-static Cell readline(const varg& args)
+static Cell readline(Scheme& scm, const varg& args)
 {
-    String str;
-    if (args.empty()) {
-        getline(std::wcin, str);
-    } else {
-        auto& port = *get<PortPtr>(args[0]);
-        if (!port.isInput())
-            throw input_port_exception(port);
-
-        try {
+    auto& port = args.empty() ? scm.outPort()
+                              : *get<PortPtr>(args[0]);
+    try {
+        String str;
+        if (args.empty())
+            getline(port.stream(), str);
+        else {
             if (getline(port.stream(), str).eof() && str.empty())
                 return Char{ EOF };
-
-        } catch (std::ios_base::failure& e) {
-            throw input_port_exception(port);
         }
+        return std::make_shared<String>(std::move(str));
+
+    } catch (std::ios_base::failure& e) {
+        throw input_port_exception(port);
     }
-    return std::make_shared<String>(std::move(str));
 }
 
 static Cell read(Scheme& scm, const varg& args)
 {
-    Parser parser(scm);
-    PortPtr port = scm.outPort();
-
-    if (!args.empty()) {
-        port = get<PortPtr>(args[0]);
-        if (!port->isInput())
-            throw input_port_exception(*port);
-    }
+    auto& port = args.empty() ? scm.outPort()
+                              : *get<PortPtr>(args[0]);
     try {
-        return parser.read(port->stream());
+        Parser parser{ scm };
+        return parser.read(port.stream());
 
     } catch (std::ios_base::failure&) {
-        throw input_port_exception(*port);
+        throw input_port_exception(port);
     }
 }
 
-static Cell read_char(const varg& args)
+static Cell read_char(Scheme& scm, const varg& args)
 {
-    if (args.empty()) {
-        StandardPort<Char> port{ std::ios_base::in };
-        return static_cast<Char>(port.get());
-
-    } else {
+    if (args.empty())
+        return static_cast<Char>(scm.inPort().stream().get());
+    else {
         auto& port = *get<PortPtr>(args[0]);
         try {
-            return static_cast<Char>(port.stream().get());
-
-        } catch (std::ios_base::failure& e) {
             if (port.isInput() && port.eof())
                 return Char{ EOF };
 
+            return static_cast<Char>(port.stream().get());
+
+        } catch (std::ios_base::failure& e) {
             throw input_port_exception(port);
         }
     }
 }
 
-static Cell peek_char(const varg& args)
+static Cell peek_char(Scheme& scm, const varg& args)
 {
-    if (args.empty()) {
-        StandardPort<Char> port{ std::ios_base::in };
-        return static_cast<Char>(port.peek());
-    } else
+    if (args.empty())
+        return static_cast<Char>(scm.inPort().stream().peek());
+    else
         return static_cast<Char>(get<PortPtr>(args[0])->stream().peek());
 }
 
@@ -1789,10 +1785,25 @@ static Cell read_str(Scheme& scm, const varg& args)
     if (is_int(num) || is_negative(num))
         throw std::invalid_argument("must be a nonnegative number");
 
-    auto port = args.size() > 1 ? get<PortPtr>(args[1])
-                                : std::make_shared<StandardPort<Char>>(std::ios_base::in);
-    Parser parser(scm);
-    return parser.read(port->stream());
+    size_t len = get<Int>(num) + 1;
+
+    auto& port = args.size() > 1 ? *get<PortPtr>(args[1])
+                                 : scm.inPort();
+    try {
+        String str(len, '\0');
+        port.stream().read(str.data(), len);
+        len = port.stream().gcount();
+
+        if (!len && port.eof())
+            return Char{ EOF };
+        else {
+            str.resize(len);
+            str.shrink_to_fit();
+            return std::make_shared<String>(std::move(str));
+        }
+    } catch (std::ios_base::failure& e) {
+        throw input_port_exception(port);
+    }
 }
 
 static Cell gcollect(Scheme& scm, const SymenvPtr& senv, const varg& args)
@@ -2414,13 +2425,13 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_close_outport:
         return primop::close_outport(get<PortPtr>(args.at(0)));
     case Intern::op_readline:
-        return primop::readline(args);
+        return primop::readline(scm, args);
     case Intern::op_read:
         return primop::read(scm, args);
     case Intern::op_read_char:
-        return primop::read_char(args);
+        return primop::read_char(scm, args);
     case Intern::op_peek_char:
-        return primop::peek_char(args);
+        return primop::peek_char(scm, args);
     case Intern::op_read_str:
         return primop::read_str(scm, args);
     case Intern::op_eof:
@@ -2428,7 +2439,7 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_iseof:
         return is_type<Char>(args.at(0)) && get<Char>(args[0]) == EOF;
     case Intern::op_flush:
-        return primop::flush(args);
+        return primop::flush(scm, args);
     case Intern::op_write:
         return primop::write(scm, args);
     case Intern::op_display:
@@ -2436,9 +2447,9 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_newline:
         return primop::newline(scm, args);
     case Intern::op_write_char:
-        return primop::write_char(args);
+        return primop::write_char(scm, args);
     case Intern::op_write_str:
-        return primop::write_str(args);
+        return primop::write_str(scm, args);
 
     /* Section 6.14: System interface */
     case Intern::op_load:
