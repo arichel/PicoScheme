@@ -143,6 +143,27 @@ struct Number : std::variant<Int, Float, Complex> {
 
         return std::visit(std::move(fun), static_cast<const base_type&>(*this));
     }
+
+    struct hash {
+        using argument_type = pscm::Number;
+        using result_type = std::size_t;
+
+        result_type operator()(const Number& num) const
+        {
+            static overloads hash{
+                [](const Complex& z) -> result_type {
+                    auto a = std::hash<Complex::value_type>{}(z.real());
+                    auto b = std::hash<Complex::value_type>{}(z.imag());
+                    auto c = std::hash<Complex::value_type>{}(std::abs(z)) + 0x765432F;
+                    c ^= a + 0x9e3779b9 + (c << 6) + (c >> 2);
+                    c ^= b + 0x9e3779b9 + (c << 6) + (c >> 2);
+                    return c;
+                },
+                [](auto arg) -> result_type { return std::hash<decltype(arg)>{}(arg); },
+            };
+            return visit(hash, static_cast<const Number::base_type&>(num));
+        }
+    };
 };
 
 template <typename T>
@@ -258,4 +279,5 @@ Number hypot(const Number& x, const Number& y);
 Number hypot(const Number& x, const Number& y, const Number& z);
 
 } // namspace pscm
+
 #endif // NUMBER_HPP

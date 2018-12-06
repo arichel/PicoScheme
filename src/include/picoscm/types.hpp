@@ -9,6 +9,7 @@
 #ifndef TYPES_HPP
 #define TYPES_HPP
 
+#include <map>
 #include <regex>
 #include <string>
 #include <variant>
@@ -25,6 +26,7 @@ class  Clock;
 class  Procedure;
 class  Function;
 enum class Intern;
+template<typename Cell> struct less;
 
 using None        = std::monostate;
 using Nil         = std::nullptr_t;
@@ -35,6 +37,7 @@ using String      = std::basic_string<Char>;
 using StringPtr   = std::shared_ptr<String>;
 using ClockPtr    = std::shared_ptr<Clock>;
 using RegexPtr    = std::shared_ptr<std::basic_regex<Char>>;
+using MapPtr      = std::shared_ptr<std::map<Cell,Cell,less<Cell>>>;
 using VectorPtr   = std::shared_ptr<std::vector<Cell>>;
 using PortPtr     = std::shared_ptr<Port<Char>>;
 using FunctionPtr = std::shared_ptr<Function>;
@@ -55,7 +58,7 @@ using Variant = std::variant <
     Cons*, StringPtr, VectorPtr, PortPtr, FunctionPtr, SymenvPtr,
 
     /* Extensions: */
-    RegexPtr, ClockPtr
+    RegexPtr, ClockPtr, MapPtr
 >;
 
 static const None none {}; //!< void return symbol
@@ -372,7 +375,21 @@ enum class Intern {
     op_clock_pause,
     op_clock_resume,
 
+    /* Section extensions: dictionary */
+    op_make_dict,
+    op_dict_ref,
+    op_dict_setb,
+    op_dict_isempty,
+    op_dict_size,
+    op_dict_clear,
+    op_dict_erase,
+    op_dict_insert,
+    op_dict_assign,
+    op_dict_find,
+    op_dict_count,
+
     op_usecount,
+    op_hash,
 };
 }
 #endif // TYPES_HPP

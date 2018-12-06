@@ -367,12 +367,8 @@ static T round_even(T x)
 Number round(const Number& x)
 {
     static overloads num{
-        [](Int i) -> Number {
-            return i;
-        },
-        [](Float x) -> Number {
-            return round_even(x);
-        },
+        [](Int i) -> Number { return i; },
+        [](Float x) -> Number { return round_even(x); },
         [](const Complex& z) -> Number {
             return { round_even(z.real()), round_even(z.imag()) };
         }

@@ -20,7 +20,6 @@ int main(int argn, char* argv[])
     using pscm::Intern, pscm::Cell, pscm::str, pscm::nil;
 
     pscm::Scheme scm;
-
     scm.function("greet", [cntr = 0](Scheme& scm, const SymenvPtr&, const std::vector<Cell>&) mutable -> Cell {
         return scm.list(pscm::str("hello world"), pscm::num(cntr++));
     });

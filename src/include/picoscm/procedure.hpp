@@ -72,8 +72,19 @@ public:
      */
     Cell expand(Scheme& scm, Cell& expr) const;
 
-private:
     struct Closure;
+
+    struct hash : private std::hash<Closure*> {
+        using argument_type = Procedure;
+        using result_type = std::size_t;
+
+        result_type operator()(const Procedure& proc) const noexcept
+        {
+            return std::hash<Closure*>::operator()(proc.impl.get());
+        }
+    };
+
+private:
     std::shared_ptr<Closure> impl;
 };
 

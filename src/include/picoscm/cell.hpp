@@ -9,6 +9,8 @@
 #ifndef CELL_HPP
 #define CELL_HPP
 
+#include <functional>
+
 #include "clock.hpp"
 #include "number.hpp"
 #include "port.hpp"
@@ -73,6 +75,52 @@ const T&& get(const Cell&& cell)
     }
 }
 
+template <typename Cell>
+struct less {
+    bool operator()(const Cell& lhs, const Cell& rhs) const
+    {
+        // clang-format off
+        static overloads less{
+            [](Bool lhs, Bool rhs)                         -> bool { return lhs < rhs; },
+            [](Char lhs, Char rhs)                         -> bool { return lhs < rhs; },
+            [](Intern lhs, Intern rhs)                     -> bool { return lhs < rhs; },
+            [](Number lhs, Number rhs)                     -> bool { return lhs < rhs; },
+            [](const Symbol& lhs, const Symbol& rhs)       -> bool { return lhs.value() < rhs.value(); },
+            [](const StringPtr& lhs, const StringPtr& rhs) -> bool { return *lhs < *rhs;},
+            [](const ClockPtr& lhs, const ClockPtr& rhs)   -> bool { return lhs->toc() < rhs->toc();},
+            [](auto&, auto&)                               -> bool { throw std::invalid_argument("undefined < comparision operator"); },
+        }; // clang-format on
+
+        return std::visit(less,
+            static_cast<const typename Cell::base_type&>(lhs),
+            static_cast<const typename Cell::base_type&>(rhs));
+    }
+};
+
+template <typename Cell>
+struct hash {
+    using argument_type = Cell;
+    using result_type = std::size_t;
+
+    result_type operator()(const Cell& cell) const
+    {
+        // clang-format off
+        static overloads hash{
+            [](None)                 -> result_type { return 0; },
+            [](Nil)                  -> result_type { return 0; },
+            [](Bool arg)             -> result_type { return static_cast<result_type>(arg); },
+            [](Char arg)             -> result_type { return std::hash<Char>{}(arg); },
+            [](Intern arg)           -> result_type { return std::hash<Intern>{}(arg); },
+            [](Number arg)           -> result_type { return Number::hash{}(arg); },
+            [](const Procedure& arg) -> result_type { return Procedure::hash{}(arg); },
+            [](const Symbol& arg)    -> result_type { return Symbol::hash{}(arg); },
+            [](const StringPtr& arg) -> result_type { return std::hash<String>{}(*arg);},
+            [](auto& arg)            -> result_type { return std::hash<std::decay_t<decltype(arg)>>{}(arg); },
+        }; // clang-format on
+        return std::visit(hash, static_cast<const typename Cell::base_type&>(cell));
+    }
+};
+
 //! Return the use count of a shared pointer cell or zero for a value type cell;
 Int use_count(const Cell&);
 
@@ -86,6 +134,7 @@ inline bool is_bool   (const Cell& cell) { return is_type<Bool>(cell); }
 inline bool is_char   (const Cell& cell) { return is_type<Char>(cell); }
 inline bool is_string (const Cell& cell) { return is_type<StringPtr>(cell); }
 inline bool is_regex  (const Cell& cell) { return is_type<RegexPtr>(cell); }
+inline bool is_dict   (const Cell& cell) { return is_type<MapPtr>(cell); }
 inline bool is_pair   (const Cell& cell) { return is_type<Cons*>(cell); }
 inline bool is_intern (const Cell& cell) { return is_type<Intern>(cell); }
 inline bool is_port   (const Cell& cell) { return is_type<PortPtr>(cell); }
@@ -274,6 +323,8 @@ private:
             return "#<clock>";
         else if constexpr (std::is_same_v<T, RegexPtr>)
             return "#<regex>";
+        else if constexpr (std::is_same_v<T, MapPtr>)
+            return "#<dict>";
         else if constexpr (std::is_same_v<T, VectorPtr>)
             return "#<vector>";
         else if constexpr (std::is_same_v<T, FunctionPtr>)
@@ -290,5 +341,10 @@ private:
             return "#<unknown>";
     }
 };
-}
+} // namespace pscm
+
+namespace std {
+
+} // namespace std
+
 #endif // CELL_HPP

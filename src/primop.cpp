@@ -2042,6 +2042,29 @@ static Cell regex_search(const varg& args)
     return vres->size() ? Cell{ vres } : Cell{ false };
 }
 
+static Cell dict_insert(const varg& args)
+{
+    auto& dict = *get<MapPtr>(args.at(0));
+    auto [_, ok] = dict.insert(std::make_pair(args.at(1), args.at(2)));
+    return ok;
+}
+
+static Cell dict_assign(const varg& args)
+{
+    auto& dict = *get<MapPtr>(args.at(0));
+    dict.insert_or_assign(args.at(1), args.at(2));
+    return none;
+}
+
+static Cell dict_find(const varg& args)
+{
+    auto& dict = *get<MapPtr>(args.at(0));
+    auto pos = dict.find(args.at(1));
+
+    Cell not_found{ args.size() > 2 ? args[2] : none };
+    return pos != dict.end() ? pos->second : not_found;
+}
+
 } // namespace pscm::primop
 
 namespace pscm {
@@ -2515,6 +2538,32 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
 
     case Intern::op_usecount:
         return Number{ use_count(args.at(0)) };
+    case Intern::op_hash:
+        return Number{ pscm::hash<Cell>{}(args.at(0)) };
+
+    /* Section extensions - Dictionary as std::map */
+    case Intern::op_make_dict:
+        return std::make_shared<MapPtr::element_type>();
+    case Intern::op_dict_ref:
+        return std::get<MapPtr>(args.at(0))->at(args.at(1));
+    case Intern::op_dict_setb:
+        return ((void)(std::get<MapPtr>(args.at(0))->at(args.at(1)) = args.at(2)), none);
+    case Intern::op_dict_isempty:
+        return std::get<MapPtr>(args.at(0))->empty();
+    case Intern::op_dict_size:
+        return Number{ std::get<MapPtr>(args.at(0))->size() };
+    case Intern::op_dict_count:
+        return Number{ std::get<MapPtr>(args.at(0))->count(args.at(1)) };
+    case Intern::op_dict_erase:
+        return Bool{ std::get<MapPtr>(args.at(0))->erase(args.at(1)) != 0 };
+    case Intern::op_dict_clear:
+        return ((void)std::get<MapPtr>(args.at(0))->clear(), none);
+    case Intern::op_dict_insert:
+        return primop::dict_insert(args);
+    case Intern::op_dict_assign:
+        return primop::dict_assign(args);
+    case Intern::op_dict_find:
+        return primop::dict_find(args);
 
     default:
         throw std::invalid_argument("invalid primary opcode");
@@ -2641,7 +2690,7 @@ void add_environment_defaults(Scheme& scm)
           { scm.symbol("cons"),             Intern::op_cons },
           { scm.symbol("car"),              Intern::op_car },
           { scm.symbol("cdr"),              Intern::op_cdr },
-          { scm.symbol("caarI"),            Intern::op_caar },
+          { scm.symbol("caar"),             Intern::op_caar },
           { scm.symbol("cddr"),             Intern::op_cddr },
           { scm.symbol("cadr"),             Intern::op_cadr },
           { scm.symbol("cdar"),             Intern::op_cdar },
@@ -2674,73 +2723,73 @@ void add_environment_defaults(Scheme& scm)
           { scm.symbol("gensym"),           Intern::op_gensym },
 
           /* Section 6.6: Characters */
-          { scm.symbol("char?"), Intern::op_ischar },
-          { scm.symbol("char->integer"), Intern::op_charint },
-          { scm.symbol("integer->char"), Intern::op_intchar },
-          { scm.symbol("char=?"), Intern::op_ischareq },
-          { scm.symbol("char<?"), Intern::op_ischarlt },
-          { scm.symbol("char>?"), Intern::op_ischargt },
-          { scm.symbol("char<=?"), Intern::op_ischarle },
-          { scm.symbol("char>=?"), Intern::op_ischarge },
-          { scm.symbol("char-ci=?"), Intern::op_ischcieq },
-          { scm.symbol("char-ci<?"), Intern::op_ischcilt },
-          { scm.symbol("char-ci>?"), Intern::op_ischcigt },
-          { scm.symbol("char-ci<=?"), Intern::op_ischcile },
-          { scm.symbol("char-ci>=?"), Intern::op_ischcige },
+          { scm.symbol("char?"),            Intern::op_ischar },
+          { scm.symbol("char->integer"),    Intern::op_charint },
+          { scm.symbol("integer->char"),    Intern::op_intchar },
+          { scm.symbol("char=?"),           Intern::op_ischareq },
+          { scm.symbol("char<?"),           Intern::op_ischarlt },
+          { scm.symbol("char>?"),           Intern::op_ischargt },
+          { scm.symbol("char<=?"),          Intern::op_ischarle },
+          { scm.symbol("char>=?"),          Intern::op_ischarge },
+          { scm.symbol("char-ci=?"),        Intern::op_ischcieq },
+          { scm.symbol("char-ci<?"),        Intern::op_ischcilt },
+          { scm.symbol("char-ci>?"),        Intern::op_ischcigt },
+          { scm.symbol("char-ci<=?"),       Intern::op_ischcile },
+          { scm.symbol("char-ci>=?"),       Intern::op_ischcige },
           { scm.symbol("char-alphabetic?"), Intern::op_isalpha },
-          { scm.symbol("char-numeric?"), Intern::op_isdigit },
+          { scm.symbol("char-numeric?"),    Intern::op_isdigit },
           { scm.symbol("char-whitespace?"), Intern::op_iswspace },
           { scm.symbol("char-upper-case?"), Intern::op_isupper },
           { scm.symbol("char-lower-case?"), Intern::op_islower },
-          { scm.symbol("digit-value"), Intern::op_digitval },
-          { scm.symbol("char-upcase"), Intern::op_upcase },
-          { scm.symbol("char-downcase"), Intern::op_downcase },
+          { scm.symbol("digit-value"),      Intern::op_digitval },
+          { scm.symbol("char-upcase"),      Intern::op_upcase },
+          { scm.symbol("char-downcase"),    Intern::op_downcase },
 
           /* Section 6.7:using namespace std::string_literals; Strings */
-          { scm.symbol("string?"), Intern::op_isstr },
-          { scm.symbol("string"), Intern::op_str },
-          { scm.symbol("make-string"), Intern::op_mkstr },
-          { scm.symbol("string-ref"), Intern::op_strref },
-          { scm.symbol("string-set!"), Intern::op_strsetb },
-          { scm.symbol("string-length"), Intern::op_strlen },
-          { scm.symbol("string=?"), Intern::op_isstreq },
-          { scm.symbol("string<?"), Intern::op_isstrlt },
-          { scm.symbol("string>?"), Intern::op_isstrgt },
-          { scm.symbol("string<=?"), Intern::op_isstrle },
-          { scm.symbol("string>=?"), Intern::op_isstrge },
-          { scm.symbol("string-ci=?"), Intern::op_isstrcieq },
-          { scm.symbol("string-ci=?"), Intern::op_isstrcieq },
-          { scm.symbol("string-ci<?"), Intern::op_isstrcilt },
-          { scm.symbol("string-ci>?"), Intern::op_isstrcigt },
-          { scm.symbol("string-ci<=?"), Intern::op_isstrcile },
-          { scm.symbol("string-ci>=?"), Intern::op_isstrcige },
-          { scm.symbol("string-upcase"), Intern::op_strupcase },
-          { scm.symbol("string-downcase"), Intern::op_strdowncase },
-          { scm.symbol("string-upcase!"), Intern::op_strupcaseb },
+          { scm.symbol("string?"),          Intern::op_isstr },
+          { scm.symbol("string"),           Intern::op_str },
+          { scm.symbol("make-string"),      Intern::op_mkstr },
+          { scm.symbol("string-ref"),       Intern::op_strref },
+          { scm.symbol("string-set!"),      Intern::op_strsetb },
+          { scm.symbol("string-length"),    Intern::op_strlen },
+          { scm.symbol("string=?"),         Intern::op_isstreq },
+          { scm.symbol("string<?"),         Intern::op_isstrlt },
+          { scm.symbol("string>?"),         Intern::op_isstrgt },
+          { scm.symbol("string<=?"),        Intern::op_isstrle },
+          { scm.symbol("string>=?"),        Intern::op_isstrge },
+          { scm.symbol("string-ci=?"),      Intern::op_isstrcieq },
+          { scm.symbol("string-ci=?"),      Intern::op_isstrcieq },
+          { scm.symbol("string-ci<?"),      Intern::op_isstrcilt },
+          { scm.symbol("string-ci>?"),      Intern::op_isstrcigt },
+          { scm.symbol("string-ci<=?"),     Intern::op_isstrcile },
+          { scm.symbol("string-ci>=?"),     Intern::op_isstrcige },
+          { scm.symbol("string-upcase"),    Intern::op_strupcase },
+          { scm.symbol("string-downcase"),  Intern::op_strdowncase },
+          { scm.symbol("string-upcase!"),   Intern::op_strupcaseb },
           { scm.symbol("string-downcase!"), Intern::op_strdowncaseb },
-          { scm.symbol("string-append"), Intern::op_strappend },
-          { scm.symbol("string-append!"), Intern::op_strappendb },
-          { scm.symbol("string->list"), Intern::op_strlist },
-          { scm.symbol("list->string"), Intern::op_liststr },
-          { scm.symbol("substring"), Intern::op_substr },
-          { scm.symbol("string-copy"), Intern::op_strcopy },
-          { scm.symbol("string-copy!"), Intern::op_strcopyb },
-          { scm.symbol("string-fill!"), Intern::op_strfillb },
+          { scm.symbol("string-append"),    Intern::op_strappend },
+          { scm.symbol("string-append!"),   Intern::op_strappendb },
+          { scm.symbol("string->list"),     Intern::op_strlist },
+          { scm.symbol("list->string"),     Intern::op_liststr },
+          { scm.symbol("substring"),        Intern::op_substr },
+          { scm.symbol("string-copy"),      Intern::op_strcopy },
+          { scm.symbol("string-copy!"),     Intern::op_strcopyb },
+          { scm.symbol("string-fill!"),     Intern::op_strfillb },
 
           /* Section 6.8: Vectors */
-          { scm.symbol("vector?"), Intern::op_isvec },
-          { scm.symbol("make-vector"), Intern::op_mkvec },
-          { scm.symbol("vector"), Intern::op_vec },
-          { scm.symbol("vector-length"), Intern::op_veclen },
-          { scm.symbol("vector-ref"), Intern::op_vecref },
-          { scm.symbol("vector-set!"), Intern::op_vecsetb },
-          { scm.symbol("vector->list"), Intern::op_veclist },
-          { scm.symbol("list->vector"), Intern::op_listvec },
-          { scm.symbol("vector-copy"), Intern::op_veccopy },
-          { scm.symbol("vector-copy!"), Intern::op_veccopyb },
-          { scm.symbol("vector-append"), Intern::op_vecappend },
-          { scm.symbol("vector-append!"), Intern::op_vecappendb },
-          { scm.symbol("vector-fill!"), Intern::op_vecfillb },
+          { scm.symbol("vector?"),          Intern::op_isvec },
+          { scm.symbol("make-vector"),      Intern::op_mkvec },
+          { scm.symbol("vector"),           Intern::op_vec },
+          { scm.symbol("vector-length"),    Intern::op_veclen },
+          { scm.symbol("vector-ref"),       Intern::op_vecref },
+          { scm.symbol("vector-set!"),      Intern::op_vecsetb },
+          { scm.symbol("vector->list"),     Intern::op_veclist },
+          { scm.symbol("list->vector"),     Intern::op_listvec },
+          { scm.symbol("vector-copy"),      Intern::op_veccopy },
+          { scm.symbol("vector-copy!"),     Intern::op_veccopyb },
+          { scm.symbol("vector-append"),    Intern::op_vecappend },
+          { scm.symbol("vector-append!"),   Intern::op_vecappendb },
+          { scm.symbol("vector-fill!"),     Intern::op_vecfillb },
 
           /* Section 6.9: Bytevectors */
 
@@ -2803,12 +2852,28 @@ void add_environment_defaults(Scheme& scm)
           { scm.symbol("regex-search"), Intern::op_regex_search },
 
           /* Extension: clock */
-          { scm.symbol("clock"), Intern::op_clock},
-          { scm.symbol("clock-tic"), Intern::op_clock_tic},
-          { scm.symbol("clock-toc"), Intern::op_clock_toc},
-          { scm.symbol("clock-pause"), Intern::op_clock_pause},
+          { scm.symbol("clock"),        Intern::op_clock},
+          { scm.symbol("clock-tic"),    Intern::op_clock_tic},
+          { scm.symbol("clock-toc"),    Intern::op_clock_toc},
+          { scm.symbol("clock-pause"),  Intern::op_clock_pause},
           { scm.symbol("clock-resume"), Intern::op_clock_resume},
-          { scm.symbol("use-count"), Intern::op_usecount },
+
+          /* Extension: dictionary */
+          { scm.symbol("make-dict"),    Intern::op_make_dict},
+          { scm.symbol("dict-ref"),     Intern::op_dict_ref},
+          { scm.symbol("dict-set!"),    Intern::op_dict_setb},
+          { scm.symbol("dict-size"),    Intern::op_dict_size},
+          { scm.symbol("dict-empty?"),  Intern::op_dict_isempty},
+          { scm.symbol("dict-clear"),   Intern::op_dict_clear},
+          { scm.symbol("dict-erase"),   Intern::op_dict_erase},
+          { scm.symbol("dict-find"),    Intern::op_dict_find},
+          { scm.symbol("dict-count"),   Intern::op_dict_count},
+          { scm.symbol("dict-insert"),  Intern::op_dict_insert},
+          { scm.symbol("dict-assign!"), Intern::op_dict_assign},
+          { scm.symbol("dict-find"),    Intern::op_dict_find},
+
+          { scm.symbol("use-count"),    Intern::op_usecount },
+          { scm.symbol("hash"),         Intern::op_hash },
        });
     // clang-format on
 }

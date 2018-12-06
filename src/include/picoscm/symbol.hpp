@@ -15,7 +15,11 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "utils.hpp"
+
 namespace pscm {
+
+struct symenv_exception;
 
 /**
  * Symbol table to provide unique symbols.
@@ -30,9 +34,7 @@ namespace pscm {
  */
 template <typename T, typename Hash = std::hash<T>, typename Equal = std::equal_to<T>>
 struct SymbolTable {
-    /**
-     * A Symbol as handle to a pointer of type T into the symbol table
-     */
+    //! A Symbol as handle to a pointer of type T into the symbol table
     struct Symbol {
         using value_type = T;
 
@@ -43,22 +45,21 @@ struct SymbolTable {
         Symbol& operator=(const Symbol&) = default;
         Symbol& operator=(Symbol&& s) = default;
 
-        /**
-         * Return a constant refererence to the symbol value T.
-         */
+        //! Return a constant refererence to the symbol value T.
         const T& value() const noexcept { return *ptr; }
 
-        /**
-         * Equality predicate.
-         */
+        //! Equality predicates.
         bool operator==(const Symbol& sym) const noexcept { return ptr == sym.ptr; }
         bool operator!=(const Symbol& sym) const noexcept { return ptr != sym.ptr; }
         bool operator<(const Symbol& sym) const noexcept { return ptr < sym.ptr; }
 
-        struct hash {
-            size_t operator()(const Symbol& sym) const noexcept
+        struct hash : private std::hash<const T*> {
+            using argument_type = Symbol;
+            using result_type = std::size_t;
+
+            result_type operator()(const Symbol& sym) const noexcept
             {
-                return reinterpret_cast<size_t>(sym.ptr);
+                return std::hash<const T*>::operator()(sym.ptr);
             }
         };
 
@@ -68,7 +69,7 @@ struct SymbolTable {
         {
         }
         friend struct SymbolTable; //! needs access to private constructor
-        std::add_pointer_t<std::add_const_t<T>> ptr; //! or const T*
+        const T* ptr;
     };
     /**
      * Construct a symbol table
@@ -81,7 +82,6 @@ struct SymbolTable {
 
     /**
      * Return a new or previously constructed symbol.
-     *
      * @tparam Val Value to in-place construct a new symbol.
      * @return Symbol of type Symtab<T>::Symbol.
      */
@@ -94,11 +94,25 @@ private:
     std::unordered_set<T, Hash, Equal> table;
 };
 
+//! Exception to be thrown by template class SymbolEnv for unknown symbols.
+struct symenv_exception : public std::exception {
+
+    template <typename Sym>
+    symenv_exception(const Sym& sym)
+    {
+        reason.append(string_convert<char>(sym.value()));
+    }
+    const char* what() const noexcept override { return reason.c_str(); }
+
+private:
+    std::string reason{ "unknown symbol " };
+};
+
 /**
  * Symbol-value environment
  *
  * A symbol environment associates symbols to values. Symbol value bindings
- * are unique per environment. Several environments build child-parent trees
+ * are unique per environment. Severel environments form a child-parent tree.
  *
  * @tparam Sym Symbol type
  * @tparam T   Value type
@@ -114,25 +128,28 @@ public:
     using std::enable_shared_from_this<SymbolEnv>::shared_from_this;
     using std::enable_shared_from_this<SymbolEnv>::weak_from_this;
 
+    //! Create a new empty symbol environment, optionally as a child
+    //! of the argument parent environment.
     static shared_type create(const shared_type& parent = nullptr)
     {
         return shared_type{ new SymbolEnv{ parent } };
     }
 
+    //! Create a new symbol environment and initialize it with (symbol,value)-pairs
     static shared_type create(std::initializer_list<std::pair<Sym, T>> args,
         const shared_type& parent = nullptr)
     {
         return shared_type{ new SymbolEnv{ args, parent } };
     }
 
-    //! Insert a new symbol and value or reassign a bound value of an existing symbol
+    //! Insert a new symbol and value or reassigns a bound value of an existing symbol
     //! in this environment only.
     void add(const Sym& sym, const T& val)
     {
         table.insert_or_assign(sym, val);
     }
 
-    //! Insert or reassign zero or more symbol, value pairs into this environment.
+    //! Insert or reassign zero or more (symbol,value)-pairs into this environment.
     void add(std::initializer_list<std::pair<Sym, T>> args)
     {
         for (auto& [sym, val] : args)
@@ -141,7 +158,8 @@ public:
     /**
      * Reassign a bound value of the first found symbol in this or any
      * reachable parent environment.
-     * @throw std::invalid_argument exception for an unknown or unreachable symbols.
+     *
+     * @throws a symenv_exception exception for unknown or unreachable symbols.
      */
     void set(const Sym& sym, const T& arg)
     {
@@ -157,15 +175,13 @@ public:
 
         } while ((senv = senv->next.get()));
 
-        throw std::invalid_argument("unknown symbol ");
-        //+ static_cast<std::string>(sym.value()));
+        throw symenv_exception{ sym };
     }
-
     /**
      * Lookup a symbol in this or any reachable parent environment
      * and return its bound value.
      *
-     * @throw std::invalid_argument exception for unknown or unreachable symbols.
+     * @throws a symenv_exception exception for unknown or unreachable symbols.
      */
     const T& get(const Sym& sym) const
     {
@@ -179,15 +195,19 @@ public:
 
         } while ((senv = senv->next.get()));
 
-        throw std::invalid_argument("unknown symbol ");
-        //+ static_cast<std::string>(sym.value()));
+        throw symenv_exception{ sym };
     }
-
+    /**
+     * Cursor as (begin,end)-iterator range to iterate over all (symbol,value)-pairs
+     * of this environment and to move to the next parent environment.
+     */
     struct Cursor {
         auto begin() const { return env.lock()->table.begin(); }
         auto end() const { return env.lock()->table.end(); }
         auto symenv() const { return shared_type{ env }; }
 
+        //! Move cursor to next parent environment or return std::nullopt
+        //! for a top-environment.
         std::optional<Cursor> next() const
         {
             shared_type e{ env };
@@ -201,10 +221,10 @@ public:
             : env{ std::move(env) }
         {
         }
-        //shared_type env;
         std::weak_ptr<SymbolEnv> env;
     };
 
+    //! Return a cursor
     Cursor cursor() { return Cursor{ weak_from_this() }; }
     Cursor cursor() const { return Cursor{ weak_from_this() }; }
 
@@ -219,10 +239,8 @@ private:
     {
     }
 
-    /**
-     * Construct a new top or child environment and initialize it with {symbol,value} pairs
-     * from initializer list.
-     */
+    //! Construct a new top or child environment and initialize it with {symbol,value} pairs
+    //! from initializer list.
     SymbolEnv(std::initializer_list<std::pair<Sym, T>> args, const shared_type& parent = nullptr)
         : next{ parent }
         , table{ args.size() }
