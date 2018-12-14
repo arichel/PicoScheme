@@ -175,7 +175,7 @@ Parser::Token Parser::lex_char(const String& str, Char& c, istream_type& in)
 {
     constexpr struct {
         const Char* name;
-        Char c;
+        Int c;
     } stab[]{
         // clang-format off
         { L"#\\eof",        EOF},
@@ -192,7 +192,7 @@ Parser::Token Parser::lex_char(const String& str, Char& c, istream_type& in)
         { L"#\\ue",        L'ü'},  { L"#\\UE",        L'Ü'},
         { L"#\\oe",        L'ö'},  { L"#\\OE",        L'Ö'},
         { L"#\\ss",        L'ß'},
-		{ L"#\\_0",        L'₀'},  { L"#\\^0",        L'⁰'},
+        { L"#\\_0",        L'₀'},  { L"#\\^0",        L'⁰'},
         { L"#\\_1",        L'₁'},  { L"#\\^1",        L'¹'},
         { L"#\\_2",        L'₂'},  { L"#\\^2",        L'²'},
         { L"#\\_3",        L'₃'},  { L"#\\^3",        L'³'},
@@ -279,16 +279,14 @@ Parser::Token Parser::lex_char(const String& str, Char& c, istream_type& in)
 
         for (size_t i = 0; i < ntab; ++i)
             if (stab[i].name == name) {
-                c = stab[i].c;
+                c = static_cast<Char>(stab[i].c);
                 return Token::Char;
             }
     }
     return Token::Error;
 }
 
-/**
- * @brief Lexical analyse a special scheme symbol.
- */
+//! Lexical analyse a special scheme symbol.
 Parser::Token Parser::lex_special(String& str, istream_type& in)
 {
     if (str == L"#")
@@ -390,8 +388,6 @@ bool Parser::is_special(int c) { return strchr("()\"'`,;", c); }
 bool Parser::is_alpha(int c)
 {
     return iswgraph(c) && !iswdigit(c) && !is_special(c);
-
-    //return iswalpha(c) || strchr("._:?!+-*/<>=^@$%&~", c);
 }
 
 /**
@@ -412,6 +408,7 @@ Parser::Token Parser::get_token(istream_type& in)
     Char c;
     while (in >> c && iswspace(c))
         ;
+
     if (!in.good())
         return in.eof() ? Token::Eof : Token::Error;
 
@@ -426,7 +423,8 @@ Parser::Token Parser::get_token(istream_type& in)
         if (!in.good() && !in.eof())
             return Token::Error;
 
-        in.unget();
+        //in.unget();
+        in.putback(c);
     }
     // Lexical analyse token string according to the first character:
     switch (c = strtok.front()) {
@@ -517,7 +515,7 @@ Cell Parser::read(istream_type& in)
             return parse_list(in);
 
         case Token::Eof:
-            return Char{ EOF };
+            return static_cast<Char>(EOF);
 
         case Token::Error:
         default:

@@ -1764,10 +1764,10 @@ static Cell read_char(Scheme& scm, const varg& args)
 
         try {
             if (port.eof())
-                return Char{ EOF };
+                return static_cast<Char>(EOF);
             return static_cast<Char>(port.stream().get());
 
-        } catch (std::ios_base::failure& e) {
+        } catch (std::ios_base::failure&) {
             throw input_port_exception(port);
         }
     }
@@ -1799,8 +1799,8 @@ static Cell readline(Scheme& scm, const varg& args)
 
         try {
             if (getline(port.stream(), str).eof() && str.empty())
-                return Char{ EOF };
-        } catch (std::ios_base::failure& e) {
+                return static_cast<Char>(EOF);
+        } catch (std::ios_base::failure&) {
             throw input_port_exception(port);
         }
     }
@@ -1828,8 +1828,8 @@ static Cell read_str(Scheme& scm, const varg& args)
             port.stream().read(str.data(), len);
             len = port.stream().gcount();
             if (!len && port.eof())
-                return Char{ EOF };
-        } catch (std::ios_base::failure& e) {
+                return static_cast<Char>(EOF);
+        } catch (std::ios_base::failure&) {
             throw input_port_exception(port);
         }
     } else {
@@ -2495,9 +2495,9 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
     case Intern::op_read_str:
         return primop::read_str(scm, args);
     case Intern::op_eof:
-        return Char{ EOF };
+        return static_cast<Char>(EOF);
     case Intern::op_iseof:
-        return is_type<Char>(args.at(0)) && get<Char>(args[0]) == EOF;
+        return is_type<Char>(args.at(0)) && get<Char>(args[0]) == static_cast<Char>(EOF);
     case Intern::op_flush:
         return primop::flush(scm, args);
     case Intern::op_write:

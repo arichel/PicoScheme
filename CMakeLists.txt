@@ -33,7 +33,7 @@ add_library(${LIB_NAME} ${SOURCES})
 target_include_directories(${LIB_NAME} PRIVATE ${INCLUDE_PATH})
 
 if(MSVC)
-    target_compile_options(${LIB_NAME} PRIVATE /W3 /std:c++17)
+    target_compile_options(${LIB_NAME} PRIVATE /W3 /std:c++17 /wd4996)
 else(MSVC)
     target_compile_options(${LIB_NAME} PRIVATE -Wall -Wno-padded -Wextra -pedantic)
 endif(MSVC)

@@ -52,7 +52,7 @@ template <typename T> // Vacuum permittivity [(N m^2)/C^2]
 constexpr T epsilon_0 = 1 / (mu_0<T> * c<T> * c<T>);
 
 template <typename T> // Stefan-Boltzmann constant [W/(m^2 K^4)]
-constexpr T sigma = 2 * pi<T>* pow(R<T>, 4) / (15 * pow(h<T>, 3) * c<T> * c<T> * pow(N_A<T>, 4));
+constexpr T sigma = 2 * pi<T>* R<T>* R<T>* R<T>* R<T> / (15 * h<T> * h<T> * h<T> * c<T> * c<T> * N_A<T> * N_A<T> * N_A<T> * N_A<T>);
 
 template <typename T>
 struct Type;

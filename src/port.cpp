@@ -15,12 +15,15 @@ namespace pscm {
 
 void enable_locale(const char* name)
 {
-    std::ios_base::sync_with_stdio(false);
-    std::setlocale(LC_ALL, name);
+    using namespace std::string_literals;
 
+    std::ios_base::sync_with_stdio(false);
+    setlocale(LC_ALL, name);
+
+#ifdef __linux__
     auto loc = std::locale{ name }
-                   .combine<std::numpunct<wchar_t>>(std::locale("C"))
-                   .combine<std::numpunct<char>>(std::locale("C"));
+                   .combine<std::numpunct<wchar_t>>(std::locale(name))
+                   .combine<std::numpunct<char>>(std::locale(name));
 
     std::locale::global(loc);
 
@@ -32,6 +35,7 @@ void enable_locale(const char* name)
     std::wclog.imbue(loc);
     std::cin.imbue(loc);
     std::wcin.imbue(loc);
+#endif
 }
 
 /**
@@ -174,8 +178,8 @@ std::wostream& operator<<(std::wostream& os, const Cell& cell)
         [&os](None)                   -> std::wostream& { return os << "#<none>"; },
         [&os](Nil)                    -> std::wostream& { return os << "()"; },
         [&os](Bool arg)               -> std::wostream& { return os << (arg ? "#t" : "#f"); },
-        [&os](Char arg)               -> std::wostream& { return arg != EOF ? (os << "#\\" << arg)
-                                                                            : (os << "#\\eof"); },
+        [&os](Char arg)               -> std::wostream& { return arg != static_cast<Char>(EOF) ?
+                                                             (os << "#\\" << arg) : (os << "#\\eof"); },
         [&os](const StringPtr& arg)   -> std::wostream& { return os << '"' << *arg << '"';},
         [&os](const RegexPtr&)        -> std::wostream& { return os << "#<regex>"; },
         [&os](const MapPtr&)          -> std::wostream& { return os << "#<dict>"; },

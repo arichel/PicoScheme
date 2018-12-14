@@ -30,7 +30,7 @@ enum class Intern;
 
 //! Enable locale globally and set all standard io-ports accordingly.
 //! @param name Name of the locale.
-void enable_locale(const char* name = "en_US.utf8");
+void enable_locale(const char* name = "en_US.UTF-8");
 
 //! Stream manipulator type, to change the default stream output for
 //! value to a scheme (display <expr>) output.
