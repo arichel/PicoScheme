@@ -1,46 +1,137 @@
 PicoScheme
 ==========
 
-A small, embeddable scheme interpreter implementation in c++17. This project was
-started because I wanted to learn recent c++ features, especially to evaluate the
-new [std::variant] class template as plain c-union replacement and shared,
-reference counting pointers for basic memory management. Considering that there
-are already very feature complete, small and efficient scheme implementations,
-and to keep the implementation effort reasonable, at least most scheme functions
-from the old [R4RS scheme] specification are implemented. Postponed for now is
-a complete numeric tower, including rational numbers and arbitrary precision
-arithmetic, and more advanced features like [call/cc] and *define-syntax* macros,
-which I haven't fully understood so far. However integer, floating point and
-complex numbers, call/cc as simple escape procedure and old school lisp-style
-macros are implemented.
+A small, embeddable scheme interpreter in c++17. This project started as a
+test bed to evaluate the new [std::variant] class template as plain c-union
+replacement and to test shared, reference counting pointers for basic memory
+menagement. Considering that there are already very feature complete, small
+and efficient scheme implementations and to keep the implementation effort
+reasonable, at least most scheme functions from the old [R4RS scheme] specification
+are implemented. Postponed for now is a complete numeric tower, including rational
+numbers and arbitrary precision arithmetic, and more advanced features like [call/cc]
+and *define-syntax* macros, which I haven't fully understood so far. However
+integer, floating point and complex numbers, call/cc as simple escape procedure
+and old school lisp-style macros are implemented.
 
 ### Credits ###
 While a more formal approach, on how to implement a dynamically typed,
 functional language interpreter would definitely be advisable, I followed
-here the ad hoc learning by doing approach and read the sources of the following,
-publicly available scheme implementations first. So I would like to thank the
-following authors and maintainers for releasing their work:
+here the ad hoc learning by doing approach and read the sources of some
+publicly available scheme implementations first. Therefore I would like to
+thank the following authors and maintainers for releasing their work:
 - [minischeme] really miniature scheme by Atsushi Moriwaki and Cat's Eye Technologies.
 - [TinyScheme] by Dimitrios Souflis, Kevin Cozens, Jonathan S. Shapiro and many others.
-- [Jscheme] readable Java implementation by Peter Norvig.
+- [Jscheme] very readable Java implementation by Peter Norvig.
 - [LispMe] interesting [SECD vm] scheme by Fred Bayer with [source code].
-- [Chibi-Scheme] feature complete [R7RS scheme] by Alex Shinn.
+- [Chibi-Scheme] very feature complete [R7RS scheme] by Alex Shinn.
+
+Installation and using the interpreter
+--------------------------------------
+
+The source code successfully compiles with a fairly recent GNU g++ compiler
+and under MS-Windows with the Visual Studio Community Edition v15 c++ compiler
+or the MSYS2 GNU build tools.
+
+### Compiling under Windows on the Command Line with Visual Studio build tools###
+Please make sure that either Visual Studio with Desktop development with C++ or
+the command-line Build Tools for Visual Studio is successfully installed.
+Additionally please install the [Kitware CMake](https://cmake.org/) build generator
+software.
+- Open a developer-console for Visual Studio 2017 and change into your prefered
+  working directory, for example `cd %home%`
+- Download the PicoScheme sources and change into the unpacked source directory
+  with `cd PicoScheme`
+- or optional in case [Git version control](https://git-scm.com/) is installed,
+  directly clone the PicoScheme github repository with
+  `git clone https://github.com/arichel/PicoScheme.git` and change into
+  the new PicoScheme source directoy.
+- Create a new build sub directory with `mkdir build` an type:
+  `cmake -H. -Bbuild` to generate a Visual Studio project file.
+- Change into the build directory and type `msbuild PicoScheme.sln` to
+  build the static library `picoscheme.lib` and test program `picoscm.exe`
+- Optionally copy a scheme resource file from `cp ../test/picoscmrc.scm Debug/.`
+  into the `Debug` or `Release` subdirectory.
+- Change into the `Debug` subdirectory and type `picoscm.exe` to start
+  an interactive scheme read-eval-print loop (repl). Type `(exit)` or `Ctrl+c`
+  to quit the interpreter.
+
+### Compiling under Windows with MSYS2 build tools###
+Please make sure that the [MSYS2](http://www.msys2.org/) software building
+platform is installed and the msys2 console is available.
+- Open the msys2 console and optional update the package database with
+  `pacman -Syu` then close the console, reopen and run again `pacman -Su`
+- If you haven't already, please add the following packages:
+  [Kitware CMake](https://cmake.org/) with `pacman -S cmake`
+- Optional if you like to clone the PicoScheme repository instead of
+  just downloading the sources:
+  [Git version control](https://git-scm.com/) with `pacman -S git`
+
+Now we are ready to clone or download and compile the PicoScheme sources:
+- Change into your prefered installation directory and either unpack
+  the downloaded PicoScheme.zip folder or if Git is installed, clone with:
+  `git clone https://github.com/arichel/PicoScheme.git'
+- Change into PicoScheme source directory and create a new build directory
+  `mkdir build`
+- Generate a unix makefile in this build directory with:
+  `cmake -H. -Bbuild`
+- Change into the `build` sub directory and type `make all' to build
+  a static `libpicoscm.a` library and a `picoscm.exe` test program.
+- Optional copy a scheme startup file `cp ../test/picoscmrc.scm` into the build
+  directory and type `./picoscm.exe` to start the interpreter. Type `(exit)` or
+  Ctrl+d to quit the interpreter.
+
+Extending the interpreter
+-------------------------
+
 
 Implementation details
 ----------------------
 
 ### Scheme cells ###
-A scheme cell is derived from a [std::variant] type as a union of all supported
-types. Atomic types, like booleans, characters, numbers and symbols are
-directly stored as value types and compound types like strings, vectors,
-IO-ports or closures are either stored as shared pointers or by a small handle
-class with internal pointer to the implementation class. This assures, that the
-byte size of a scheme cell remains reasonable small. Currently, the largest value
-type are numbers with 16 bytes for a complex number as a double floating point pair
-and 8 bytes for the number variant internals itself and alignment padding. A
-scheme cell has therefore a size of 32 bytes in total (24 bytes + 8 bytes internals). Scheme cons-cells
+A scheme cell is derived from a [std::variant] type, as declared in
+[types.hpp](src/include/picoscm/types.hpp),
+as a union of all supported types:
+```c++
+using Cons  = std::tuple<Cell, Cell, bool>;
+
+using None  = std::monostate;
+using Nil   = std::nullptr_t;
+using Bool  = bool;
+using Char  = wchar_t;
+
+using StringPtr = std::shared_ptr<std::basic_string<Char>>;
+using VectorPtr = std::shared_ptr<std::vector<Cell>>;
+// ...
+
+using Variant = std::variant <
+
+    /* Atom types: */
+    None, Nil, Intern, Bool, Char, Number,
+
+    /* Compound value types: */
+    Symbol, Procedure,
+
+    /* Pointer types: */
+    Cons*, StringPtr, VectorPtr, PortPtr, FunctionPtr, SymenvPtr
+>;
+
+struct Cell : Variant {
+    using base_type = Variant;
+    using Variant::Variant;
+};
+```
+Derivation of structure *Cell* from *Variant* is necessary to forward declare a scheme
+*Cons*-cell as a [std::tuple] of two *Cell* types itself. Atomic types, like booleans, characters,
+numbers and symbols are directly stored as value types and compound types like strings,
+vectors or IO-ports are stored as shared pointers. Symbols and procedures (closures) are
+stored as a small handle class with internal pointer to the implementation class.
+This assures that the byte size of a scheme cell remains reasonable small.
+Currently, the largest value type are numbers with 16 bytes for a complex
+number as two double floating point values and additional eight bytes for
+the variant type internals itself plus alignment padding. A scheme cell has
+therefore a size of 32 bytes in total (24 bytes + 8 bytes internals).
 Scheme cons-cells are stored as plain c-pointers into the global cell store,
-which is basically a [std::deque] sequence container of cons-cell pairs.
+which is basically a [std::list] container of cons-cell pairs.
 
 ### Garbage collector ###
 todo

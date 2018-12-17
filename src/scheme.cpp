@@ -65,9 +65,7 @@ void Scheme::repl(const SymenvPtr& env)
     const SymenvPtr& senv = env ? env : getenv();
     Parser parser{ *this };
 
-    //auto &out = outPort().stream(), &in = inPort().stream();
-    auto& out = std::wcout;
-    auto& in = std::wcin;
+    auto &out = outPort().stream(), &in = inPort().stream();
 
     for (Cell expr;;)
         try {
