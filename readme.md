@@ -89,12 +89,12 @@ A scheme cell is derived from a [std::variant] type, as declared in
 [types.hpp](src/include/picoscm/types.hpp),
 as a union of all supported types:
 ```c++
-using Cons  = std::tuple<Cell, Cell, bool>;
+using Cons = std::tuple</*car*/Cell, /*cdr*/Cell, /*gc-mark*/bool>;
 
-using None  = std::monostate;
-using Nil   = std::nullptr_t;
-using Bool  = bool;
-using Char  = wchar_t;
+using None = std::monostate;
+using Nil  = std::nullptr_t;
+using Bool = bool;
+using Char = wchar_t;
 
 using StringPtr = std::shared_ptr<std::basic_string<Char>>;
 using VectorPtr = std::shared_ptr<std::vector<Cell>>;
