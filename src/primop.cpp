@@ -2042,17 +2042,18 @@ static Cell regex_search(const varg& args)
     return vres->size() ? Cell{ vres } : Cell{ false };
 }
 
+static Cell make_dict(Scheme& scm, const SymenvPtr& env, const varg& args)
+{
+    if (args.empty())
+        return std::make_shared<MapPtr::element_type>();
+
+    return std::make_shared<MapPtr::element_type>(pscm::less<Cell>(scm, env, args[0]));
+}
+
 static Cell dict_insert(const varg& args)
 {
     auto& dict = *get<MapPtr>(args.at(0));
-    auto [_, ok] = dict.insert(std::make_pair(args.at(1), args.at(2)));
-    return ok;
-}
-
-static Cell dict_assign(const varg& args)
-{
-    auto& dict = *get<MapPtr>(args.at(0));
-    dict.insert_or_assign(args.at(1), args.at(2));
+    dict.insert(std::make_pair(args.at(1), args.at(2)));
     return none;
 }
 
@@ -2061,8 +2062,51 @@ static Cell dict_find(const varg& args)
     auto& dict = *get<MapPtr>(args.at(0));
     auto pos = dict.find(args.at(1));
 
-    Cell not_found{ args.size() > 2 ? args[2] : none };
+    Cell not_found(args.size() > 2 ? args[2] : none);
     return pos != dict.end() ? pos->second : not_found;
+}
+
+//! Return a scheme vector of all values in dict equal to key or false if none.
+static Cell dict_equal_range(const varg& args)
+{
+    auto& dict = *get<MapPtr>(args.at(0));
+    auto [pos, end] = dict.equal_range(args.at(1));
+
+    if (pos == end)
+        return false;
+
+    auto res = std::make_shared<VectorPtr::element_type>();
+    for (/* */; pos != end; ++pos)
+        res->push_back(pos->second);
+    return res;
+}
+
+//! Convert a dictionary into a scheme association list.
+static Cell dict2list(Scheme& scm, const varg& args)
+{
+    auto& dict = *get<MapPtr>(args.at(0));
+
+    Cell list = nil, last = list;
+
+    for (auto& [key, val] : dict) {
+        if (!is_nil(list)) {
+            set_cdr(last, scm.cons(scm.cons(key, val), nil));
+            last = cdr(last);
+        } else
+            list = last = scm.cons(scm.cons(key, val), nil);
+    }
+    return list;
+}
+
+//! Convert a association list into a dictionary.
+static Cell list2dict(const varg& args)
+{
+    auto dict = std::make_shared<MapPtr::element_type>();
+
+    for (Cell iter = args.at(0); is_pair(iter); iter = cdr(iter))
+        dict->insert(std::make_pair(caar(iter), cdar(iter)));
+
+    return dict;
 }
 
 } // namespace pscm::primop
@@ -2543,11 +2587,8 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
 
     /* Section extensions - Dictionary as std::map */
     case Intern::op_make_dict:
-        return std::make_shared<MapPtr::element_type>();
-    case Intern::op_dict_ref:
-        return std::get<MapPtr>(args.at(0))->at(args.at(1));
-    case Intern::op_dict_setb:
-        return ((void)(std::get<MapPtr>(args.at(0))->at(args.at(1)) = args.at(2)), none);
+        return primop::make_dict(scm, senv, args);
+        //        return std::make_shared<MapPtr::element_type>();
     case Intern::op_dict_isempty:
         return std::get<MapPtr>(args.at(0))->empty();
     case Intern::op_dict_size:
@@ -2560,10 +2601,14 @@ Cell call(Scheme& scm, const SymenvPtr& senv, Intern primop, const varg& args)
         return ((void)std::get<MapPtr>(args.at(0))->clear(), none);
     case Intern::op_dict_insert:
         return primop::dict_insert(args);
-    case Intern::op_dict_assign:
-        return primop::dict_assign(args);
     case Intern::op_dict_find:
         return primop::dict_find(args);
+    case Intern::op_dict_equal_range:
+        return primop::dict_equal_range(args);
+    case Intern::op_dict2list:
+        return primop::dict2list(scm, args);
+    case Intern::op_list2dict:
+        return primop::list2dict(args);
 
     default:
         throw std::invalid_argument("invalid primary opcode");
@@ -2794,61 +2839,61 @@ void add_environment_defaults(Scheme& scm)
           /* Section 6.9: Bytevectors */
 
           /* Section 6.10: Control features */
-          { scm.symbol("procedure?"), Intern::op_isproc },
-          { scm.symbol("map"), Intern::op_map },
-          { scm.symbol("for-each"), Intern::op_foreach },
-          { scm.symbol("call/cc"), Intern::op_callcc },
+          { scm.symbol("procedure?"),                     Intern::op_isproc },
+          { scm.symbol("map"),                            Intern::op_map },
+          { scm.symbol("for-each"),                       Intern::op_foreach },
+          { scm.symbol("call/cc"),                        Intern::op_callcc },
           { scm.symbol("call-with-current-continuation"), Intern::op_callcc },
-          { scm.symbol("call-with-values"), Intern::op_callwval },
+          { scm.symbol("call-with-values"),               Intern::op_callwval },
 
           /* Section 6.11: Exceptions */
-          { scm.symbol("error"), Intern::op_error },
+          { scm.symbol("error"),                  Intern::op_error },
           { scm.symbol("with-exception-handler"), Intern::op_with_exception },
-          { scm.symbol("exit"), Intern::op_exit },
+          { scm.symbol("exit"),                   Intern::op_exit },
 
           /* Section 6.12: Environments and evaluation */
           { scm.symbol("interaction-environment"), Intern::op_replenv },
-          { scm.symbol("eval"), Intern::op_eval },
-          { scm.symbol("repl"), Intern::op_repl },
-          { scm.symbol("gc"), Intern::op_gc },
-          { scm.symbol("gc-dump"), Intern::op_gcdump },
-          { scm.symbol("macro-expand"), Intern::op_macroexp },
+          { scm.symbol("eval"),                    Intern::op_eval },
+          { scm.symbol("repl"),                    Intern::op_repl },
+          { scm.symbol("gc"),                      Intern::op_gc },
+          { scm.symbol("gc-dump"),                 Intern::op_gcdump },
+          { scm.symbol("macro-expand"),            Intern::op_macroexp },
 
           /* Section 6.13: Input and output */
-          { scm.symbol("port?"), Intern::op_isport },
-          { scm.symbol("input-port?"), Intern::op_isinport },
-          { scm.symbol("output-port?"), Intern::op_isoutport },
-          { scm.symbol("input-port-open?"), Intern::op_isinport_open },
-          { scm.symbol("output-port-open?"), Intern::op_isoutport_open },
-          { scm.symbol("textual-port?"), Intern::op_istxtport },
-          { scm.symbol("binary-port?"), Intern::op_isbinport },
-          { scm.symbol("call-with-input-file"), Intern::op_callw_infile },
+          { scm.symbol("port?"),                 Intern::op_isport },
+          { scm.symbol("input-port?"),           Intern::op_isinport },
+          { scm.symbol("output-port?"),          Intern::op_isoutport },
+          { scm.symbol("input-port-open?"),      Intern::op_isinport_open },
+          { scm.symbol("output-port-open?"),     Intern::op_isoutport_open },
+          { scm.symbol("textual-port?"),         Intern::op_istxtport },
+          { scm.symbol("binary-port?"),          Intern::op_isbinport },
+          { scm.symbol("call-with-input-file"),  Intern::op_callw_infile },
           { scm.symbol("call-with-output-file"), Intern::op_callw_outfile },
-          { scm.symbol("open-input-file"), Intern::op_open_infile },
-          { scm.symbol("open-output-file"), Intern::op_open_outfile },
-          { scm.symbol("close-port"), Intern::op_close_port },
-          { scm.symbol("close-input-port"), Intern::op_close_inport },
-          { scm.symbol("close-output-port"), Intern::op_close_outport },
-          { scm.symbol("eof-object?"), Intern::op_iseof },
-          { scm.symbol("eof-object"), Intern::op_eof },
-          { scm.symbol("flush-output-port"), Intern::op_flush },
-          { scm.symbol("read-line"), Intern::op_readline },
-          { scm.symbol("read-char"), Intern::op_read_char },
-          { scm.symbol("peek-char"), Intern::op_peek_char },
-          { scm.symbol("read-string"), Intern::op_read_str },
-          { scm.symbol("write"), Intern::op_write },
-          { scm.symbol("read"), Intern::op_read },
-          { scm.symbol("display"), Intern::op_display },
-          { scm.symbol("newline"), Intern::op_newline },
-          { scm.symbol("write-char"), Intern::op_write_char },
-          { scm.symbol("write-string"), Intern::op_write_str },
+          { scm.symbol("open-input-file"),       Intern::op_open_infile },
+          { scm.symbol("open-output-file"),      Intern::op_open_outfile },
+          { scm.symbol("close-port"),            Intern::op_close_port },
+          { scm.symbol("close-input-port"),      Intern::op_close_inport },
+          { scm.symbol("close-output-port"),     Intern::op_close_outport },
+          { scm.symbol("eof-object?"),           Intern::op_iseof },
+          { scm.symbol("eof-object"),            Intern::op_eof },
+          { scm.symbol("flush-output-port"),     Intern::op_flush },
+          { scm.symbol("read-line"),             Intern::op_readline },
+          { scm.symbol("read-char"),             Intern::op_read_char },
+          { scm.symbol("peek-char"),             Intern::op_peek_char },
+          { scm.symbol("read-string"),           Intern::op_read_str },
+          { scm.symbol("write"),                 Intern::op_write },
+          { scm.symbol("read"),                  Intern::op_read },
+          { scm.symbol("display"),               Intern::op_display },
+          { scm.symbol("newline"),               Intern::op_newline },
+          { scm.symbol("write-char"),            Intern::op_write_char },
+          { scm.symbol("write-string"),          Intern::op_write_str },
 
           /* Section 6.14: System interface */
           { scm.symbol("load"), Intern::op_load },
 
           /* Extension: regular expressions */
-          { scm.symbol("regex"), Intern::op_regex },
-          { scm.symbol("regex-match"), Intern::op_regex_match },
+          { scm.symbol("regex"),        Intern::op_regex },
+          { scm.symbol("regex-match"),  Intern::op_regex_match },
           { scm.symbol("regex-search"), Intern::op_regex_search },
 
           /* Extension: clock */
@@ -2860,17 +2905,16 @@ void add_environment_defaults(Scheme& scm)
 
           /* Extension: dictionary */
           { scm.symbol("make-dict"),    Intern::op_make_dict},
-          { scm.symbol("dict-ref"),     Intern::op_dict_ref},
-          { scm.symbol("dict-set!"),    Intern::op_dict_setb},
           { scm.symbol("dict-size"),    Intern::op_dict_size},
           { scm.symbol("dict-empty?"),  Intern::op_dict_isempty},
           { scm.symbol("dict-clear"),   Intern::op_dict_clear},
-          { scm.symbol("dict-erase"),   Intern::op_dict_erase},
           { scm.symbol("dict-find"),    Intern::op_dict_find},
           { scm.symbol("dict-count"),   Intern::op_dict_count},
-          { scm.symbol("dict-insert"),  Intern::op_dict_insert},
-          { scm.symbol("dict-assign!"), Intern::op_dict_assign},
-          { scm.symbol("dict-find"),    Intern::op_dict_find},
+          { scm.symbol("dict-range="),  Intern::op_dict_equal_range},
+          { scm.symbol("dict-insert!"), Intern::op_dict_insert},
+          { scm.symbol("dict-erase!"),  Intern::op_dict_erase},
+          { scm.symbol("dict->list"),   Intern::op_dict2list},
+          { scm.symbol("list->dict"),   Intern::op_list2dict},
 
           { scm.symbol("use-count"),    Intern::op_usecount },
           { scm.symbol("hash"),         Intern::op_hash },

@@ -37,7 +37,7 @@ using String      = std::basic_string<Char>;
 using StringPtr   = std::shared_ptr<String>;
 using ClockPtr    = std::shared_ptr<Clock>;
 using RegexPtr    = std::shared_ptr<std::basic_regex<Char>>;
-using MapPtr      = std::shared_ptr<std::map<Cell,Cell,less<Cell>>>;
+using MapPtr      = std::shared_ptr<std::multimap<Cell,Cell,less<Cell>>>;
 using VectorPtr   = std::shared_ptr<std::vector<Cell>>;
 using PortPtr     = std::shared_ptr<Port<Char>>;
 using FunctionPtr = std::shared_ptr<Function>;
@@ -377,16 +377,16 @@ enum class Intern {
 
     /* Section extensions: dictionary */
     op_make_dict,
-    op_dict_ref,
-    op_dict_setb,
     op_dict_isempty,
     op_dict_size,
     op_dict_clear,
     op_dict_erase,
     op_dict_insert,
-    op_dict_assign,
     op_dict_find,
     op_dict_count,
+    op_dict_equal_range,
+    op_dict2list,
+    op_list2dict,
 
     op_usecount,
     op_hash,

@@ -9,6 +9,7 @@
 #include <codecvt>
 #include <locale>
 
+#include <picoscm/cell.hpp>
 #include <picoscm/scheme.hpp>
 #include <picoscm/utils.hpp>
 
@@ -23,6 +24,12 @@ int main(int argn, char* argv[])
     scm.function("greet", [cntr = 0](Scheme& scm, const SymenvPtr&, const std::vector<Cell>&) mutable -> Cell {
         return scm.list(pscm::str("hello world"), pscm::num(cntr++));
     });
+
+    wcout << pscm::apply2(scm, scm.getenv(),
+                 pscm::Intern::op_add, pscm::num(1), pscm::num(2))
+          << endl;
+
+    return 0;
 
     if (argn > 1)
         scm.load(argv[0]);

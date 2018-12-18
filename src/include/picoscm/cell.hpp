@@ -76,28 +76,6 @@ const T&& get(const Cell&& cell)
 }
 
 template <typename Cell>
-struct less {
-    bool operator()(const Cell& lhs, const Cell& rhs) const
-    {
-        // clang-format off
-        static overloads less{
-            [](Bool lhs, Bool rhs)                         -> bool { return lhs < rhs; },
-            [](Char lhs, Char rhs)                         -> bool { return lhs < rhs; },
-            [](Intern lhs, Intern rhs)                     -> bool { return lhs < rhs; },
-            [](Number lhs, Number rhs)                     -> bool { return lhs < rhs; },
-            [](const Symbol& lhs, const Symbol& rhs)       -> bool { return lhs.value() < rhs.value(); },
-            [](const StringPtr& lhs, const StringPtr& rhs) -> bool { return *lhs < *rhs;},
-            [](const ClockPtr& lhs, const ClockPtr& rhs)   -> bool { return lhs->toc() < rhs->toc();},
-            [](auto&, auto&)                               -> bool { throw std::invalid_argument("undefined < comparision operator"); },
-        }; // clang-format on
-
-        return std::visit(less,
-            static_cast<const typename Cell::base_type&>(lhs),
-            static_cast<const typename Cell::base_type&>(rhs));
-    }
-};
-
-template <typename Cell>
 struct hash {
     using argument_type = Cell;
     using result_type = std::size_t;
@@ -272,6 +250,56 @@ RegexPtr regex(const StringT& str)
     regex::flag_type flags = regex::ECMAScript | regex::icase;
     return std::make_shared<RegexPtr::element_type>(string_convert<Char>(str), flags);
 }
+
+template <typename Scheme, typename Symenv, typename... Args>
+Cell apply2(Scheme& scm, const Symenv& env, const Cell& proc, Args&&... args)
+{
+    Cons lst[3], arg[2];
+    std::vector<Cons> vec;
+
+    Cell expr = pscm::list(lst, Intern::_apply, proc,
+        pscm::list(arg, Intern::_quote, pscm::list(vec, std::forward<Args>(args)...)));
+    //    std::wcout << expr << std::endl;
+    return scm.eval(env, expr);
+}
+
+template <typename Cell>
+struct less {
+
+    template <typename Scheme, typename Symenv>
+    less(Scheme& scm, const Symenv& env, const Cell& comp)
+        : compare{ [&scm, env, comp](const Cell& lhs, const Cell& rhs) -> bool {
+            Cons cns[5];
+            return !is_false(scm.eval(env, list(cns, Intern::_apply, comp, lhs, rhs, nil)));
+        } }
+    {
+    }
+
+    less()
+    {
+        // clang-format off
+        static overloads comp{
+            [](Bool lhs, Bool rhs)                         -> bool { return lhs < rhs; },
+            [](Char lhs, Char rhs)                         -> bool { return lhs < rhs; },
+            [](Intern lhs, Intern rhs)                     -> bool { return lhs < rhs; },
+            [](Number lhs, Number rhs)                     -> bool { return lhs < rhs; },
+            [](const Symbol& lhs, const Symbol& rhs)       -> bool { return lhs.value() < rhs.value(); },
+            [](const StringPtr& lhs, const StringPtr& rhs) -> bool { return *lhs < *rhs;},
+            [](const ClockPtr& lhs, const ClockPtr& rhs)   -> bool { return lhs->toc() < rhs->toc();},
+            [](auto&, auto&)                               -> bool { throw std::invalid_argument("undefined < comparision operator"); },
+        }; // clang-format on
+
+        compare = [](const Cell& lhs, const Cell& rhs) -> bool {
+            return std::visit(comp,
+                static_cast<const typename Cell::base_type&>(lhs),
+                static_cast<const typename Cell::base_type&>(rhs));
+        };
+    }
+    bool operator()(const Cell& lhs, const Cell& rhs) const { return compare(lhs, rhs); }
+
+private:
+    std::function<bool(const Cell&, const Cell&)> compare;
+};
 
 //! Exception class to throw an invalid cell variant access error with
 //! descriptive error message.
