@@ -54,7 +54,8 @@ public:
     Cons* cons(CAR&& car, CDR&& cdr)
     {
         if (store_size + dflt_gccycle_count < store.size()) {
-            gc.collect(*this, topenv);
+            std::wcerr << "Garbage collector cycle" << std::endl;
+            //gc.collect(*this, topenv);
             store_size = store.size();
         }
         return pscm::cons(store, std::forward<CAR>(car), std::forward<CDR>(cdr));

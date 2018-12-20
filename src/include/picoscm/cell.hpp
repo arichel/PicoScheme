@@ -205,6 +205,8 @@ Cell list(Store&) { return nil; }
 template <size_t size, typename T, typename... Args>
 Cons* list(Cons (&cons)[size], T&& t, Args&&... args)
 {
+    static_assert(size > sizeof...(args), "invalid cons array size");
+
     get<0>(cons[0]) = std::forward<T>(t);
 
     if constexpr (size > 1) {
@@ -219,14 +221,6 @@ Cons* list(Cons (&cons)[size], T&& t, Args&&... args)
 //! Recursion base case, if list is shorter then the array size.
 template <size_t size>
 Nil list(Cons (&)[size]) { return nil; }
-
-//! Error condition if list is longer then the array size.
-template <typename T1, typename T2, typename... Args>
-Nil list(Cons (&)[1], T1&&, T2&&, Args&&...)
-{
-    throw std::invalid_argument("invalid cons array size");
-    return nil;
-}
 
 //! Create a new scheme string and initialize it with a copy of the argument string.
 template <typename StringT>
@@ -251,30 +245,23 @@ RegexPtr regex(const StringT& str)
     return std::make_shared<RegexPtr::element_type>(string_convert<Char>(str), flags);
 }
 
-template <typename Scheme, typename Symenv, typename... Args>
-Cell apply2(Scheme& scm, const Symenv& env, const Cell& proc, Args&&... args)
+template <typename Scheme, typename Symenv, typename T, typename... Args>
+Cell apply(Scheme& scm, const Symenv& env, T&& proc, Args&&... args)
 {
-    Cons lst[3], arg[2];
-    std::vector<Cons> vec;
-
-    Cell expr = pscm::list(lst, Intern::_apply, proc,
-        pscm::list(arg, Intern::_quote, pscm::list(vec, std::forward<Args>(args)...)));
-    //    std::wcout << expr << std::endl;
-    return scm.eval(env, expr);
+    Cons exp[3], lst[2], arg[sizeof...(args) + 1];
+    Cell arg_list = pscm::list(lst, Intern::_quote, pscm::list(arg, std::forward<Args>(args)...));
+    return scm.eval(env, pscm::list(exp, Intern::_apply, std::forward<T>(proc), arg_list));
 }
 
 template <typename Cell>
 struct less {
-
     template <typename Scheme, typename Symenv>
     less(Scheme& scm, const Symenv& env, const Cell& comp)
-        : compare{ [&scm, env, comp](const Cell& lhs, const Cell& rhs) -> bool {
-            Cons cns[5];
-            return !is_false(scm.eval(env, list(cns, Intern::_apply, comp, lhs, rhs, nil)));
-        } }
     {
+        compare = [&scm, env, comp](const Cell& lhs, const Cell& rhs) -> bool {
+            return !is_false(apply(scm, env, comp, lhs, rhs));
+        };
     }
-
     less()
     {
         // clang-format off

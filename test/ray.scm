@@ -2,12 +2,11 @@
 (define eye (make-point 0.0 0.0 200.0))
 (define *world* '())
 
-(define (point-x p)        (vector-ref p 0))
-(define (point-y p)        (vector-ref p 1))
-(define (point-z p)        (vector-ref p 2))
-(define (sq x)             (* x x))
-(define (mag x y z)        (sqrt (+ (sq x) (sq y) (sq z))))
-
+(define (point-x p)(vector-ref p 0))
+(define (point-y p)(vector-ref p 1))
+(define (point-z p)(vector-ref p 2))
+(define (sq x)     (* x x))
+(define (mag x y z)(sqrt (+ (sq x) (sq y) (sq z))))
 
 (define (unit-vector x y z)
   (let ((d (mag x y z)))
@@ -123,7 +122,8 @@
         (display " 255" p)
         (newline        p)
 
-        (do ((y 0 (+ y 1)))
+        (do ((y 0 (+ y 1))
+             (c (clock)))
             ((= y extent))
 
           (do ((x 0 (+ x 1)))
@@ -133,7 +133,9 @@
                      (+ -50.0 (/ (exact->inexact x) (exact->inexact res)))
                      (+ -50.0 (/ (exact->inexact y) (exact->inexact res)))) p)
 
-            (newline p)))))))
+            (newline p))
+
+          (display c)(newline))))))
 
 (define (ray-test res)
   (set! *world* '())
@@ -150,5 +152,6 @@
       (defsphere (* x 200.0) 300.0 (* z -400.0) 40.0 0.75)))
 
   (tracer "spheres.pgm" res))
+
 
 (ray-test 1)

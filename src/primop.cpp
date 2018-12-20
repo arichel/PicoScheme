@@ -429,19 +429,49 @@ static Cell is_proc(const varg& args)
 static Cell apply(Scheme& scm, const SymenvPtr& senv, const Cell& proc, const varg& args = varg{})
 {
     if (pscm::is_proc(proc)) {
-        Cons arg[2], cns[4];
-        Cell argv = pscm::list(arg, Intern::_quote, nil);
-        Cell expr = pscm::list(cns, Intern::_apply, proc, argv, nil);
+        switch (args.size()) {
+        case 0:
+            return pscm::apply(scm, senv, proc);
+            break;
+        case 1:
+            return pscm::apply(scm, senv, proc, args.front());
+            break;
+        case 2:
+            return pscm::apply(scm, senv, proc, args[0], args[1]);
+            break;
+        case 3:
+            return pscm::apply(scm, senv, proc, args[0], args[1], args[2]);
+            break;
+        case 4:
+            return pscm::apply(scm, senv, proc, args[0], args[1], args[2], args[3]);
+            break;
+        case 5:
+            return pscm::apply(scm, senv, proc, args[0], args[1], args[2], args[3], args[4]);
+            break;
+        case 6:
+            return pscm::apply(scm, senv, proc, args[0], args[1], args[2], args[3], args[4], args[5]);
+            break;
+        case 7:
+            return pscm::apply(scm, senv, proc, args[0], args[1], args[2], args[3], args[4], args[5],
+                args[6]);
+            break;
+        case 8:
+            return pscm::apply(scm, senv, proc, args[0], args[1], args[2], args[3], args[4], args[5],
+                args[6], args[7]);
+            break;
+        case 9:
+            return pscm::apply(scm, senv, proc, args[0], args[1], args[2], args[3], args[4], args[5],
+                args[6], args[7], args[8]);
+            break;
+        case 10:
+            return pscm::apply(scm, senv, proc, args[0], args[1], args[2], args[3], args[4], args[5],
+                args[6], args[7], args[8], args[9]);
+            break;
+        default:
+            Cons arg[2], cns[4];
+            Cell argv = pscm::list(arg, Intern::_quote, nil);
+            Cell expr = pscm::list(cns, Intern::_apply, proc, argv, nil);
 
-        if (args.empty()) {
-            set_cdr(cddr(expr), nil); // terminate expr-list after proc
-            return scm.eval(senv, expr);
-
-        } else if (args.size() == 1) {
-            set_car(cdr(argv), args.front());
-            return scm.eval(senv, expr);
-
-        } else {
             std::vector<Cons> vec;
             vec.reserve(args.size());
             Cell head = cons(vec, args.front(), nil), tail = head;
@@ -469,7 +499,7 @@ static Cell apply(Scheme& scm, const SymenvPtr& senv, const varg& args)
     for (Cell list = args.back(); is_pair(list); list = cdr(list))
         arg.push_back(car(list));
 
-    return apply(scm, senv, args.at(0), arg);
+    return primop::apply(scm, senv, args.at(0), arg);
 }
 
 static Cell vec2list(Scheme& scm, const varg& args);
@@ -497,7 +527,7 @@ static Cell callcc(Scheme& scm, const SymenvPtr& senv, const varg& args)
     };
 
     try {
-        return primop::apply(scm, senv, args.at(0), varg{ scm.function(senv, std::move(lambda)) });
+        return pscm::apply(scm, senv, args.at(0), scm.function(senv, std::move(lambda)));
     } catch (const continuation_exception& e) {
         return e.continuation;
     }
@@ -641,6 +671,8 @@ static Cell memq(const SymenvPtr&, const varg& args)
 
 /**
  * Scheme list @em member function.
+ *
+ * (member obj list [compare])
  */
 static Cell member(Scheme scm, const SymenvPtr& senv, const varg& args)
 {
@@ -648,14 +680,11 @@ static Cell member(Scheme scm, const SymenvPtr& senv, const varg& args)
     const Cell& obj = args.front();
 
     if (args.size() > 2) {
-        const Cell& proc = args[2];
-        varg argv = { obj, none };
+        const Cell& compare = args[2];
 
-        for (; is_pair(list); list = cdr(list)) {
-            argv.back() = car(list);
-            if (is_true(apply(scm, senv, proc, argv)))
+        for (; is_pair(list); list = cdr(list))
+            if (is_true(pscm::apply(scm, senv, compare, obj, car(list))))
                 return list;
-        }
 
     } else
         for (; is_pair(list); list = cdr(list))
@@ -700,14 +729,11 @@ static Cell assoc(Scheme& scm, const SymenvPtr& senv, const varg& args)
 
     if (args.size() > 2) {
         const Cell& proc = args[2];
-        varg argv = { obj, none };
-
         for (; is_pair(list); list = cdr(list)) {
             if (is_pair(car(list)))
                 break;
 
-            argv.back() = caar(list);
-            if (is_true(apply(scm, senv, proc, argv)))
+            if (is_true(pscm::apply(scm, senv, proc, obj, caar(list))))
                 return car(list);
         }
 
@@ -1885,12 +1911,10 @@ static Cell for_each(Scheme& scm, const SymenvPtr& senv, const varg& args)
 
     if (args.size() <= 2) // single list version:
     {
-        varg argv{ 1 };
-        for (Cell list = args.at(1); is_pair(list); list = cdr(list)) {
-            argv[0] = car(list);
-            apply(scm, senv, proc, argv);
-        }
+        for (Cell list = args.at(1); is_pair(list); list = cdr(list))
+            pscm::apply(scm, senv, proc, car(list));
         return none;
+
     } else { // multiple list version:
         std::vector<Cell> lists{ args.begin() + 1, args.end() };
 
@@ -1905,7 +1929,7 @@ static Cell for_each(Scheme& scm, const SymenvPtr& senv, const varg& args)
                 } else
                     return none;
 
-            apply(scm, senv, proc, argv);
+            primop::apply(scm, senv, proc, argv);
             argv.clear();
         }
     }
@@ -1924,13 +1948,11 @@ static Cell map(Scheme& scm, const SymenvPtr& senv, const varg& args)
         if (is_nil(list))
             return nil;
 
-        varg argv{ 1, car(list) };
-        Cell head = scm.cons(apply(scm, senv, proc, argv), nil), tail = head;
+        Cell head = scm.cons(pscm::apply(scm, senv, proc, car(list)), nil), tail = head;
 
-        for (list = cdr(list); is_pair(list); list = cdr(list), tail = cdr(tail)) {
-            argv[0] = car(list);
-            set_cdr(tail, scm.cons(apply(scm, senv, proc, argv), nil));
-        }
+        for (list = cdr(list); is_pair(list); list = cdr(list), tail = cdr(tail))
+            set_cdr(tail, scm.cons(pscm::apply(scm, senv, proc, car(list)), nil));
+
         return head;
 
     } else { // multiple list version:
@@ -1949,10 +1971,10 @@ static Cell map(Scheme& scm, const SymenvPtr& senv, const varg& args)
                     return head;
 
             if (is_pair(head)) {
-                set_cdr(tail, scm.cons(apply(scm, senv, proc, argv), nil));
+                set_cdr(tail, scm.cons(primop::apply(scm, senv, proc, argv), nil));
                 tail = cdr(tail);
             } else
-                head = tail = scm.cons(apply(scm, senv, proc, argv), nil);
+                head = tail = scm.cons(primop::apply(scm, senv, proc, argv), nil);
             argv.clear();
         }
     }

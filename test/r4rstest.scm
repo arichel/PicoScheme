@@ -82,7 +82,6 @@
               (write x)
               (newline))  disjoint-type-functions))
 
-
 (define type-matrix
   (map (lambda (x)
          (let ((t (map (lambda (f) (f x)) disjoint-type-functions)))
@@ -750,7 +749,7 @@
   (test f4.0 round f3.5)
   (test f4.0 round f4.5)
 
-    ;;TODO
+  ;;TODO
   (test f1.0 expt f0.0 f0.0)
   (test f1.0 expt f0.0 0)
   (test f1.0 expt 0    f0.0)
@@ -965,7 +964,6 @@
     (test #t < (- (inexact->exact big-inex) 1)
           big-inex
           (+ (inexact->exact big-inex) 1))))
-
 
 ;;Todo
 ;; (let ((have-inexacts? (and (string->number "0.0") (inexact? (string->number "0.0"))))
@@ -1405,7 +1403,6 @@
 (close-input-port this-file)
 (close-input-port this-file)
 
-
 (SECTION 6 10 3)
 (define write-test-obj
   '(#t #f a () 9739 -3 . #((test) "te \" \" st" "" test #() b c)))
@@ -1466,4 +1463,5 @@
 (newline)
 (display "(test-cont) (test-sc4) (test-delay)")
 (newline)
-"last item in file"
+
+;; todo test with gc enabled

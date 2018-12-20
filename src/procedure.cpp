@@ -156,16 +156,4 @@ Cell Procedure::expand(Scheme& scm, Cell& expr) const
     return args;
 }
 
-//Function::Function(const Symbol& sym, const function_type& fun)
-//    : function_type{ fun }
-//    , sym{ sym }
-//{
-//}
-
-//Function::Function(const Symbol& sym, function_type&& fun)
-//    : function_type{ std::move(fun) }
-//    , sym{ sym }
-//{
-//}
-
 } // namespace pscm

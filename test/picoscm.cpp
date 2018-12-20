@@ -10,6 +10,7 @@
 #include <locale>
 
 #include <picoscm/cell.hpp>
+#include <picoscm/parser.hpp>
 #include <picoscm/scheme.hpp>
 #include <picoscm/utils.hpp>
 
@@ -25,12 +26,6 @@ int main(int argn, char* argv[])
         return scm.list(pscm::str("hello world"), pscm::num(cntr++));
     });
 
-    wcout << pscm::apply2(scm, scm.getenv(),
-                 pscm::Intern::op_add, pscm::num(1), pscm::num(2))
-          << endl;
-
-    return 0;
-
     if (argn > 1)
         scm.load(argv[0]);
     else
@@ -39,32 +34,28 @@ int main(int argn, char* argv[])
     scm.repl();
     return 0;
 
-    //    try {
-    //        pscm::SymenvPtr env = scm.mkenv();
+    try {
+        pscm::SymenvPtr env = scm.getenv();
 
-    //        // (for-each (lambda (x) x) (quote (1 2 3 4)))
-    //        Cell expr = scm.list(Intern::op_foreach,
-    //            scm.list(Intern::_lambda, scm.list(scm.mksym(L"x")), scm.mksym(L"x")),
-    //            scm.list(Intern::_quote, scm.list(pscm::mknum(1), pscm::mknum(2))));
+        //        // (for-each (lambda (x) x) (quote (1 2 3 4)))
+        //        Cell expr = scm.list(Intern::op_foreach,
+        //            scm.list(Intern::_lambda, scm.list(scm.mksym(L"x")), scm.mksym(L"x")),
+        //            scm.list(Intern::_quote, scm.list(pscm::mknum(1), pscm::mknum(2))));
 
-    //        //        pscm::Parser parser(scm);
-    //        //        std::istringstream stream("(define (hello x)  "
-    //        //                                  "   (display x)     "
-    //        //                                  "   (newline))      "
-    //        //                                  "                   "
-    //        //                                  "(define n 43)      "
-    //        //                                  "(hello n)          ");
-    //        //        Cell expr = parser.read(stream);
+        pscm::Parser parser(scm);
+        std::wistringstream stream(L"(map car '((1 . 2) (10 . 20) (100 . 200))))");
+        Cell expr = parser.read(stream);
 
-    //        Cell proc = scm.eval(env, expr);
-    //        wcout << proc << endl;
-    //        return 0;
+        wcout << expr << endl;
+        Cell proc = scm.eval(env, expr);
+        wcout << proc << endl;
+        return 0;
 
-    //    } catch (std::bad_variant_access& e) {
-    //        cout << e.what() << endl;
+    } catch (std::bad_variant_access& e) {
+        cout << e.what() << endl;
 
-    //    } catch (std::invalid_argument& e) {
-    //        cout << e.what() << endl;
-    //    }
-    //    return 0;
+    } catch (std::invalid_argument& e) {
+        cout << e.what() << endl;
+    }
+    return 0;
 }

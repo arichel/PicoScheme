@@ -62,9 +62,7 @@ constexpr bool overflow_sub(Int a, Int b)
     return (b > 0 && a < min + b) || (b < 0 && a > max + b);
 }
 
-/**
- * @brief Predicate function to test wheter the argument numbers aren't equal.
- */
+//! Predicate function to test wheter the argument numbers aren't equal.
 bool operator!=(const Number& lhs, const Number& rhs)
 {
     using value_type = Complex::value_type;
@@ -79,14 +77,8 @@ bool operator!=(const Number& lhs, const Number& rhs)
         [](Float x, const Complex& z) -> bool {
             return z != Complex{ static_cast<value_type>(x), 0 };
         },
-        [](Float x, Float y) -> bool {
+        [](auto x, auto y) -> bool {
             return x != y;
-        },
-        [](Int x, Int y) -> bool {
-            return x != y;
-        },
-        [](auto, auto) -> bool {
-            return true;
         }
     };
     return visit(fun,
@@ -626,7 +618,7 @@ Number pow(const Number& x, const Number& y)
                           max = std::numeric_limits<Int>::max();
 
             auto res = std::pow(static_cast<Float>(x), static_cast<Float>(y));
-            if (res < min || res > max)
+            if (y < 0 || res < min || res > max)
                 return res;
             return static_cast<Int>(res);
         },

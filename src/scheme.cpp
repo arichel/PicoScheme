@@ -356,7 +356,7 @@ Cell Scheme::eval(SymenvPtr env, Cell expr)
                     expr = syntax_begin(env, args);
                 }
                 break;
-            } else
+            } else // proc is either an opcode or function pointer:
                 return apply(env, proc, eval_args(env, cdr(args), false));
 
         case Intern::_begin:
